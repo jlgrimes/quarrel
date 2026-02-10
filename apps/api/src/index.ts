@@ -26,8 +26,8 @@ app.use(
       "http://localhost:3000",
       "https://quarrel.app",
       "https://www.quarrel.app",
-      "capacitor-electron://localhost",
-      "capacitor://localhost",
+      "tauri://localhost",
+      "https://tauri.localhost",
     ],
     credentials: true,
   })

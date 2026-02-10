@@ -1,0 +1,22 @@
+{
+  "productName": "Quarrel",
+  "version": "0.1.0",
+  "identifier": "app.quarrel.desktop",
+  "build": {
+    "frontendDist": "../../web/dist",
+    "devUrl": "http://localhost:5173",
+    "beforeDevCommand": "cd ../web && bun run dev",
+    "beforeBuildCommand": "cd ../web && VITE_API_URL=https://quarrel.app/api VITE_WS_URL=wss://quarrel.app/ws npx vite build"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Quarrel",
+        "width": 1200,
+        "height": 800,
+        "minWidth": 800,
+        "minHeight": 600
+      }
+    ]
+  }
+}
