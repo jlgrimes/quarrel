@@ -79,6 +79,40 @@ describe('useAckChannel', () => {
     });
   });
 
+  it('no-ops when channels cache is empty, works on re-ack after cache loads', async () => {
+    // Simulate the race condition: ack fires before channels query completes
+    mockAckChannel.mockResolvedValue({ success: true, lastReadMessageId: 'msg-1' });
+
+    const { result } = renderHook(() => useAckChannel(), { wrapper });
+
+    // Ack fires but no channels are in the cache
+    act(() => {
+      result.current.mutate('ch-1');
+    });
+
+    await waitFor(() => expect(mockAckChannel).toHaveBeenCalledWith('ch-1'));
+
+    // Cache is still empty — the onSuccess update was a no-op
+    expect(queryClient.getQueryData(['channels', 'server-1'])).toBeUndefined();
+
+    // Now channels load (simulating the query completing after the ack)
+    queryClient.setQueryData(['channels', 'server-1'], [
+      { id: 'ch-1', name: 'general', unreadCount: 5, lastReadMessageId: 'old-msg' },
+    ]);
+
+    // A second ack (triggered by ChatArea when channel data is available) succeeds
+    act(() => {
+      result.current.mutate('ch-1');
+    });
+
+    await waitFor(() => {
+      const channels = queryClient.getQueryData<any[]>(['channels', 'server-1']);
+      const ch1 = channels!.find((c: any) => c.id === 'ch-1');
+      expect(ch1.unreadCount).toBe(0);
+      expect(ch1.lastReadMessageId).toBe('msg-1');
+    });
+  });
+
   it('finds channel across multiple server caches', async () => {
     queryClient.setQueryData(['channels', 'server-1'], [
       { id: 'ch-a', name: 'a', unreadCount: 0, lastReadMessageId: null },

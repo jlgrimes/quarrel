@@ -1,6 +1,7 @@
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import { useChannels } from '../../hooks/useChannels';
 import { useMembers } from '../../hooks/useMembers';
+import { useAckChannel } from '../../hooks/useReadState';
 import { useUIStore } from '../../stores/uiStore';
 import { MessageList } from './MessageList';
 import { MessageInput } from './MessageInput';
@@ -12,6 +13,16 @@ export function ChatArea({ channelId, serverId }: { channelId: string; serverId:
   const { data: channels = [] } = useChannels(serverId);
   const { data: members } = useMembers(serverId);
   const channel = useMemo(() => channels.find((c) => c.id === channelId), [channels, channelId]);
+  const ackChannel = useAckChannel();
+  const channelLoaded = !!channel;
+
+  // Auto-ack when channel data is available (ensures cache is populated for the update)
+  useEffect(() => {
+    if (channelId && channelLoaded) {
+      ackChannel.mutate(channelId);
+    }
+  }, [channelId, channelLoaded]);
+
   const toggleMemberList = useUIStore((s) => s.toggleMemberList);
   const showMemberList = useUIStore((s) => s.showMemberList);
   const togglePins = useUIStore((s) => s.togglePins);
