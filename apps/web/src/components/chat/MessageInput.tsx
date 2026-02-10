@@ -1,7 +1,10 @@
 import { useRef, useState, useCallback } from 'react';
+import type { Message } from '@quarrel/shared';
 import { useMessageStore } from '../../stores/messageStore';
 import { useUIStore } from '../../stores/uiStore';
 import { wsClient } from '../../lib/ws';
+
+const EMPTY_MESSAGES: Message[] = [];
 
 export function MessageInput({ channelId, channelName }: { channelId: string; channelName: string }) {
   const [content, setContent] = useState('');
@@ -9,7 +12,7 @@ export function MessageInput({ channelId, channelName }: { channelId: string; ch
   const sendMessage = useMessageStore((s) => s.sendMessage);
   const replyingTo = useUIStore((s) => s.replyingTo);
   const setReplyingTo = useUIStore((s) => s.setReplyingTo);
-  const messages = useMessageStore((s) => s.messages[channelId] || []);
+  const messages = useMessageStore((s) => s.messages[channelId] ?? EMPTY_MESSAGES);
   const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const replyMessage = replyingTo ? messages.find((m) => m.id === replyingTo) : null;
