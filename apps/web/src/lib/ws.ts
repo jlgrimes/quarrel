@@ -7,8 +7,13 @@ class WebSocketClient {
   private reconnectDelay = 1000;
 
   connect() {
-    const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-    this.ws = new WebSocket(`${protocol}//${location.host}/ws`);
+    const wsUrl = import.meta.env.VITE_WS_URL;
+    if (wsUrl) {
+      this.ws = new WebSocket(wsUrl);
+    } else {
+      const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+      this.ws = new WebSocket(`${protocol}//${location.host}/ws`);
+    }
 
     this.ws.onopen = () => {
       this.reconnectDelay = 1000;
