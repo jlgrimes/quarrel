@@ -60,7 +60,7 @@ authRoutes.post("/register", async (c) => {
   setCookie(c, "session", sessionId, {
     httpOnly: true,
     secure: true,
-    sameSite: "Lax",
+    sameSite: "None",
     path: "/",
     maxAge: 30 * 24 * 60 * 60,
   });
@@ -105,7 +105,7 @@ authRoutes.post("/login", async (c) => {
   setCookie(c, "session", sessionId, {
     httpOnly: true,
     secure: true,
-    sameSite: "Lax",
+    sameSite: "None",
     path: "/",
     maxAge: 30 * 24 * 60 * 60,
   });
