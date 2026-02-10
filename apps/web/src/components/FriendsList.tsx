@@ -44,6 +44,7 @@ export default function FriendsList() {
 
   const handleRemove = (id: string) => {
     removeFriend.mutate(id);
+    analytics.capture('friend:removed');
   };
 
   const tabs: { label: string; value: Tab }[] = [

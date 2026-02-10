@@ -19,8 +19,8 @@ beforeEach(async () => {
   await clearDatabase();
 });
 
-describe("POST /friends/:userId", () => {
-  test("sends friend request", async () => {
+describe("POST /friends/:username", () => {
+  test("sends friend request by username", async () => {
     const { token: aliceToken } = await createTestUser(
       app,
       "alice",
@@ -32,7 +32,7 @@ describe("POST /friends/:userId", () => {
       "bob@example.com"
     );
 
-    const res = await app.request(`/friends/${bob.id}`, {
+    const res = await app.request(`/friends/bob`, {
       method: "POST",
       headers: getAuthHeaders(aliceToken),
     });
@@ -43,15 +43,60 @@ describe("POST /friends/:userId", () => {
     expect(data.friend.friendId).toBe(bob.id);
   });
 
-  test("rejects self-friend", async () => {
-    const { token, user } = await createTestUser(app);
-    const res = await app.request(`/friends/${user.id}`, {
+  test("returns 404 for non-existent username", async () => {
+    const { token } = await createTestUser(app, "alice", "alice@example.com");
+
+    const res = await app.request(`/friends/nobody`, {
+      method: "POST",
+      headers: getAuthHeaders(token),
+    });
+    expect(res.status).toBe(404);
+    const data = (await res.json()) as any;
+    expect(data.error).toContain("User not found");
+  });
+
+  test("rejects self-friend by username", async () => {
+    const { token } = await createTestUser(app, "alice", "alice@example.com");
+
+    const res = await app.request(`/friends/alice`, {
       method: "POST",
       headers: getAuthHeaders(token),
     });
     expect(res.status).toBe(400);
     const data = (await res.json()) as any;
     expect(data.error).toContain("yourself");
+  });
+
+  test("rejects duplicate friend request", async () => {
+    const { token: aliceToken } = await createTestUser(
+      app,
+      "alice",
+      "alice@example.com"
+    );
+    await createTestUser(app, "bob", "bob@example.com");
+
+    // First request should succeed
+    const res1 = await app.request(`/friends/bob`, {
+      method: "POST",
+      headers: getAuthHeaders(aliceToken),
+    });
+    expect(res1.status).toBe(201);
+
+    // Second request should be rejected
+    const res2 = await app.request(`/friends/bob`, {
+      method: "POST",
+      headers: getAuthHeaders(aliceToken),
+    });
+    expect(res2.status).toBe(409);
+    const data = (await res2.json()) as any;
+    expect(data.error).toContain("already exists");
+  });
+
+  test("returns 401 without auth", async () => {
+    const res = await app.request(`/friends/bob`, {
+      method: "POST",
+    });
+    expect(res.status).toBe(401);
   });
 });
 
@@ -62,14 +107,14 @@ describe("PATCH /friends/:id/accept", () => {
       "alice",
       "alice@example.com"
     );
-    const { token: bobToken, user: bob } = await createTestUser(
+    const { token: bobToken } = await createTestUser(
       app,
       "bob",
       "bob@example.com"
     );
 
     // Alice sends request to Bob
-    const sendRes = await app.request(`/friends/${bob.id}`, {
+    const sendRes = await app.request(`/friends/bob`, {
       method: "POST",
       headers: getAuthHeaders(aliceToken),
     });
@@ -84,6 +129,79 @@ describe("PATCH /friends/:id/accept", () => {
     const data = (await res.json()) as any;
     expect(data.friend.status).toBe("accepted");
   });
+
+  test("rejects accept from non-recipient", async () => {
+    const { token: aliceToken } = await createTestUser(
+      app,
+      "alice",
+      "alice@example.com"
+    );
+    const { token: bobToken } = await createTestUser(
+      app,
+      "bob",
+      "bob@example.com"
+    );
+
+    // Alice sends request to Bob
+    const sendRes = await app.request(`/friends/bob`, {
+      method: "POST",
+      headers: getAuthHeaders(aliceToken),
+    });
+    const { friend } = (await sendRes.json()) as any;
+
+    // Alice tries to accept her own request — should fail
+    const res = await app.request(`/friends/${friend.id}/accept`, {
+      method: "PATCH",
+      headers: getAuthHeaders(aliceToken),
+    });
+    expect(res.status).toBe(403);
+    const data = (await res.json()) as any;
+    expect(data.error).toContain("sent to you");
+  });
+
+  test("rejects accept of non-existent request", async () => {
+    const { token } = await createTestUser(app, "alice", "alice@example.com");
+
+    const res = await app.request(`/friends/fake-id/accept`, {
+      method: "PATCH",
+      headers: getAuthHeaders(token),
+    });
+    expect(res.status).toBe(404);
+  });
+
+  test("rejects accept of already accepted request", async () => {
+    const { token: aliceToken } = await createTestUser(
+      app,
+      "alice",
+      "alice@example.com"
+    );
+    const { token: bobToken } = await createTestUser(
+      app,
+      "bob",
+      "bob@example.com"
+    );
+
+    // Alice sends, Bob accepts
+    const sendRes = await app.request(`/friends/bob`, {
+      method: "POST",
+      headers: getAuthHeaders(aliceToken),
+    });
+    const { friend } = (await sendRes.json()) as any;
+
+    await app.request(`/friends/${friend.id}/accept`, {
+      method: "PATCH",
+      headers: getAuthHeaders(bobToken),
+    });
+
+    // Bob tries to accept again
+    const res = await app.request(`/friends/${friend.id}/accept`, {
+      method: "PATCH",
+      headers: getAuthHeaders(bobToken),
+    });
+    expect(res.status).toBe(400);
+    const data = (await res.json()) as any;
+    expect(data.error).toContain("not pending");
+  });
 });
 
 describe("DELETE /friends/:id", () => {
@@ -93,14 +211,10 @@ describe("DELETE /friends/:id", () => {
       "alice",
       "alice@example.com"
     );
-    const { token: bobToken, user: bob } = await createTestUser(
-      app,
-      "bob",
-      "bob@example.com"
-    );
+    await createTestUser(app, "bob", "bob@example.com");
 
     // Alice sends request to Bob
-    const sendRes = await app.request(`/friends/${bob.id}`, {
+    const sendRes = await app.request(`/friends/bob`, {
       method: "POST",
       headers: getAuthHeaders(aliceToken),
     });
@@ -122,32 +236,89 @@ describe("DELETE /friends/:id", () => {
     const listData = (await listRes.json()) as any;
     expect(listData.friends.length).toBe(0);
   });
-});
 
-describe("GET /friends", () => {
-  test("lists all friends", async () => {
-    const { token: aliceToken, user: alice } = await createTestUser(
+  test("recipient can also remove", async () => {
+    const { token: aliceToken } = await createTestUser(
       app,
       "alice",
       "alice@example.com"
     );
-    const { user: bob } = await createTestUser(
+    const { token: bobToken } = await createTestUser(
       app,
       "bob",
       "bob@example.com"
     );
-    const { user: carol } = await createTestUser(
+
+    const sendRes = await app.request(`/friends/bob`, {
+      method: "POST",
+      headers: getAuthHeaders(aliceToken),
+    });
+    const { friend } = (await sendRes.json()) as any;
+
+    // Bob removes Alice's request
+    const res = await app.request(`/friends/${friend.id}`, {
+      method: "DELETE",
+      headers: getAuthHeaders(bobToken),
+    });
+    expect(res.status).toBe(200);
+  });
+
+  test("third party cannot remove", async () => {
+    const { token: aliceToken } = await createTestUser(
+      app,
+      "alice",
+      "alice@example.com"
+    );
+    await createTestUser(app, "bob", "bob@example.com");
+    const { token: carolToken } = await createTestUser(
       app,
       "carol",
       "carol@example.com"
     );
 
-    // Alice sends requests to Bob and Carol
-    await app.request(`/friends/${bob.id}`, {
+    const sendRes = await app.request(`/friends/bob`, {
       method: "POST",
       headers: getAuthHeaders(aliceToken),
     });
-    await app.request(`/friends/${carol.id}`, {
+    const { friend } = (await sendRes.json()) as any;
+
+    // Carol tries to remove Alice→Bob request
+    const res = await app.request(`/friends/${friend.id}`, {
+      method: "DELETE",
+      headers: getAuthHeaders(carolToken),
+    });
+    expect(res.status).toBe(403);
+    const data = (await res.json()) as any;
+    expect(data.error).toContain("Not your");
+  });
+
+  test("returns 404 for non-existent request", async () => {
+    const { token } = await createTestUser(app, "alice", "alice@example.com");
+
+    const res = await app.request(`/friends/fake-id`, {
+      method: "DELETE",
+      headers: getAuthHeaders(token),
+    });
+    expect(res.status).toBe(404);
+  });
+});
+
+describe("GET /friends", () => {
+  test("lists all friends", async () => {
+    const { token: aliceToken } = await createTestUser(
+      app,
+      "alice",
+      "alice@example.com"
+    );
+    await createTestUser(app, "bob", "bob@example.com");
+    await createTestUser(app, "carol", "carol@example.com");
+
+    // Alice sends requests to Bob and Carol
+    await app.request(`/friends/bob`, {
+      method: "POST",
+      headers: getAuthHeaders(aliceToken),
+    });
+    await app.request(`/friends/carol`, {
       method: "POST",
       headers: getAuthHeaders(aliceToken),
     });
@@ -158,5 +329,42 @@ describe("GET /friends", () => {
     expect(res.status).toBe(200);
     const data = (await res.json()) as any;
     expect(data.friends.length).toBe(2);
+  });
+
+  test("returns empty list when no friends", async () => {
+    const { token } = await createTestUser(app, "alice", "alice@example.com");
+
+    const res = await app.request("/friends", {
+      headers: getAuthHeaders(token),
+    });
+    expect(res.status).toBe(200);
+    const data = (await res.json()) as any;
+    expect(data.friends.length).toBe(0);
+  });
+
+  test("recipient also sees the request", async () => {
+    const { token: aliceToken } = await createTestUser(
+      app,
+      "alice",
+      "alice@example.com"
+    );
+    const { token: bobToken } = await createTestUser(
+      app,
+      "bob",
+      "bob@example.com"
+    );
+
+    await app.request(`/friends/bob`, {
+      method: "POST",
+      headers: getAuthHeaders(aliceToken),
+    });
+
+    const res = await app.request("/friends", {
+      headers: getAuthHeaders(bobToken),
+    });
+    expect(res.status).toBe(200);
+    const data = (await res.json()) as any;
+    expect(data.friends.length).toBe(1);
+    expect(data.friends[0].status).toBe("pending");
   });
 });
