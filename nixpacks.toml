@@ -3,3 +3,9 @@ nixPkgs = ["bun"]
 
 [phases.install]
 cmds = ["bun install"]
+
+[phases.build]
+cmds = ["bun run --filter=@quarrel/web build"]
+
+[start]
+cmd = "cd apps/web && bun run start"
