@@ -2,6 +2,8 @@ import { useAuthStore } from '../../stores/authStore';
 import { useUIStore } from '../../stores/uiStore';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { Bug, Settings } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 const statusColors: Record<string, string> = {
   online: 'bg-green-500',
@@ -43,15 +45,38 @@ export default function UserBar() {
         </div>
       </div>
 
-      <Button
-        variant="ghost"
-        size="icon-sm"
-        onClick={() => openModal('settings')}
-        className="text-[#b5bac1] hover:text-[#dbdee1] hover:bg-[#383a40]"
-        aria-label="User settings"
-      >
-        <span className="text-lg">&#x2699;</span>
-      </Button>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <a
+            href="https://github.com/jlgrimes/quarrel/issues"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center justify-center size-8 rounded text-[#b5bac1] hover:text-[#dbdee1] hover:bg-[#383a40]"
+            aria-label="Report a bug"
+          >
+            <Bug size={18} />
+          </a>
+        </TooltipTrigger>
+        <TooltipContent side="top" className="bg-[#111214] text-white text-sm font-semibold border-none">
+          Report a bug
+        </TooltipContent>
+      </Tooltip>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={() => openModal('settings')}
+            className="text-[#b5bac1] hover:text-[#dbdee1] hover:bg-[#383a40]"
+            aria-label="User settings"
+          >
+            <Settings size={18} />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent side="top" className="bg-[#111214] text-white text-sm font-semibold border-none">
+          Settings
+        </TooltipContent>
+      </Tooltip>
     </div>
   );
 }

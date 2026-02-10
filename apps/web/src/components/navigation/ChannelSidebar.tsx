@@ -8,6 +8,7 @@ import { useVoiceStore } from '../../stores/voiceStore';
 import { analytics } from '../../lib/analytics';
 import type { Channel } from '@quarrel/shared';
 import { Button } from '@/components/ui/button';
+import { Volume2, Hash } from 'lucide-react';
 import {
   Collapsible,
   CollapsibleContent,
@@ -151,8 +152,8 @@ const ChannelItem = memo(function ChannelItem({
               : ''
         }
       >
-        <span className="text-lg leading-none shrink-0 w-5 text-center">
-          {channel.type === 'voice' ? '\u{1F50A}' : '#'}
+        <span className="shrink-0 w-5 flex items-center justify-center">
+          {channel.type === 'voice' ? <Volume2 size={16} /> : <Hash size={16} />}
         </span>
         <span className="truncate">{channel.name}</span>
       </SidebarMenuButton>
