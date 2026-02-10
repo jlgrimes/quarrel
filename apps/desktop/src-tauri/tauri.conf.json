@@ -6,7 +6,7 @@
     "frontendDist": "../../web/dist",
     "devUrl": "http://localhost:5173",
     "beforeDevCommand": "cd ../web && bun run dev",
-    "beforeBuildCommand": "cd ../web && VITE_API_URL=https://quarrel.app/api VITE_WS_URL=wss://quarrel.app/ws ../../node_modules/.bin/vite build"
+    "beforeBuildCommand": "cd ../web && VITE_API_URL=https://api.quarrel.app VITE_WS_URL=wss://api.quarrel.app/ws ../../node_modules/.bin/vite build"
   },
   "bundle": {
     "icon": [
@@ -22,7 +22,7 @@
   },
   "app": {
     "security": {
-      "csp": "default-src 'self'; connect-src 'self' https://quarrel.app wss://quarrel.app https://*.quarrel.app; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: blob:"
+      "csp": "default-src 'self'; connect-src 'self' https://api.quarrel.app wss://api.quarrel.app https://*.quarrel.app; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: blob:"
     },
     "windows": [
       {
