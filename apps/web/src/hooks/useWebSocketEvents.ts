@@ -66,7 +66,21 @@ export function useWebSocketEvents() {
         if (dmMatch && dmMatch[1] === msg.channelId) {
           api.ackDM(msg.channelId).catch(() => {});
         } else if (channelMatch && channelMatch[1] === msg.channelId) {
-          api.ackChannel(msg.channelId).catch(() => {});
+          api.ackChannel(msg.channelId).then((data) => {
+            // Update lastReadMessageId in channel cache so "New Messages" divider clears
+            for (const query of queryClient.getQueryCache().findAll({ queryKey: ['channels'] })) {
+              const channels = queryClient.getQueryData<any[]>(query.queryKey);
+              if (channels?.some((ch: any) => ch.id === msg.channelId)) {
+                queryClient.setQueryData<any[]>(query.queryKey, (old) =>
+                  old?.map((ch) =>
+                    ch.id === msg.channelId
+                      ? { ...ch, unreadCount: 0, lastReadMessageId: data.lastReadMessageId }
+                      : ch
+                  )
+                );
+              }
+            }
+          }).catch(() => {});
         } else {
           // Increment unread count in sidebar for non-active channels
           for (const query of queryClient.getQueryCache().findAll({ queryKey: ['channels'] })) {

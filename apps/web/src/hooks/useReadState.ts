@@ -6,14 +6,16 @@ export function useAckChannel() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (channelId: string) => api.ackChannel(channelId),
-    onSuccess: (_data, channelId) => {
-      // Find which server this channel belongs to and invalidate its channels query
+    onSuccess: (data, channelId) => {
+      // Find which server this channel belongs to and update its channels query
       for (const query of qc.getQueryCache().findAll({ queryKey: ['channels'] })) {
         const channels = qc.getQueryData<any[]>(query.queryKey);
         if (channels?.some((ch: any) => ch.id === channelId)) {
           qc.setQueryData<any[]>(query.queryKey, (old) =>
             old?.map((ch) =>
-              ch.id === channelId ? { ...ch, unreadCount: 0 } : ch
+              ch.id === channelId
+                ? { ...ch, unreadCount: 0, lastReadMessageId: data.lastReadMessageId }
+                : ch
             )
           );
         }
