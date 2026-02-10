@@ -45,12 +45,19 @@ function ModalRenderer() {
 }
 
 function MobileSidebarSync() {
-  const { openMobile } = useSidebar();
+  const { openMobile, setOpenMobile } = useSidebar();
+  const mobileSidebarOpen = useUIStore((s) => s.mobileSidebarOpen);
   const setMobileSidebarOpen = useUIStore((s) => s.setMobileSidebarOpen);
 
+  // Sync shadcn openMobile → uiStore mobileSidebarOpen
   useEffect(() => {
     setMobileSidebarOpen(openMobile);
   }, [openMobile, setMobileSidebarOpen]);
+
+  // Sync uiStore mobileSidebarOpen → shadcn openMobile
+  useEffect(() => {
+    setOpenMobile(mobileSidebarOpen);
+  }, [mobileSidebarOpen, setOpenMobile]);
 
   return null;
 }
