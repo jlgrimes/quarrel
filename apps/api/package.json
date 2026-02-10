@@ -11,7 +11,8 @@
     "@aws-sdk/s3-request-presigner": "^3.987.0",
     "@quarrel/db": "workspace:*",
     "@quarrel/shared": "workspace:*",
-    "hono": "^4.6.0"
+    "hono": "^4.6.0",
+    "rate-limiter-flexible": "^9.1.1"
   },
   "devDependencies": {
     "@types/bun": "^1.1.0"
