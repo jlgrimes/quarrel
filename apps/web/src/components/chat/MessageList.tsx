@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback, useMemo } from 'react';
+import { useEffect, useRef, useCallback, useMemo, memo } from 'react';
 import type { Message } from '@quarrel/shared';
 import { useMessages } from '../../hooks/useMessages';
 import { useAuthStore } from '../../stores/authStore';
@@ -35,7 +35,7 @@ function isDifferentDay(a: string, b: string): boolean {
   return new Date(a).toDateString() !== new Date(b).toDateString();
 }
 
-function UserAvatar({ user }: { user?: { displayName: string; avatarUrl: string | null } }) {
+const UserAvatar = memo(function UserAvatar({ user }: { user?: { displayName: string; avatarUrl: string | null } }) {
   if (user?.avatarUrl) {
     return <img src={user.avatarUrl} alt="" className="w-10 h-10 rounded-full" />;
   }
@@ -53,9 +53,9 @@ function UserAvatar({ user }: { user?: { displayName: string; avatarUrl: string 
       {name[0].toUpperCase()}
     </div>
   );
-}
+});
 
-function MessageActions({
+const MessageActions = memo(function MessageActions({
   message,
   isOwn,
 }: {
@@ -92,7 +92,7 @@ function MessageActions({
       )}
     </div>
   );
-}
+});
 
 function ReplyIndicator({ replyToId, messages }: { replyToId: string; messages: Message[] }) {
   const replied = messages.find((m) => m.id === replyToId);

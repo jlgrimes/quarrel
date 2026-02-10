@@ -11,8 +11,9 @@ memberRoutes.get("/servers/:serverId/members", async (c) => {
   const serverId = c.req.param("serverId");
   const userId = c.get("userId");
 
+  // Select only id for membership check
   const [member] = await db
-    .select()
+    .select({ id: members.id })
     .from(members)
     .where(and(eq(members.userId, userId), eq(members.serverId, serverId)))
     .limit(1);
@@ -60,8 +61,9 @@ memberRoutes.delete("/servers/:serverId/members/:userId", async (c) => {
   const targetUserId = c.req.param("userId");
   const userId = c.get("userId");
 
+  // Select only ownerId - that's all we need for the permission check
   const [server] = await db
-    .select()
+    .select({ id: servers.id, ownerId: servers.ownerId })
     .from(servers)
     .where(eq(servers.id, serverId))
     .limit(1);

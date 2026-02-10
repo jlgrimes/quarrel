@@ -12,27 +12,21 @@ messageRoutes.use(authMiddleware);
 messageRoutes.post("/channels/:channelId/messages", async (c) => {
   const channelId = c.req.param("channelId");
   const userId = c.get("userId");
+  const user = c.get("user");
 
-  const [channel] = await db
-    .select()
+  // Single JOIN: verify channel exists and user is a member in one query
+  const [channelMember] = await db
+    .select({ channelId: channels.id, serverId: channels.serverId })
     .from(channels)
+    .innerJoin(
+      members,
+      and(eq(members.serverId, channels.serverId), eq(members.userId, userId))
+    )
     .where(eq(channels.id, channelId))
     .limit(1);
 
-  if (!channel) {
-    return c.json({ error: "Channel not found" }, 404);
-  }
-
-  const [member] = await db
-    .select()
-    .from(members)
-    .where(
-      and(eq(members.userId, userId), eq(members.serverId, channel.serverId))
-    )
-    .limit(1);
-
-  if (!member) {
-    return c.json({ error: "Not a member of this server" }, 403);
+  if (!channelMember) {
+    return c.json({ error: "Channel not found or not a member" }, 403);
   }
 
   const body = await c.req.json();
@@ -54,16 +48,13 @@ messageRoutes.post("/channels/:channelId/messages", async (c) => {
     })
     .returning();
 
-  const [author] = await db
-    .select({
-      id: users.id,
-      username: users.username,
-      displayName: users.displayName,
-      avatarUrl: users.avatarUrl,
-    })
-    .from(users)
-    .where(eq(users.id, userId))
-    .limit(1);
+  // Use user from auth middleware instead of extra DB query
+  const author = {
+    id: user.id,
+    username: user.username,
+    displayName: user.displayName,
+    avatarUrl: user.avatarUrl,
+  };
 
   const fullMessage = { ...message, author };
   broadcastToChannel(channelId, "message:new", fullMessage);
@@ -80,29 +71,22 @@ messageRoutes.get("/channels/:channelId/messages", async (c) => {
     MESSAGE_BATCH_SIZE
   );
 
-  const [channel] = await db
-    .select()
+  // Single JOIN: verify channel exists and user is a member in one query
+  const [channelMember] = await db
+    .select({ serverId: channels.serverId })
     .from(channels)
+    .innerJoin(
+      members,
+      and(eq(members.serverId, channels.serverId), eq(members.userId, userId))
+    )
     .where(eq(channels.id, channelId))
     .limit(1);
 
-  if (!channel) {
-    return c.json({ error: "Channel not found" }, 404);
+  if (!channelMember) {
+    return c.json({ error: "Channel not found or not a member" }, 403);
   }
 
-  const [member] = await db
-    .select()
-    .from(members)
-    .where(
-      and(eq(members.userId, userId), eq(members.serverId, channel.serverId))
-    )
-    .limit(1);
-
-  if (!member) {
-    return c.json({ error: "Not a member of this server" }, 403);
-  }
-
-  let query = db
+  const result = await db
     .select()
     .from(messages)
     .where(
@@ -115,8 +99,6 @@ messageRoutes.get("/channels/:channelId/messages", async (c) => {
     )
     .orderBy(desc(messages.createdAt))
     .limit(limit);
-
-  const result = await query;
 
   const authorIds = [...new Set(result.map((m) => m.authorId))];
   const authors =
@@ -143,7 +125,7 @@ messageRoutes.get("/channels/:channelId/messages", async (c) => {
       ? result[result.length - 1].createdAt?.toISOString()
       : null;
 
-  const messagesWithAuthors = [...result].reverse().map((m) => ({
+  const messagesWithAuthors = result.map((m) => ({
     ...m,
     author: authorMap.get(m.authorId),
   }));
@@ -155,8 +137,9 @@ messageRoutes.patch("/messages/:id", async (c) => {
   const messageId = c.req.param("id");
   const userId = c.get("userId");
 
+  // Only select authorId - that's all we need for the ownership check
   const [message] = await db
-    .select()
+    .select({ id: messages.id, authorId: messages.authorId })
     .from(messages)
     .where(eq(messages.id, messageId))
     .limit(1);
@@ -191,8 +174,13 @@ messageRoutes.delete("/messages/:id", async (c) => {
   const messageId = c.req.param("id");
   const userId = c.get("userId");
 
+  // Only select authorId and channelId - all we need for auth check
   const [message] = await db
-    .select()
+    .select({
+      id: messages.id,
+      authorId: messages.authorId,
+      channelId: messages.channelId,
+    })
     .from(messages)
     .where(eq(messages.id, messageId))
     .limit(1);
@@ -202,25 +190,19 @@ messageRoutes.delete("/messages/:id", async (c) => {
   }
 
   if (message.authorId !== userId) {
-    const [channel] = await db
-      .select()
+    // Single JOIN: channel -> server owner check in one query
+    const [channelServer] = await db
+      .select({ ownerId: servers.ownerId })
       .from(channels)
+      .innerJoin(servers, eq(channels.serverId, servers.id))
       .where(eq(channels.id, message.channelId))
       .limit(1);
 
-    if (channel) {
-      const [server] = await db
-        .select()
-        .from(servers)
-        .where(eq(servers.id, channel.serverId))
-        .limit(1);
-
-      if (!server || server.ownerId !== userId) {
-        return c.json(
-          { error: "Can only delete your own messages or as admin" },
-          403
-        );
-      }
+    if (!channelServer || channelServer.ownerId !== userId) {
+      return c.json(
+        { error: "Can only delete your own messages or as admin" },
+        403
+      );
     }
   }
 

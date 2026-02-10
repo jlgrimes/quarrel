@@ -1,4 +1,4 @@
-import { useRef, useState, useCallback } from 'react';
+import { useRef, useState, useCallback, useMemo } from 'react';
 import type { Message } from '@quarrel/shared';
 import { useSendMessage } from '../../hooks/useMessages';
 import { useMessages } from '../../hooks/useMessages';
@@ -15,7 +15,7 @@ export function MessageInput({ channelId, channelName }: { channelId: string; ch
   const replyingTo = useUIStore((s) => s.replyingTo);
   const setReplyingTo = useUIStore((s) => s.setReplyingTo);
   const { data } = useMessages(channelId);
-  const messages = data?.pages.flatMap((p) => p.messages) ?? [];
+  const messages = useMemo(() => data?.pages.flatMap((p) => p.messages) ?? [], [data]);
   const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const token = useAuthStore((s) => s.token);
   const { sendJsonMessage } = useWebSocket(token ? getWsUrl() : null, { share: true });

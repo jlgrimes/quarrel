@@ -6,6 +6,7 @@ export function useFriends() {
   return useQuery({
     queryKey: queryKeys.friends,
     queryFn: api.getFriends,
+    staleTime: 60_000,
   });
 }
 

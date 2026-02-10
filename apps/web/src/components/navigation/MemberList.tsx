@@ -1,3 +1,4 @@
+import { memo, useMemo } from 'react';
 import { useMembers } from '../../hooks/useMembers';
 import type { Member, UserStatus } from '@quarrel/shared';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
@@ -10,7 +11,7 @@ const statusDot: Record<UserStatus, string> = {
   offline: 'bg-gray-500',
 };
 
-function MemberRow({ member }: { member: Member }) {
+const MemberRow = memo(function MemberRow({ member }: { member: Member }) {
   const user = member.user;
   if (!user) return null;
 
@@ -55,9 +56,9 @@ function MemberRow({ member }: { member: Member }) {
       </span>
     </div>
   );
-}
+});
 
-function MemberSection({
+const MemberSection = memo(function MemberSection({
   title,
   members,
 }: {
@@ -76,16 +77,18 @@ function MemberSection({
       ))}
     </div>
   );
-}
+});
 
 export default function MemberList({ serverId }: { serverId: string }) {
   const { data: members = [] } = useMembers(serverId);
 
-  const online = members.filter(
-    (m) => m.user && m.user.status !== 'offline'
+  const online = useMemo(
+    () => members.filter((m) => m.user && m.user.status !== 'offline'),
+    [members],
   );
-  const offline = members.filter(
-    (m) => m.user && m.user.status === 'offline'
+  const offline = useMemo(
+    () => members.filter((m) => m.user && m.user.status === 'offline'),
+    [members],
   );
 
   return (

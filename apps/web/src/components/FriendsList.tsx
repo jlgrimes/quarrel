@@ -1,5 +1,8 @@
-import { useState } from 'react';
+import { useState, useMemo, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useFriends, useAddFriend, useAcceptFriend, useRemoveFriend } from '../hooks/useFriends';
+import { useCreateConversation } from '../hooks/useDMs';
+import { useAuthStore } from '../stores/authStore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -16,16 +19,26 @@ export default function FriendsList() {
   const addFriend = useAddFriend();
   const acceptFriend = useAcceptFriend();
   const removeFriend = useRemoveFriend();
+  const createConversation = useCreateConversation();
+  const navigate = useNavigate();
+  const currentUser = useAuthStore((s) => s.user);
 
-  const filtered = friends.filter((f) => {
+  const handleMessage = useCallback(async (friendUserId: string) => {
+    try {
+      const conversation = await createConversation.mutateAsync(friendUserId);
+      navigate(`/channels/@me/${conversation.id}`);
+    } catch {}
+  }, [createConversation, navigate]);
+
+  const filtered = useMemo(() => friends.filter((f) => {
     if (tab === 'all') return f.status === 'accepted';
     if (tab === 'online') return f.status === 'accepted' && f.friend?.status !== 'offline';
     if (tab === 'pending') return f.status === 'pending';
     if (tab === 'blocked') return f.status === 'blocked';
     return false;
-  });
+  }), [friends, tab]);
 
-  const handleAdd = async () => {
+  const handleAdd = useCallback(async () => {
     if (!addInput.trim()) return;
     try {
       await addFriend.mutateAsync(addInput.trim());
@@ -35,17 +48,17 @@ export default function FriendsList() {
     } catch (err: any) {
       setAddStatus(err.message || 'Failed to send request');
     }
-  };
+  }, [addInput, addFriend]);
 
-  const handleAccept = (id: string) => {
+  const handleAccept = useCallback((id: string) => {
     acceptFriend.mutate(id);
     analytics.capture('friend:request_accepted');
-  };
+  }, [acceptFriend]);
 
-  const handleRemove = (id: string) => {
+  const handleRemove = useCallback((id: string) => {
     removeFriend.mutate(id);
     analytics.capture('friend:removed');
-  };
+  }, [removeFriend]);
 
   const tabs: { label: string; value: Tab }[] = [
     { label: 'Online', value: 'online' },
@@ -135,6 +148,22 @@ export default function FriendsList() {
                 <div className="text-sm font-medium text-white">{user?.displayName || user?.username}</div>
                 <div className="text-xs text-[#949ba4]">{user?.customStatus || user?.status}</div>
               </div>
+              {friend.status === 'accepted' && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => {
+                    const otherUserId = friend.userId === currentUser?.id ? friend.friendId : friend.userId;
+                    handleMessage(otherUserId);
+                  }}
+                  className="rounded p-1.5 text-[#949ba4] hover:text-white"
+                  title="Message"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M4.79805 3C3.80445 3 2.99805 3.8055 2.99805 4.8V15.6C2.99805 16.5936 3.80445 17.4 4.79805 17.4H8.39805V20.2C8.39805 20.6416 8.88045 20.8939 9.24045 20.6394L14.158 17.4H19.198C20.1925 17.4 20.998 16.5936 20.998 15.6V4.8C20.998 3.8055 20.1925 3 19.198 3H4.79805Z" />
+                  </svg>
+                </Button>
+              )}
               {friend.status === 'pending' && (
                 <Button
                   onClick={() => handleAccept(friend.id)}

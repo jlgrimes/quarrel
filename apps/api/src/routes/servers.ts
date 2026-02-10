@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { db, servers, members, channels } from "@quarrel/db";
 import { createServerSchema, updateServerSchema } from "@quarrel/shared";
-import { eq, and, inArray } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { authMiddleware, type AuthEnv } from "../middleware/auth";
 
 export const serverRoutes = new Hono<AuthEnv>();
@@ -45,20 +45,19 @@ serverRoutes.post("/", async (c) => {
 serverRoutes.get("/", async (c) => {
   const userId = c.get("userId");
 
-  const userMembers = await db
-    .select()
-    .from(members)
-    .where(eq(members.userId, userId));
-
-  if (userMembers.length === 0) {
-    return c.json({ servers: [] });
-  }
-
-  const serverIds = userMembers.map((m) => m.serverId);
+  // Single JOIN instead of two sequential queries
   const result = await db
-    .select()
-    .from(servers)
-    .where(inArray(servers.id, serverIds));
+    .select({
+      id: servers.id,
+      name: servers.name,
+      iconUrl: servers.iconUrl,
+      ownerId: servers.ownerId,
+      inviteCode: servers.inviteCode,
+      createdAt: servers.createdAt,
+    })
+    .from(members)
+    .innerJoin(servers, eq(members.serverId, servers.id))
+    .where(eq(members.userId, userId));
 
   return c.json({ servers: result });
 });
@@ -67,27 +66,26 @@ serverRoutes.get("/:id", async (c) => {
   const serverId = c.req.param("id");
   const userId = c.get("userId");
 
-  const [member] = await db
-    .select()
+  // Single JOIN: verify membership and fetch server in one query
+  const [result] = await db
+    .select({
+      id: servers.id,
+      name: servers.name,
+      iconUrl: servers.iconUrl,
+      ownerId: servers.ownerId,
+      inviteCode: servers.inviteCode,
+      createdAt: servers.createdAt,
+    })
     .from(members)
+    .innerJoin(servers, eq(members.serverId, servers.id))
     .where(and(eq(members.userId, userId), eq(members.serverId, serverId)))
     .limit(1);
 
-  if (!member) {
+  if (!result) {
     return c.json({ error: "Not a member of this server" }, 403);
   }
 
-  const [server] = await db
-    .select()
-    .from(servers)
-    .where(eq(servers.id, serverId))
-    .limit(1);
-
-  if (!server) {
-    return c.json({ error: "Server not found" }, 404);
-  }
-
-  return c.json({ server });
+  return c.json({ server: result });
 });
 
 serverRoutes.patch("/:id", async (c) => {
@@ -95,7 +93,7 @@ serverRoutes.patch("/:id", async (c) => {
   const userId = c.get("userId");
 
   const [server] = await db
-    .select()
+    .select({ id: servers.id, ownerId: servers.ownerId })
     .from(servers)
     .where(eq(servers.id, serverId))
     .limit(1);
@@ -128,7 +126,7 @@ serverRoutes.delete("/:id", async (c) => {
   const userId = c.get("userId");
 
   const [server] = await db
-    .select()
+    .select({ id: servers.id, ownerId: servers.ownerId })
     .from(servers)
     .where(eq(servers.id, serverId))
     .limit(1);
@@ -160,7 +158,7 @@ serverRoutes.post("/join/:inviteCode", async (c) => {
   }
 
   const [existingMember] = await db
-    .select()
+    .select({ id: members.id })
     .from(members)
     .where(and(eq(members.userId, userId), eq(members.serverId, server.id)))
     .limit(1);

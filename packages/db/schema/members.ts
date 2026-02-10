@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, unique } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, unique, index } from "drizzle-orm/sqlite-core";
 import { users } from "./users";
 import { servers } from "./servers";
 
@@ -19,5 +19,7 @@ export const members = sqliteTable(
   },
   (table) => ({
     userServerUnique: unique().on(table.userId, table.serverId),
+    userIdx: index("members_user_idx").on(table.userId),
+    serverIdx: index("members_server_idx").on(table.serverId),
   })
 );

@@ -1,10 +1,11 @@
+import { memo } from 'react';
 import { useParams } from 'react-router-dom';
 import { useVoiceStore } from '../../stores/voiceStore';
 import { useAuthStore } from '../../stores/authStore';
 import { useChannels } from '../../hooks/useChannels';
 import type { VoiceParticipant } from '@quarrel/shared';
 
-function ParticipantCard({ participant }: { participant: VoiceParticipant }) {
+const ParticipantCard = memo(function ParticipantCard({ participant }: { participant: VoiceParticipant }) {
   const currentUser = useAuthStore((s) => s.user);
   const speakingUsers = useVoiceStore((s) => s.speakingUsers);
   const isSelf = participant.userId === currentUser?.id;
@@ -53,7 +54,7 @@ function ParticipantCard({ participant }: { participant: VoiceParticipant }) {
       </span>
     </div>
   );
-}
+});
 
 export function VoiceChannelView({ channelId }: { channelId: string }) {
   const { serverId } = useParams();

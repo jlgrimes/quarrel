@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, memo, useCallback, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useServers } from '../../hooks/useServers';
 import { useChannels } from '../../hooks/useChannels';
@@ -35,7 +35,7 @@ function VoiceParticipants({ channelId }: { channelId: string }) {
   );
 }
 
-function CategorySection({
+const CategorySection = memo(function CategorySection({
   category,
   channels,
   serverId,
@@ -103,7 +103,7 @@ function CategorySection({
         ))}
     </div>
   );
-}
+});
 
 export default function ChannelSidebar() {
   const navigate = useNavigate();
@@ -114,29 +114,37 @@ export default function ChannelSidebar() {
 
   const server = servers.find((s) => s.id === serverId);
 
-  if (!server) return null;
+  const { uncategorized, categorized } = useMemo(() => {
+    const cats = channels
+      .filter((c) => c.type === 'category')
+      .sort((a, b) => a.position - b.position);
 
-  const categories = channels
-    .filter((c) => c.type === 'category')
-    .sort((a, b) => a.position - b.position);
+    const nonCat = channels
+      .filter((c) => c.type !== 'category')
+      .sort((a, b) => a.position - b.position);
 
-  const nonCategoryChannels = channels
-    .filter((c) => c.type !== 'category')
-    .sort((a, b) => a.position - b.position);
+    return {
+      uncategorized: nonCat.filter((c) => !c.categoryId),
+      categorized: cats.map((cat) => ({
+        category: cat,
+        channels: nonCat.filter((c) => c.categoryId === cat.id),
+      })),
+    };
+  }, [channels]);
 
-  const uncategorized = nonCategoryChannels.filter((c) => !c.categoryId);
-  const categorized = categories.map((cat) => ({
-    category: cat,
-    channels: nonCategoryChannels.filter((c) => c.categoryId === cat.id),
-  }));
-
-  const handleChannelClick = (channel: Channel) => {
+  const handleChannelClick = useCallback((channel: Channel) => {
     analytics.capture('channel:switch', { channelId: channel.id, channelType: channel.type, serverId });
     navigate(`/channels/${serverId}/${channel.id}`);
     if (channel.type === 'voice') {
       useVoiceStore.getState().joinChannel(channel.id);
     }
-  };
+  }, [serverId, navigate]);
+
+  const handleAddChannel = useCallback(() => {
+    openModal('createChannel');
+  }, [openModal]);
+
+  if (!server) return null;
 
   return (
     <div className="w-60 bg-[#2b2d31] flex flex-col shrink-0">
@@ -173,7 +181,7 @@ export default function ChannelSidebar() {
               serverId={server.id}
               activeChannelId={channelId}
               onChannelClick={handleChannelClick}
-              onAddChannel={() => openModal('createChannel')}
+              onAddChannel={handleAddChannel}
             />
           )}
 
@@ -185,7 +193,7 @@ export default function ChannelSidebar() {
               serverId={server.id}
               activeChannelId={channelId}
               onChannelClick={handleChannelClick}
-              onAddChannel={() => openModal('createChannel')}
+              onAddChannel={handleAddChannel}
             />
           ))}
         </div>

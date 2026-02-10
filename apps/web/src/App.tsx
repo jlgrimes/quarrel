@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, lazy, Suspense, useMemo } from 'react';
 import { Routes, Route, Navigate, useParams, useNavigate, Outlet } from 'react-router-dom';
 import { useAuthStore } from './stores/authStore';
 import { usePageView } from './hooks/usePageView';
@@ -13,13 +13,15 @@ import { ChatArea } from './components/chat/ChatArea';
 import { VoiceChannelView } from './components/voice/VoiceChannelView';
 import ServerSidebar from './components/navigation/ServerSidebar';
 import ChannelSidebar from './components/navigation/ChannelSidebar';
+import DMSidebar from './components/navigation/DMSidebar';
 import MemberList from './components/navigation/MemberList';
-import CreateServerModal from './components/modals/CreateServerModal';
-import JoinServerModal from './components/modals/JoinServerModal';
-import CreateChannelModal from './components/modals/CreateChannelModal';
-import SettingsModal from './components/modals/SettingsModal';
-import InviteModal from './components/modals/InviteModal';
 import { TooltipProvider } from '@/components/ui/tooltip';
+
+const CreateServerModal = lazy(() => import('./components/modals/CreateServerModal'));
+const JoinServerModal = lazy(() => import('./components/modals/JoinServerModal'));
+const CreateChannelModal = lazy(() => import('./components/modals/CreateChannelModal'));
+const SettingsModal = lazy(() => import('./components/modals/SettingsModal'));
+const InviteModal = lazy(() => import('./components/modals/InviteModal'));
 
 function ProtectedRoute() {
   const user = useAuthStore((s) => s.user);
@@ -29,14 +31,15 @@ function ProtectedRoute() {
 
 function ModalRenderer() {
   const modal = useUIStore((s) => s.modal);
+  if (!modal) return null;
   return (
-    <>
+    <Suspense fallback={null}>
       {modal === 'createServer' && <CreateServerModal />}
       {modal === 'joinServer' && <JoinServerModal />}
       {modal === 'createChannel' && <CreateChannelModal />}
       {modal === 'settings' && <SettingsModal />}
       {modal === 'inviteServer' && <InviteModal />}
-    </>
+    </Suspense>
   );
 }
 
@@ -52,18 +55,13 @@ function AppLayout() {
   );
 }
 
-function DMLayout() {
+function DMAreaLayout() {
   return (
     <div className="flex flex-1">
-      <DMPage />
-    </div>
-  );
-}
-
-function FriendsLayout() {
-  return (
-    <div className="flex flex-1 flex-col bg-[#313338]">
-      <FriendsPage />
+      <DMSidebar />
+      <div className="flex flex-1 flex-col bg-[#313338]">
+        <Outlet />
+      </div>
     </div>
   );
 }
@@ -74,6 +72,11 @@ function ServerView() {
   const showMemberList = useUIStore((s) => s.showMemberList);
   const setActiveChannel = useUIStore((s) => s.setActiveChannel);
   const { data: channels = [] } = useChannels(serverId);
+
+  const activeChannel = useMemo(
+    () => channelId ? channels.find((c) => c.id === channelId) : undefined,
+    [channels, channelId],
+  );
 
   // Sync activeChannelId to uiStore
   useEffect(() => {
@@ -94,7 +97,7 @@ function ServerView() {
       <ChannelSidebar />
       <div className="flex flex-1 flex-col bg-[#313338]">
         {channelId ? (
-          channels.find((c) => c.id === channelId)?.type === 'voice' ? (
+          activeChannel?.type === 'voice' ? (
             <VoiceChannelView channelId={channelId} />
           ) : (
             <ChatArea channelId={channelId} serverId={serverId!} />
@@ -135,8 +138,10 @@ export default function App() {
       <Route path="/register" element={!user ? <RegisterPage /> : <Navigate to="/channels/@me" />} />
       <Route element={<ProtectedRoute />}>
         <Route element={<AppLayout />}>
-          <Route path="/channels/@me" element={<FriendsLayout />} />
-          <Route path="/channels/@me/:conversationId" element={<DMLayout />} />
+          <Route element={<DMAreaLayout />}>
+            <Route path="/channels/@me" element={<FriendsPage />} />
+            <Route path="/channels/@me/:conversationId" element={<DMPage />} />
+          </Route>
           <Route path="/channels/:serverId/:channelId?" element={<ServerView />} />
         </Route>
       </Route>

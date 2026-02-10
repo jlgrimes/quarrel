@@ -1,10 +1,11 @@
+import { memo, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useServers } from '../../hooks/useServers';
 import { useUIStore } from '../../stores/uiStore';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
-function ServerIcon({
+const ServerIcon = memo(function ServerIcon({
   server,
   isActive,
   onClick,
@@ -62,7 +63,7 @@ function ServerIcon({
       </Tooltip>
     </div>
   );
-}
+});
 
 export default function ServerSidebar() {
   const navigate = useNavigate();
@@ -70,9 +71,9 @@ export default function ServerSidebar() {
   const { data: servers = [] } = useServers();
   const openModal = useUIStore((s) => s.openModal);
 
-  const handleServerClick = (server: { id: string }) => {
+  const handleServerClick = useCallback((server: { id: string }) => {
     navigate(`/channels/${server.id}`);
-  };
+  }, [navigate]);
 
   return (
     <div className="w-[72px] bg-[#1e1f22] flex flex-col items-center py-3 overflow-y-auto shrink-0">

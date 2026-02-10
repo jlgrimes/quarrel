@@ -7,6 +7,7 @@ export function useConversations() {
   return useQuery({
     queryKey: queryKeys.conversations,
     queryFn: api.getConversations,
+    staleTime: 60_000,
   });
 }
 

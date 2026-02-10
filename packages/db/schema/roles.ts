@@ -1,20 +1,26 @@
-import { sqliteTable, text, integer, primaryKey } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, primaryKey, index } from "drizzle-orm/sqlite-core";
 import { servers } from "./servers";
 import { members } from "./members";
 
-export const roles = sqliteTable("roles", {
-  id: text("id")
-    .primaryKey()
-    .$defaultFn(() => crypto.randomUUID()),
-  serverId: text("server_id")
-    .notNull()
-    .references(() => servers.id),
-  name: text("name").notNull(),
-  color: text("color"),
-  permissions: integer("permissions").notNull().default(0),
-  position: integer("position").notNull().default(0),
-  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
-});
+export const roles = sqliteTable(
+  "roles",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    serverId: text("server_id")
+      .notNull()
+      .references(() => servers.id),
+    name: text("name").notNull(),
+    color: text("color"),
+    permissions: integer("permissions").notNull().default(0),
+    position: integer("position").notNull().default(0),
+    createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
+  },
+  (table) => ({
+    serverIdx: index("roles_server_idx").on(table.serverId),
+  })
+);
 
 export const memberRoles = sqliteTable(
   "member_roles",

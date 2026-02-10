@@ -16,6 +16,8 @@ const mockMutateAsync = vi.fn();
 const mockAcceptMutate = vi.fn();
 const mockRemoveMutate = vi.fn();
 const mockCapture = vi.fn();
+const mockCreateConversationMutateAsync = vi.fn();
+const mockNavigate = vi.fn();
 
 let friendsData: any[] = [];
 
@@ -35,6 +37,23 @@ vi.mock('../../hooks/useFriends', () => ({
     mutate: mockRemoveMutate,
     isPending: false,
   }),
+}));
+
+vi.mock('../../hooks/useDMs', () => ({
+  useCreateConversation: () => ({
+    mutateAsync: mockCreateConversationMutateAsync,
+  }),
+}));
+
+vi.mock('react-router-dom', () => ({
+  useNavigate: () => mockNavigate,
+}));
+
+vi.mock('../../stores/authStore', () => ({
+  useAuthStore: (selector: any) =>
+    selector({
+      user: { id: 'u1', username: 'me', displayName: 'Me' },
+    }),
 }));
 
 vi.mock('../../lib/analytics', () => ({
@@ -237,5 +256,53 @@ describe('FriendsList with friends data', () => {
 
     expect(mockRemoveMutate).toHaveBeenCalled();
     expect(mockCapture).toHaveBeenCalledWith('friend:removed');
+  });
+
+  it('shows Message button for accepted friends', () => {
+    render(<FriendsList />, { wrapper: Wrapper });
+
+    // Online tab shows accepted friends that are online (Carol is accepted + online)
+    expect(screen.getByTitle('Message')).toBeInTheDocument();
+  });
+
+  it('clicking Message creates conversation and navigates to it', async () => {
+    mockCreateConversationMutateAsync.mockResolvedValueOnce({ id: 'conv-1' });
+    const user = userEvent.setup();
+
+    render(<FriendsList />, { wrapper: Wrapper });
+
+    await user.click(screen.getByTitle('Message'));
+
+    // acceptedFriend has userId='u1' (same as currentUser.id) so otherUserId = friendId = 'u3'
+    expect(mockCreateConversationMutateAsync).toHaveBeenCalledWith('u3');
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith('/channels/@me/conv-1');
+    });
+  });
+
+  it('clicking Message uses userId when currentUser is friendId', async () => {
+    // Swap: currentUser is the friendId side of the relationship
+    friendsData = [
+      {
+        id: 'f3',
+        userId: 'u5',
+        friendId: 'u1',
+        status: 'accepted',
+        friend: { id: 'u5', username: 'dave', displayName: 'Dave', status: 'online' },
+      },
+    ];
+    mockCreateConversationMutateAsync.mockResolvedValueOnce({ id: 'conv-2' });
+    const user = userEvent.setup();
+
+    render(<FriendsList />, { wrapper: Wrapper });
+
+    await user.click(screen.getByTitle('Message'));
+
+    // friend.userId='u5', friend.friendId='u1', currentUser.id='u1'
+    // Since friend.userId !== currentUser.id, otherUserId = friend.userId = 'u5'
+    expect(mockCreateConversationMutateAsync).toHaveBeenCalledWith('u5');
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith('/channels/@me/conv-2');
+    });
   });
 });

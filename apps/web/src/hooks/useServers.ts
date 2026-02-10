@@ -7,6 +7,7 @@ export function useServers() {
   return useQuery({
     queryKey: queryKeys.servers,
     queryFn: api.getServers,
+    staleTime: 60_000,
   });
 }
 

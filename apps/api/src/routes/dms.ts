@@ -28,7 +28,7 @@ dmRoutes.post("/conversations", async (c) => {
   }
 
   const [targetUser] = await db
-    .select()
+    .select({ id: users.id })
     .from(users)
     .where(eq(users.id, targetUserId))
     .limit(1);
@@ -37,29 +37,30 @@ dmRoutes.post("/conversations", async (c) => {
     return c.json({ error: "User not found" }, 404);
   }
 
-  // Check for existing conversation between these two users
-  const myConversations = await db
-    .select()
+  // Single query with self-join to find shared conversation instead of N+1 loop
+  const myMemberships = await db
+    .select({ conversationId: conversationMembers.conversationId })
     .from(conversationMembers)
     .where(eq(conversationMembers.userId, userId));
 
-  for (const mc of myConversations) {
-    const [otherMember] = await db
-      .select()
+  if (myMemberships.length > 0) {
+    const myConvIds = myMemberships.map((m) => m.conversationId);
+    const [sharedConv] = await db
+      .select({ conversationId: conversationMembers.conversationId })
       .from(conversationMembers)
       .where(
         and(
-          eq(conversationMembers.conversationId, mc.conversationId),
+          inArray(conversationMembers.conversationId, myConvIds),
           eq(conversationMembers.userId, targetUserId)
         )
       )
       .limit(1);
 
-    if (otherMember) {
+    if (sharedConv) {
       const [conv] = await db
         .select()
         .from(conversations)
-        .where(eq(conversations.id, mc.conversationId))
+        .where(eq(conversations.id, sharedConv.conversationId))
         .limit(1);
       return c.json({ conversation: conv });
     }
@@ -83,7 +84,7 @@ dmRoutes.get("/conversations", async (c) => {
   const userId = c.get("userId");
 
   const myMemberships = await db
-    .select()
+    .select({ conversationId: conversationMembers.conversationId })
     .from(conversationMembers)
     .where(eq(conversationMembers.userId, userId));
 
@@ -93,7 +94,6 @@ dmRoutes.get("/conversations", async (c) => {
 
   const convIds = myMemberships.map((m) => m.conversationId);
 
-
   const convs = await db
     .select()
     .from(conversations)
@@ -101,7 +101,10 @@ dmRoutes.get("/conversations", async (c) => {
 
   // Get members for each conversation
   const allMembers = await db
-    .select()
+    .select({
+      conversationId: conversationMembers.conversationId,
+      userId: conversationMembers.userId,
+    })
     .from(conversationMembers)
     .where(inArray(conversationMembers.conversationId, convIds));
 
@@ -144,7 +147,7 @@ dmRoutes.post("/:conversationId/messages", async (c) => {
   const userId = c.get("userId");
 
   const [membership] = await db
-    .select()
+    .select({ conversationId: conversationMembers.conversationId })
     .from(conversationMembers)
     .where(
       and(
@@ -189,7 +192,7 @@ dmRoutes.get("/:conversationId/messages", async (c) => {
   );
 
   const [membership] = await db
-    .select()
+    .select({ conversationId: conversationMembers.conversationId })
     .from(conversationMembers)
     .where(
       and(
@@ -218,7 +221,6 @@ dmRoutes.get("/:conversationId/messages", async (c) => {
     .limit(limit);
 
   const authorIds = [...new Set(result.map((m) => m.authorId))];
-
 
   const authors =
     authorIds.length > 0

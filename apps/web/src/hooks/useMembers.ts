@@ -7,5 +7,6 @@ export function useMembers(serverId: string | undefined) {
     queryKey: queryKeys.members(serverId!),
     queryFn: () => api.getMembers(serverId!),
     enabled: !!serverId,
+    staleTime: 60_000,
   });
 }

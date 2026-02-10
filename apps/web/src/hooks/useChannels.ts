@@ -8,6 +8,7 @@ export function useChannels(serverId: string | undefined) {
     queryKey: queryKeys.channels(serverId!),
     queryFn: () => api.getChannels(serverId!),
     enabled: !!serverId,
+    staleTime: 60_000,
   });
 }
 

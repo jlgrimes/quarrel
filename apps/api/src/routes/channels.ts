@@ -13,7 +13,7 @@ channelRoutes.post("/servers/:serverId/channels", async (c) => {
   const userId = c.get("userId");
 
   const [member] = await db
-    .select()
+    .select({ id: members.id })
     .from(members)
     .where(and(eq(members.userId, userId), eq(members.serverId, serverId)))
     .limit(1);
@@ -46,7 +46,7 @@ channelRoutes.get("/servers/:serverId/channels", async (c) => {
   const userId = c.get("userId");
 
   const [member] = await db
-    .select()
+    .select({ id: members.id })
     .from(members)
     .where(and(eq(members.userId, userId), eq(members.serverId, serverId)))
     .limit(1);
@@ -56,7 +56,16 @@ channelRoutes.get("/servers/:serverId/channels", async (c) => {
   }
 
   const serverChannels = await db
-    .select()
+    .select({
+      id: channels.id,
+      serverId: channels.serverId,
+      name: channels.name,
+      type: channels.type,
+      topic: channels.topic,
+      categoryId: channels.categoryId,
+      position: channels.position,
+      createdAt: channels.createdAt,
+    })
     .from(channels)
     .where(eq(channels.serverId, serverId))
     .orderBy(channels.position);
@@ -64,12 +73,13 @@ channelRoutes.get("/servers/:serverId/channels", async (c) => {
   return c.json({ channels: serverChannels });
 });
 
+// Select only serverId for the channel lookup (needed for member check)
 channelRoutes.patch("/channels/:id", async (c) => {
   const channelId = c.req.param("id");
   const userId = c.get("userId");
 
   const [channel] = await db
-    .select()
+    .select({ id: channels.id, serverId: channels.serverId })
     .from(channels)
     .where(eq(channels.id, channelId))
     .limit(1);
@@ -79,7 +89,7 @@ channelRoutes.patch("/channels/:id", async (c) => {
   }
 
   const [member] = await db
-    .select()
+    .select({ id: members.id })
     .from(members)
     .where(
       and(eq(members.userId, userId), eq(members.serverId, channel.serverId))
@@ -105,27 +115,26 @@ channelRoutes.patch("/channels/:id", async (c) => {
   return c.json({ channel: updated });
 });
 
+// Single JOIN: fetch channel + server owner check in one query
 channelRoutes.delete("/channels/:id", async (c) => {
   const channelId = c.req.param("id");
   const userId = c.get("userId");
 
-  const [channel] = await db
-    .select()
+  const [result] = await db
+    .select({
+      channelId: channels.id,
+      ownerId: servers.ownerId,
+    })
     .from(channels)
+    .innerJoin(servers, eq(channels.serverId, servers.id))
     .where(eq(channels.id, channelId))
     .limit(1);
 
-  if (!channel) {
+  if (!result) {
     return c.json({ error: "Channel not found" }, 404);
   }
 
-  const [server] = await db
-    .select()
-    .from(servers)
-    .where(eq(servers.id, channel.serverId))
-    .limit(1);
-
-  if (!server || server.ownerId !== userId) {
+  if (result.ownerId !== userId) {
     return c.json({ error: "Only the server owner can delete channels" }, 403);
   }
 

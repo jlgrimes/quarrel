@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import useWebSocket, { ReadyState } from 'react-use-websocket';
 import type { Message, Member, Channel, UserStatus } from '@quarrel/shared';
 import { useAuthStore } from '../stores/authStore';
@@ -46,11 +46,9 @@ export function useWebSocketEvents() {
         const msg = data as Message;
         queryClient.setQueryData(queryKeys.messages(msg.channelId), (old: any) => {
           if (!old) return old;
-          const exists = old.pages.some((p: any) =>
-            p.messages.some((m: Message) => m.id === msg.id),
-          );
-          if (exists) return old;
           const lastPage = old.pages[old.pages.length - 1];
+          // Only check last page for duplicates since new messages are appended there
+          if (lastPage.messages.some((m: Message) => m.id === msg.id)) return old;
           return {
             ...old,
             pages: [
@@ -115,22 +113,20 @@ export function useWebSocketEvents() {
         break;
       }
       case 'presence:update': {
-        const { userId, status } = data as { userId: string; status: UserStatus };
+        const { userId: presenceUserId, status } = data as { userId: string; status: UserStatus };
         // Update all cached member lists
-        queryClient.getQueryCache().findAll({ queryKey: ['members'] }).forEach((query) => {
-          queryClient.setQueryData<Member[]>(query.queryKey, (old) =>
-            old
-              ? old.map((m) =>
-                  m.userId === userId && m.user
-                    ? { ...m, user: { ...m.user, status } }
-                    : m,
-                )
-              : old,
-          );
-        });
+        for (const query of queryClient.getQueryCache().findAll({ queryKey: ['members'] })) {
+          const members = queryClient.getQueryData<Member[]>(query.queryKey);
+          if (!members) continue;
+          const idx = members.findIndex((m) => m.userId === presenceUserId && m.user);
+          if (idx === -1) continue;
+          const updated = [...members];
+          updated[idx] = { ...updated[idx], user: { ...updated[idx].user!, status } };
+          queryClient.setQueryData<Member[]>(query.queryKey, updated);
+        }
         // Update current user in auth store
         const currentUser = useAuthStore.getState().user;
-        if (currentUser && userId === currentUser.id) {
+        if (currentUser && presenceUserId === currentUser.id) {
           useAuthStore.setState({ user: { ...currentUser, status } });
         }
         break;

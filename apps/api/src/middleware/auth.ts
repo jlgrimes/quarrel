@@ -1,7 +1,7 @@
 import { createMiddleware } from "hono/factory";
 import { getCookie } from "hono/cookie";
 import { db, sessions, users } from "@quarrel/db";
-import { eq, gt } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 
 export type AuthEnv = {
   Variables: {
@@ -20,28 +20,23 @@ export const authMiddleware = createMiddleware<AuthEnv>(async (c, next) => {
     return c.json({ error: "Unauthorized" }, 401);
   }
 
-  const [session] = await db
-    .select()
+  // Single JOIN query instead of two sequential queries
+  const [result] = await db
+    .select({
+      session: sessions,
+      user: users,
+    })
     .from(sessions)
+    .innerJoin(users, eq(sessions.userId, users.id))
     .where(eq(sessions.id, token))
     .limit(1);
 
-  if (!session || session.expiresAt < new Date()) {
+  if (!result || result.session.expiresAt < new Date()) {
     return c.json({ error: "Session expired" }, 401);
   }
 
-  const [user] = await db
-    .select()
-    .from(users)
-    .where(eq(users.id, session.userId))
-    .limit(1);
-
-  if (!user) {
-    return c.json({ error: "User not found" }, 401);
-  }
-
-  c.set("userId", user.id);
-  c.set("user", user);
+  c.set("userId", result.user.id);
+  c.set("user", result.user);
   c.set("sessionToken", token);
   await next();
 });

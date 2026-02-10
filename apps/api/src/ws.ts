@@ -1,6 +1,6 @@
 import type { ServerWebSocket } from "bun";
 import { db, sessions, members, channels, users, messages } from "@quarrel/db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 
 type WSData = {
   userId: string;
@@ -8,21 +8,37 @@ type WSData = {
   subscribedServers: Set<string>;
 };
 
+type VoiceParticipant = { userId: string; username: string; displayName: string | null; avatarUrl: string | null; isMuted: boolean; isDeafened: boolean };
+
 const connectedClients = new Map<string, Set<ServerWebSocket<WSData>>>();
 
+// Reverse indexes: channel/server -> set of sockets subscribed
+const channelSubscribers = new Map<string, Set<ServerWebSocket<WSData>>>();
+const serverSubscribers = new Map<string, Set<ServerWebSocket<WSData>>>();
+
 // Voice state: which users are in which voice channels
-const voiceChannels = new Map<string, Map<string, { userId: string; username: string; displayName: string | null; avatarUrl: string | null; isMuted: boolean; isDeafened: boolean }>>();
+const voiceChannels = new Map<string, Map<string, VoiceParticipant>>();
 const userVoiceChannel = new Map<string, string>();
 
-function getClientSockets(userId: string): Set<ServerWebSocket<WSData>> {
-  return connectedClients.get(userId) || new Set();
+// Pre-serialized static messages to avoid repeated JSON.stringify
+const ERROR_NOT_AUTHENTICATED = JSON.stringify({ event: "error", data: { message: "Not authenticated" } });
+const ERROR_INVALID_TOKEN = JSON.stringify({ event: "error", data: { message: "Invalid token" } });
+const ERROR_INVALID_FORMAT = JSON.stringify({ event: "error", data: { message: "Invalid message format" } });
+
+// Shared empty set to avoid allocations on cache miss
+const EMPTY_SOCKET_SET: ReadonlySet<ServerWebSocket<WSData>> = new Set();
+
+function getClientSockets(userId: string): ReadonlySet<ServerWebSocket<WSData>> {
+  return connectedClients.get(userId) || EMPTY_SOCKET_SET;
 }
 
 function addClient(userId: string, ws: ServerWebSocket<WSData>) {
-  if (!connectedClients.has(userId)) {
-    connectedClients.set(userId, new Set());
+  let sockets = connectedClients.get(userId);
+  if (!sockets) {
+    sockets = new Set();
+    connectedClients.set(userId, sockets);
   }
-  connectedClients.get(userId)!.add(ws);
+  sockets.add(ws);
 }
 
 function removeClient(userId: string, ws: ServerWebSocket<WSData>) {
@@ -33,36 +49,71 @@ function removeClient(userId: string, ws: ServerWebSocket<WSData>) {
       connectedClients.delete(userId);
     }
   }
-}
-
-export function broadcastToChannel(channelId: string, event: string, data: any) {
-  for (const [, sockets] of connectedClients) {
-    for (const ws of sockets) {
-      if (ws.data.subscribedChannels.has(channelId)) {
-        ws.send(JSON.stringify({ event, data }));
-      }
+  // Remove from reverse indexes
+  for (const channelId of ws.data.subscribedChannels) {
+    const subs = channelSubscribers.get(channelId);
+    if (subs) {
+      subs.delete(ws);
+      if (subs.size === 0) channelSubscribers.delete(channelId);
+    }
+  }
+  for (const serverId of ws.data.subscribedServers) {
+    const subs = serverSubscribers.get(serverId);
+    if (subs) {
+      subs.delete(ws);
+      if (subs.size === 0) serverSubscribers.delete(serverId);
     }
   }
 }
 
+function subscribeToChannel(ws: ServerWebSocket<WSData>, channelId: string) {
+  ws.data.subscribedChannels.add(channelId);
+  let subs = channelSubscribers.get(channelId);
+  if (!subs) {
+    subs = new Set();
+    channelSubscribers.set(channelId, subs);
+  }
+  subs.add(ws);
+}
+
+function subscribeToServer(ws: ServerWebSocket<WSData>, serverId: string) {
+  ws.data.subscribedServers.add(serverId);
+  let subs = serverSubscribers.get(serverId);
+  if (!subs) {
+    subs = new Set();
+    serverSubscribers.set(serverId, subs);
+  }
+  subs.add(ws);
+}
+
+export function broadcastToChannel(channelId: string, event: string, data: any) {
+  const subs = channelSubscribers.get(channelId);
+  if (!subs || subs.size === 0) return;
+  const msg = JSON.stringify({ event, data });
+  for (const ws of subs) {
+    ws.send(msg);
+  }
+}
+
 export function broadcastToServer(serverId: string, event: string, data: any) {
-  for (const [, sockets] of connectedClients) {
-    for (const ws of sockets) {
-      if (ws.data.subscribedServers.has(serverId)) {
-        ws.send(JSON.stringify({ event, data }));
-      }
-    }
+  const subs = serverSubscribers.get(serverId);
+  if (!subs || subs.size === 0) return;
+  const msg = JSON.stringify({ event, data });
+  for (const ws of subs) {
+    ws.send(msg);
   }
 }
 
 export function sendToUser(userId: string, event: string, data: any) {
   const sockets = getClientSockets(userId);
+  if ((sockets as Set<ServerWebSocket<WSData>>).size === 0) return;
+  const msg = JSON.stringify({ event, data });
   for (const ws of sockets) {
-    ws.send(JSON.stringify({ event, data }));
+    ws.send(msg);
   }
 }
 
-function getVoiceParticipants(channelId: string) {
+function getVoiceParticipants(channelId: string): VoiceParticipant[] {
   const participants = voiceChannels.get(channelId);
   return participants ? Array.from(participants.values()) : [];
 }
@@ -103,19 +154,231 @@ async function subscribeToUserChannels(ws: ServerWebSocket<WSData>, userId: stri
     .from(members)
     .where(eq(members.userId, userId));
 
-  for (const member of userMembers) {
-    ws.data.subscribedServers.add(member.serverId);
+  if (userMembers.length === 0) return;
 
-    const serverChannels = await db
-      .select()
-      .from(channels)
-      .where(eq(channels.serverId, member.serverId));
+  const serverIds = userMembers.map((m) => m.serverId);
 
-    for (const channel of serverChannels) {
-      ws.data.subscribedChannels.add(channel.id);
-    }
+  for (const serverId of serverIds) {
+    subscribeToServer(ws, serverId);
+  }
+
+  // Batch query: fetch all channels for all servers at once instead of N+1 queries
+  const allChannels = await db
+    .select()
+    .from(channels)
+    .where(inArray(channels.serverId, serverIds));
+
+  for (const channel of allChannels) {
+    subscribeToChannel(ws, channel.id);
   }
 }
+
+// Event handler map for O(1) dispatch instead of switch chain
+type EventHandler = (ws: ServerWebSocket<WSData>, data: any) => Promise<void> | void;
+
+const eventHandlers: Record<string, EventHandler> = {
+  "message:send": async (ws, data) => {
+    const { channelId, content, attachments, replyToId } = data;
+
+    const [channel] = await db
+      .select()
+      .from(channels)
+      .where(eq(channels.id, channelId))
+      .limit(1);
+
+    if (!channel) return;
+
+    const [member] = await db
+      .select()
+      .from(members)
+      .where(
+        and(
+          eq(members.userId, ws.data.userId),
+          eq(members.serverId, channel.serverId)
+        )
+      )
+      .limit(1);
+
+    if (!member) return;
+
+    const [newMessage] = await db
+      .insert(messages)
+      .values({
+        channelId,
+        authorId: ws.data.userId,
+        content,
+        attachments: attachments ? JSON.stringify(attachments) : null,
+        replyToId,
+      })
+      .returning();
+
+    const [author] = await db
+      .select({
+        id: users.id,
+        username: users.username,
+        displayName: users.displayName,
+        avatarUrl: users.avatarUrl,
+      })
+      .from(users)
+      .where(eq(users.id, ws.data.userId))
+      .limit(1);
+
+    broadcastToChannel(channelId, "message:new", {
+      ...newMessage,
+      author,
+    });
+  },
+
+  "typing:start": async (ws, data) => {
+    const { channelId } = data;
+    const [typingUser] = await db
+      .select({ username: users.username, displayName: users.displayName })
+      .from(users)
+      .where(eq(users.id, ws.data.userId))
+      .limit(1);
+    broadcastToChannel(channelId, "typing:update", {
+      userId: ws.data.userId,
+      username: typingUser?.displayName ?? typingUser?.username ?? "Unknown",
+      channelId,
+    });
+  },
+
+  "presence:update": async (ws, data) => {
+    const { status } = data;
+    await db
+      .update(users)
+      .set({ status })
+      .where(eq(users.id, ws.data.userId));
+
+    // Serialize once, send to all relevant server subscribers
+    const msg = JSON.stringify({
+      event: "presence:update",
+      data: { userId: ws.data.userId, status },
+    });
+    for (const serverId of ws.data.subscribedServers) {
+      const subs = serverSubscribers.get(serverId);
+      if (subs) {
+        for (const sub of subs) {
+          sub.send(msg);
+        }
+      }
+    }
+  },
+
+  "voice:join": async (ws, data) => {
+    const { channelId } = data;
+
+    const [channel] = await db
+      .select()
+      .from(channels)
+      .where(eq(channels.id, channelId))
+      .limit(1);
+
+    if (!channel || channel.type !== "voice") return;
+
+    const [member] = await db
+      .select()
+      .from(members)
+      .where(
+        and(
+          eq(members.userId, ws.data.userId),
+          eq(members.serverId, channel.serverId)
+        )
+      )
+      .limit(1);
+
+    if (!member) return;
+
+    // Remove from any existing voice channel first
+    removeUserFromVoice(ws.data.userId);
+
+    const [user] = await db
+      .select({
+        id: users.id,
+        username: users.username,
+        displayName: users.displayName,
+        avatarUrl: users.avatarUrl,
+      })
+      .from(users)
+      .where(eq(users.id, ws.data.userId))
+      .limit(1);
+
+    const participant: VoiceParticipant = {
+      userId: user.id,
+      username: user.username,
+      displayName: user.displayName,
+      avatarUrl: user.avatarUrl,
+      isMuted: false,
+      isDeafened: false,
+    };
+
+    let channelParticipants = voiceChannels.get(channelId);
+    if (!channelParticipants) {
+      channelParticipants = new Map();
+      voiceChannels.set(channelId, channelParticipants);
+    }
+    channelParticipants.set(ws.data.userId, participant);
+    userVoiceChannel.set(ws.data.userId, channelId);
+
+    // Send full state to the joining user
+    sendToUser(ws.data.userId, "voice:state", {
+      channelId,
+      participants: getVoiceParticipants(channelId),
+    });
+
+    // Broadcast to channel that a new user joined
+    broadcastToChannel(channelId, "voice:user-joined", {
+      channelId,
+      participant,
+    });
+  },
+
+  "voice:leave": (ws) => {
+    removeUserFromVoice(ws.data.userId);
+  },
+
+  "voice:offer": (ws, data) => {
+    sendToUser(data.targetUserId, "voice:offer", {
+      fromUserId: ws.data.userId,
+      sdp: data.sdp,
+    });
+  },
+
+  "voice:answer": (ws, data) => {
+    sendToUser(data.targetUserId, "voice:answer", {
+      fromUserId: ws.data.userId,
+      sdp: data.sdp,
+    });
+  },
+
+  "voice:ice-candidate": (ws, data) => {
+    sendToUser(data.targetUserId, "voice:ice-candidate", {
+      fromUserId: ws.data.userId,
+      candidate: data.candidate,
+    });
+  },
+
+  "voice:mute": (ws, data) => {
+    const { isMuted, isDeafened } = data;
+    const voiceChannelId = userVoiceChannel.get(ws.data.userId);
+    if (!voiceChannelId) return;
+
+    const participants = voiceChannels.get(voiceChannelId);
+    if (!participants) return;
+
+    const entry = participants.get(ws.data.userId);
+    if (!entry) return;
+
+    entry.isMuted = isMuted;
+    entry.isDeafened = isDeafened;
+
+    broadcastToChannel(voiceChannelId, "voice:mute", {
+      userId: ws.data.userId,
+      isMuted,
+      isDeafened,
+    });
+  },
+};
 
 export const websocketHandler = {
   async open(ws: ServerWebSocket<WSData>) {
@@ -130,7 +393,7 @@ export const websocketHandler = {
       if (payload.event === "auth") {
         const userId = await authenticateWS(payload.data.token);
         if (!userId) {
-          ws.send(JSON.stringify({ event: "error", data: { message: "Invalid token" } }));
+          ws.send(ERROR_INVALID_TOKEN);
           ws.close();
           return;
         }
@@ -147,234 +410,42 @@ export const websocketHandler = {
 
         ws.send(JSON.stringify({ event: "auth:success", data: { userId } }));
 
-        // Broadcast presence to subscribed servers
+        // Broadcast presence to subscribed servers - serialize once
+        const presenceMsg = JSON.stringify({
+          event: "presence:update",
+          data: { userId, status: "online" },
+        });
         for (const serverId of ws.data.subscribedServers) {
-          broadcastToServer(serverId, "presence:update", {
-            userId,
-            status: "online",
-          });
+          const subs = serverSubscribers.get(serverId);
+          if (subs) {
+            for (const sub of subs) {
+              sub.send(presenceMsg);
+            }
+          }
         }
         return;
       }
 
       // All other events require authentication
       if (!ws.data.userId) {
-        ws.send(JSON.stringify({ event: "error", data: { message: "Not authenticated" } }));
+        ws.send(ERROR_NOT_AUTHENTICATED);
         return;
       }
 
-      switch (payload.event) {
-        case "message:send": {
-          const { channelId, content, attachments, replyToId } = payload.data;
-
-          const [channel] = await db
-            .select()
-            .from(channels)
-            .where(eq(channels.id, channelId))
-            .limit(1);
-
-          if (!channel) break;
-
-          const [member] = await db
-            .select()
-            .from(members)
-            .where(
-              and(
-                eq(members.userId, ws.data.userId),
-                eq(members.serverId, channel.serverId)
-              )
-            )
-            .limit(1);
-
-          if (!member) break;
-
-          const [newMessage] = await db
-            .insert(messages)
-            .values({
-              channelId,
-              authorId: ws.data.userId,
-              content,
-              attachments: attachments ? JSON.stringify(attachments) : null,
-              replyToId,
-            })
-            .returning();
-
-          const [author] = await db
-            .select({
-              id: users.id,
-              username: users.username,
-              displayName: users.displayName,
-              avatarUrl: users.avatarUrl,
-            })
-            .from(users)
-            .where(eq(users.id, ws.data.userId))
-            .limit(1);
-
-          broadcastToChannel(channelId, "message:new", {
-            ...newMessage,
-            author,
-          });
-          break;
-        }
-
-        case "typing:start": {
-          const { channelId } = payload.data;
-          const [typingUser] = await db
-            .select({ username: users.username, displayName: users.displayName })
-            .from(users)
-            .where(eq(users.id, ws.data.userId))
-            .limit(1);
-          broadcastToChannel(channelId, "typing:update", {
-            userId: ws.data.userId,
-            username: typingUser?.displayName ?? typingUser?.username ?? "Unknown",
-            channelId,
-          });
-          break;
-        }
-
-        case "presence:update": {
-          const { status } = payload.data;
-          await db
-            .update(users)
-            .set({ status })
-            .where(eq(users.id, ws.data.userId));
-
-          for (const serverId of ws.data.subscribedServers) {
-            broadcastToServer(serverId, "presence:update", {
-              userId: ws.data.userId,
-              status,
-            });
-          }
-          break;
-        }
-
-        case "voice:join": {
-          const { channelId } = payload.data;
-
-          const [channel] = await db
-            .select()
-            .from(channels)
-            .where(eq(channels.id, channelId))
-            .limit(1);
-
-          if (!channel || channel.type !== "voice") break;
-
-          const [member] = await db
-            .select()
-            .from(members)
-            .where(
-              and(
-                eq(members.userId, ws.data.userId),
-                eq(members.serverId, channel.serverId)
-              )
-            )
-            .limit(1);
-
-          if (!member) break;
-
-          // Remove from any existing voice channel first
-          removeUserFromVoice(ws.data.userId);
-
-          const [user] = await db
-            .select({
-              id: users.id,
-              username: users.username,
-              displayName: users.displayName,
-              avatarUrl: users.avatarUrl,
-            })
-            .from(users)
-            .where(eq(users.id, ws.data.userId))
-            .limit(1);
-
-          const participant = {
-            userId: user.id,
-            username: user.username,
-            displayName: user.displayName,
-            avatarUrl: user.avatarUrl,
-            isMuted: false,
-            isDeafened: false,
-          };
-
-          if (!voiceChannels.has(channelId)) {
-            voiceChannels.set(channelId, new Map());
-          }
-          voiceChannels.get(channelId)!.set(ws.data.userId, participant);
-          userVoiceChannel.set(ws.data.userId, channelId);
-
-          // Send full state to the joining user
-          sendToUser(ws.data.userId, "voice:state", {
-            channelId,
-            participants: getVoiceParticipants(channelId),
-          });
-
-          // Broadcast to channel that a new user joined
-          broadcastToChannel(channelId, "voice:user-joined", {
-            channelId,
-            participant,
-          });
-          break;
-        }
-
-        case "voice:leave": {
-          removeUserFromVoice(ws.data.userId);
-          break;
-        }
-
-        case "voice:offer": {
-          sendToUser(payload.data.targetUserId, "voice:offer", {
-            fromUserId: ws.data.userId,
-            sdp: payload.data.sdp,
-          });
-          break;
-        }
-
-        case "voice:answer": {
-          sendToUser(payload.data.targetUserId, "voice:answer", {
-            fromUserId: ws.data.userId,
-            sdp: payload.data.sdp,
-          });
-          break;
-        }
-
-        case "voice:ice-candidate": {
-          sendToUser(payload.data.targetUserId, "voice:ice-candidate", {
-            fromUserId: ws.data.userId,
-            candidate: payload.data.candidate,
-          });
-          break;
-        }
-
-        case "voice:mute": {
-          const { isMuted, isDeafened } = payload.data;
-          const voiceChannelId = userVoiceChannel.get(ws.data.userId);
-          if (!voiceChannelId) break;
-
-          const participants = voiceChannels.get(voiceChannelId);
-          if (!participants) break;
-
-          const entry = participants.get(ws.data.userId);
-          if (!entry) break;
-
-          entry.isMuted = isMuted;
-          entry.isDeafened = isDeafened;
-
-          broadcastToChannel(voiceChannelId, "voice:mute", {
-            userId: ws.data.userId,
-            isMuted,
-            isDeafened,
-          });
-          break;
-        }
+      const handler = eventHandlers[payload.event];
+      if (handler) {
+        await handler(ws, payload.data);
       }
     } catch (err) {
-      ws.send(
-        JSON.stringify({ event: "error", data: { message: "Invalid message format" } })
-      );
+      ws.send(ERROR_INVALID_FORMAT);
     }
   },
 
   async close(ws: ServerWebSocket<WSData>) {
     if (ws.data.userId) {
+      // Capture subscriptions before removeClient clears the reverse indexes
+      const subscribedServers = ws.data.subscribedServers;
+
       removeClient(ws.data.userId, ws);
 
       // Only set offline and leave voice if no other connections
@@ -386,11 +457,18 @@ export const websocketHandler = {
           .set({ status: "offline" })
           .where(eq(users.id, ws.data.userId));
 
-        for (const serverId of ws.data.subscribedServers) {
-          broadcastToServer(serverId, "presence:update", {
-            userId: ws.data.userId,
-            status: "offline",
-          });
+        // Serialize once, send to all relevant server subscribers
+        const offlineMsg = JSON.stringify({
+          event: "presence:update",
+          data: { userId: ws.data.userId, status: "offline" },
+        });
+        for (const serverId of subscribedServers) {
+          const subs = serverSubscribers.get(serverId);
+          if (subs) {
+            for (const sub of subs) {
+              sub.send(offlineMsg);
+            }
+          }
         }
       }
     }

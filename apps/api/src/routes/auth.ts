@@ -18,23 +18,23 @@ authRoutes.post("/register", async (c) => {
 
   const { username, email, password } = parsed.data;
 
-  const existing = await db
-    .select()
+  const [existing] = await db
+    .select({ id: users.id })
     .from(users)
     .where(eq(users.email, email))
     .limit(1);
 
-  if (existing.length > 0) {
+  if (existing) {
     return c.json({ error: "Email already in use" }, 409);
   }
 
-  const existingUsername = await db
-    .select()
+  const [existingUsername] = await db
+    .select({ id: users.id })
     .from(users)
     .where(eq(users.username, username))
     .limit(1);
 
-  if (existingUsername.length > 0) {
+  if (existingUsername) {
     return c.json({ error: "Username already taken" }, 409);
   }
 

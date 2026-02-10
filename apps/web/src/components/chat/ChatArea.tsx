@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useChannels } from '../../hooks/useChannels';
 import { useUIStore } from '../../stores/uiStore';
 import { MessageList } from './MessageList';
@@ -7,7 +8,7 @@ import { Button } from '@/components/ui/button';
 
 export function ChatArea({ channelId, serverId }: { channelId: string; serverId: string }) {
   const { data: channels = [] } = useChannels(serverId);
-  const channel = channels.find((c) => c.id === channelId);
+  const channel = useMemo(() => channels.find((c) => c.id === channelId), [channels, channelId]);
   const toggleMemberList = useUIStore((s) => s.toggleMemberList);
   const showMemberList = useUIStore((s) => s.showMemberList);
   const channelName = channel?.name ?? 'unknown';

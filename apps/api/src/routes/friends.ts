@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { db, friends, users } from "@quarrel/db";
-import { eq, and, or } from "drizzle-orm";
+import { eq, and, or, inArray } from "drizzle-orm";
 import { authMiddleware, type AuthEnv } from "../middleware/auth";
 
 export const friendRoutes = new Hono<AuthEnv>();
@@ -11,8 +11,9 @@ friendRoutes.post("/:username", async (c) => {
   const targetUsername = c.req.param("username");
   const userId = c.get("userId");
 
+  // Only select id - that's all we need for the friend request
   const [targetUser] = await db
-    .select()
+    .select({ id: users.id })
     .from(users)
     .where(eq(users.username, targetUsername))
     .limit(1);
@@ -25,8 +26,9 @@ friendRoutes.post("/:username", async (c) => {
     return c.json({ error: "Cannot friend yourself" }, 400);
   }
 
+  // Only select id for existence check
   const [existing] = await db
-    .select()
+    .select({ id: friends.id })
     .from(friends)
     .where(
       or(
@@ -56,8 +58,13 @@ friendRoutes.patch("/:id/accept", async (c) => {
   const friendId = c.req.param("id");
   const userId = c.get("userId");
 
+  // Only select fields needed for validation
   const [request] = await db
-    .select()
+    .select({
+      id: friends.id,
+      friendId: friends.friendId,
+      status: friends.status,
+    })
     .from(friends)
     .where(eq(friends.id, friendId))
     .limit(1);
@@ -87,8 +94,13 @@ friendRoutes.delete("/:id", async (c) => {
   const friendId = c.req.param("id");
   const userId = c.get("userId");
 
+  // Only select fields needed for ownership check
   const [request] = await db
-    .select()
+    .select({
+      id: friends.id,
+      userId: friends.userId,
+      friendId: friends.friendId,
+    })
     .from(friends)
     .where(eq(friends.id, friendId))
     .limit(1);
@@ -113,5 +125,36 @@ friendRoutes.get("/", async (c) => {
     .from(friends)
     .where(or(eq(friends.userId, userId), eq(friends.friendId, userId)));
 
-  return c.json({ friends: allFriends });
+  const userIds = [
+    ...new Set(allFriends.flatMap((f) => [f.userId, f.friendId])),
+  ];
+
+  const friendUsers =
+    userIds.length > 0
+      ? await db
+          .select({
+            id: users.id,
+            username: users.username,
+            displayName: users.displayName,
+            avatarUrl: users.avatarUrl,
+            status: users.status,
+          })
+          .from(users)
+          .where(
+            userIds.length === 1
+              ? eq(users.id, userIds[0])
+              : inArray(users.id, userIds)
+          )
+      : [];
+
+  const userMap = new Map(friendUsers.map((u) => [u.id, u]));
+
+  const enrichedFriends = allFriends.map((f) => ({
+    ...f,
+    ...(f.userId === userId
+      ? { friend: userMap.get(f.friendId) }
+      : { user: userMap.get(f.userId) }),
+  }));
+
+  return c.json({ friends: enrichedFriends });
 });

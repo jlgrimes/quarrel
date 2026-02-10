@@ -368,3 +368,147 @@ describe("GET /friends", () => {
     expect(data.friends[0].status).toBe("pending");
   });
 });
+
+describe("GET /friends - user data enrichment", () => {
+  test("sender sees friend record with 'friend' property containing recipient user data", async () => {
+    const { token: aliceToken } = await createTestUser(
+      app,
+      "alice",
+      "alice@example.com"
+    );
+    const { user: bob } = await createTestUser(
+      app,
+      "bob",
+      "bob@example.com"
+    );
+
+    await app.request(`/friends/bob`, {
+      method: "POST",
+      headers: getAuthHeaders(aliceToken),
+    });
+
+    const res = await app.request("/friends", {
+      headers: getAuthHeaders(aliceToken),
+    });
+    expect(res.status).toBe(200);
+    const data = (await res.json()) as any;
+    expect(data.friends.length).toBe(1);
+
+    const record = data.friends[0];
+    expect(record.friend).toBeDefined();
+    expect(record.friend.id).toBe(bob.id);
+    expect(record.friend.username).toBe("bob");
+    expect(record.friend.displayName).toBeDefined();
+    expect(record.friend.status).toBeDefined();
+  });
+
+  test("recipient sees friend record with 'user' property containing sender user data", async () => {
+    const { token: aliceToken, user: alice } = await createTestUser(
+      app,
+      "alice",
+      "alice@example.com"
+    );
+    const { token: bobToken } = await createTestUser(
+      app,
+      "bob",
+      "bob@example.com"
+    );
+
+    await app.request(`/friends/bob`, {
+      method: "POST",
+      headers: getAuthHeaders(aliceToken),
+    });
+
+    const res = await app.request("/friends", {
+      headers: getAuthHeaders(bobToken),
+    });
+    expect(res.status).toBe(200);
+    const data = (await res.json()) as any;
+    expect(data.friends.length).toBe(1);
+
+    const record = data.friends[0];
+    expect(record.user).toBeDefined();
+    expect(record.user.id).toBe(alice.id);
+    expect(record.user.username).toBe("alice");
+    expect(record.user.displayName).toBeDefined();
+    expect(record.user.status).toBeDefined();
+  });
+
+  test("enriched user objects have expected fields", async () => {
+    const { token: aliceToken } = await createTestUser(
+      app,
+      "alice",
+      "alice@example.com"
+    );
+    await createTestUser(app, "bob", "bob@example.com");
+
+    await app.request(`/friends/bob`, {
+      method: "POST",
+      headers: getAuthHeaders(aliceToken),
+    });
+
+    const res = await app.request("/friends", {
+      headers: getAuthHeaders(aliceToken),
+    });
+    const data = (await res.json()) as any;
+    const friendObj = data.friends[0].friend;
+
+    expect(friendObj).toHaveProperty("id");
+    expect(friendObj).toHaveProperty("username");
+    expect(friendObj).toHaveProperty("displayName");
+    expect(friendObj).toHaveProperty("avatarUrl");
+    expect(friendObj).toHaveProperty("status");
+    // Should not leak sensitive fields
+    expect(friendObj).not.toHaveProperty("hashedPassword");
+    expect(friendObj).not.toHaveProperty("email");
+  });
+
+  test("multiple friends each have correct user data attached", async () => {
+    const { token: aliceToken } = await createTestUser(
+      app,
+      "alice",
+      "alice@example.com"
+    );
+    const { user: bob } = await createTestUser(
+      app,
+      "bob",
+      "bob@example.com"
+    );
+    const { user: carol } = await createTestUser(
+      app,
+      "carol",
+      "carol@example.com"
+    );
+
+    await app.request(`/friends/bob`, {
+      method: "POST",
+      headers: getAuthHeaders(aliceToken),
+    });
+    await app.request(`/friends/carol`, {
+      method: "POST",
+      headers: getAuthHeaders(aliceToken),
+    });
+
+    const res = await app.request("/friends", {
+      headers: getAuthHeaders(aliceToken),
+    });
+    expect(res.status).toBe(200);
+    const data = (await res.json()) as any;
+    expect(data.friends.length).toBe(2);
+
+    const bobRecord = data.friends.find(
+      (f: any) => f.friend?.username === "bob"
+    );
+    const carolRecord = data.friends.find(
+      (f: any) => f.friend?.username === "carol"
+    );
+
+    expect(bobRecord).toBeDefined();
+    expect(bobRecord.friend.id).toBe(bob.id);
+    expect(bobRecord.friend.username).toBe("bob");
+
+    expect(carolRecord).toBeDefined();
+    expect(carolRecord.friend.id).toBe(carol.id);
+    expect(carolRecord.friend.username).toBe("carol");
+  });
+});
