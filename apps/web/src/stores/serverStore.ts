@@ -24,16 +24,28 @@ export const useServerStore = create<ServerStore>((set, get) => ({
   members: [],
   activeServerId: null,
   fetchServers: async () => {
-    const servers = await api.getServers();
-    set({ servers });
+    try {
+      const servers = await api.getServers();
+      set({ servers: Array.isArray(servers) ? servers : [] });
+    } catch {
+      set({ servers: [] });
+    }
   },
   fetchChannels: async (serverId) => {
-    const channels = await api.getChannels(serverId);
-    set({ channels });
+    try {
+      const channels = await api.getChannels(serverId);
+      set({ channels: Array.isArray(channels) ? channels : [] });
+    } catch {
+      set({ channels: [] });
+    }
   },
   fetchMembers: async (serverId) => {
-    const members = await api.getMembers(serverId);
-    set({ members });
+    try {
+      const members = await api.getMembers(serverId);
+      set({ members: Array.isArray(members) ? members : [] });
+    } catch {
+      set({ members: [] });
+    }
   },
   setActiveServer: (id) => set({ activeServerId: id }),
   createServer: async (name) => {

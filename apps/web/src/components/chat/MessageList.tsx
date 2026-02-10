@@ -67,7 +67,7 @@ function MessageActions({
   const setReplyingTo = useUIStore((s) => s.setReplyingTo);
 
   const handleDelete = async () => {
-    await api.deleteMessage(channelId, message.id);
+    await api.deleteMessage(message.id);
   };
 
   return (
