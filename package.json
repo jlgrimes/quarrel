@@ -1,6 +1,7 @@
 {
   "name": "quarrel",
   "private": true,
+  "packageManager": "bun@1.2.10",
   "workspaces": [
     "apps/*",
     "packages/*"
