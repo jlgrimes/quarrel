@@ -5,6 +5,8 @@ import { loginSchema, registerSchema } from "@quarrel/shared";
 import { eq } from "drizzle-orm";
 import { authMiddleware, type AuthEnv } from "../middleware/auth";
 
+const isProduction = process.env.NODE_ENV === "production";
+
 export const authRoutes = new Hono<AuthEnv>();
 
 authRoutes.post("/register", async (c) => {
@@ -59,8 +61,8 @@ authRoutes.post("/register", async (c) => {
 
   setCookie(c, "session", sessionId, {
     httpOnly: true,
-    secure: true,
-    sameSite: "None",
+    secure: isProduction,
+    sameSite: isProduction ? "None" : "Lax",
     path: "/",
     maxAge: 30 * 24 * 60 * 60,
   });
@@ -104,8 +106,8 @@ authRoutes.post("/login", async (c) => {
 
   setCookie(c, "session", sessionId, {
     httpOnly: true,
-    secure: true,
-    sameSite: "None",
+    secure: isProduction,
+    sameSite: isProduction ? "None" : "Lax",
     path: "/",
     maxAge: 30 * 24 * 60 * 60,
   });
