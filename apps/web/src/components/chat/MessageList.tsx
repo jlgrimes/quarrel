@@ -120,16 +120,20 @@ export function MessageList({ channelId }: { channelId: string }) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const shouldAutoScroll = useRef(true);
+  const loadingMore = useRef(false);
 
   useEffect(() => {
     fetchMessages(channelId);
   }, [channelId, fetchMessages]);
 
+  const messagesLength = messages.length;
+  const lastMessageId = messages[messagesLength - 1]?.id;
+
   useEffect(() => {
     if (shouldAutoScroll.current) {
       bottomRef.current?.scrollIntoView();
     }
-  }, [messages]);
+  }, [lastMessageId]);
 
   const handleScroll = useCallback(() => {
     const el = containerRef.current;
@@ -140,7 +144,8 @@ export function MessageList({ channelId }: { channelId: string }) {
     shouldAutoScroll.current = isNearBottom;
 
     // Load more when near top
-    if (el.scrollTop < 100 && hasMore) {
+    if (el.scrollTop < 100 && hasMore && !loadingMore.current) {
+      loadingMore.current = true;
       const prevHeight = el.scrollHeight;
       fetchMoreMessages(channelId).then(() => {
         // Preserve scroll position after loading older messages
@@ -148,7 +153,10 @@ export function MessageList({ channelId }: { channelId: string }) {
           if (containerRef.current) {
             containerRef.current.scrollTop = containerRef.current.scrollHeight - prevHeight;
           }
+          loadingMore.current = false;
         });
+      }).catch(() => {
+        loadingMore.current = false;
       });
     }
   }, [channelId, hasMore, fetchMoreMessages]);
