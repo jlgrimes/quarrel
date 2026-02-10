@@ -77,6 +77,18 @@ export default function LoginPage() {
           </Link>
         </p>
       </form>
+
+      <p className="absolute bottom-4 text-center text-xs text-[#949ba4] max-w-md px-4">
+        Quarrel is an independent, open-source project and is not affiliated with or endorsed by Discord Inc.{' '}
+        <a
+          href="https://github.com/jlgrimes/quarrel"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-[#00a8fc] hover:underline"
+        >
+          View source on GitHub
+        </a>
+      </p>
     </div>
   );
 }
