@@ -20,12 +20,14 @@ export const useAuthStore = create<AuthStore>((set) => ({
   loading: true,
   login: async (email, password) => {
     const res = await api.login(email, password);
+    if (res.token) localStorage.setItem('auth-token', JSON.stringify(res.token));
     set({ user: res.user, token: res.token });
     analytics.identify(res.user.id, { username: res.user.username, email: res.user.email });
     analytics.capture('auth:login');
   },
   register: async (username, email, password) => {
     const res = await api.register(username, email, password);
+    if (res.token) localStorage.setItem('auth-token', JSON.stringify(res.token));
     set({ user: res.user, token: res.token });
     analytics.identify(res.user.id, { username: res.user.username, email: res.user.email });
     analytics.capture('auth:register');
@@ -33,6 +35,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
   logout: async () => {
     useVoiceStore.getState().cleanup();
     await api.logout();
+    localStorage.removeItem('auth-token');
     set({ user: null, token: null });
     analytics.capture('auth:logout');
     analytics.reset();
@@ -40,6 +43,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
   fetchUser: async () => {
     try {
       const res = await api.me();
+      if (res.token) localStorage.setItem('auth-token', JSON.stringify(res.token));
       set({ user: res.user, token: res.token ?? null, loading: false });
       if (res.user) {
         analytics.identify(res.user.id, { username: res.user.username, email: res.user.email });

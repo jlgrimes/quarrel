@@ -1,9 +1,17 @@
 const BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
+function getAuthHeaders(): Record<string, string> {
+  try {
+    const state = JSON.parse(localStorage.getItem('auth-token') || '""');
+    if (state) return { Authorization: `Bearer ${state}` };
+  } catch {}
+  return {};
+}
+
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE_URL}${path}`, {
     credentials: 'include',
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    headers: { 'Content-Type': 'application/json', ...getAuthHeaders(), ...options?.headers },
     ...options,
   });
   if (!res.ok) {

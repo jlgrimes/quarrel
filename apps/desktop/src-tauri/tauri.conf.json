@@ -17,7 +17,7 @@
       "icons/icon.ico"
     ],
     "macOS": {
-      "signingIdentity": "-"
+      "signingIdentity": "Developer ID Application: Jared Grimes (MR26CCZ496)"
     }
   },
   "app": {
