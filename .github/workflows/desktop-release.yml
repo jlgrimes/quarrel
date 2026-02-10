@@ -42,9 +42,16 @@ jobs:
         working-directory: apps/desktop
         run: bun install
 
+      - name: Build web app
+        working-directory: apps/web
+        env:
+          VITE_API_URL: https://api.quarrel.app
+          VITE_WS_URL: wss://api.quarrel.app/ws
+        run: bunx vite build
+
       - name: Build Tauri app
         working-directory: apps/desktop
-        run: npx @tauri-apps/cli build --target ${{ matrix.target }} --bundles ${{ matrix.bundles }}
+        run: npx @tauri-apps/cli build --target ${{ matrix.target }} --bundles ${{ matrix.bundles }} --config '{"build":{"beforeBuildCommand":""}}'
 
       - name: Upload Windows installer to release
         if: matrix.platform == 'windows-latest'
@@ -54,6 +61,7 @@ jobs:
           for file in apps/desktop/src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.exe; do
             gh release upload ${{ inputs.tag }} "$file" --clobber
           done
+        shell: bash
 
       - name: Upload macOS DMG to release
         if: startsWith(matrix.platform, 'macos')
