@@ -8,6 +8,11 @@
     "beforeDevCommand": "cd ../web && bun run dev",
     "beforeBuildCommand": "cd ../web && VITE_API_URL=https://quarrel.app/api VITE_WS_URL=wss://quarrel.app/ws ../../node_modules/.bin/vite build"
   },
+  "bundle": {
+    "macOS": {
+      "signingIdentity": "-"
+    }
+  },
   "app": {
     "windows": [
       {
