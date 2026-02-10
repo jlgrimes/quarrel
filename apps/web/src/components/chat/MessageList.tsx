@@ -111,8 +111,10 @@ function ReplyIndicator({ replyToId, messages }: { replyToId: string; messages: 
   );
 }
 
+const EMPTY_MESSAGES: Message[] = [];
+
 export function MessageList({ channelId }: { channelId: string }) {
-  const messages = useMessageStore((s) => s.messages[channelId] || []);
+  const messages = useMessageStore((s) => s.messages[channelId] ?? EMPTY_MESSAGES);
   const hasMore = useMessageStore((s) => s.hasMore[channelId] ?? true);
   const fetchMessages = useMessageStore((s) => s.fetchMessages);
   const fetchMoreMessages = useMessageStore((s) => s.fetchMoreMessages);
