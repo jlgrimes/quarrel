@@ -10,6 +10,10 @@ type WSData = {
 
 const connectedClients = new Map<string, Set<ServerWebSocket<WSData>>>();
 
+// Voice state: which users are in which voice channels
+const voiceChannels = new Map<string, Map<string, { userId: string; username: string; displayName: string | null; avatarUrl: string | null; isMuted: boolean; isDeafened: boolean }>>();
+const userVoiceChannel = new Map<string, string>();
+
 function getClientSockets(userId: string): Set<ServerWebSocket<WSData>> {
   return connectedClients.get(userId) || new Set();
 }
@@ -56,6 +60,27 @@ export function sendToUser(userId: string, event: string, data: any) {
   for (const ws of sockets) {
     ws.send(JSON.stringify({ event, data }));
   }
+}
+
+function getVoiceParticipants(channelId: string) {
+  const participants = voiceChannels.get(channelId);
+  return participants ? Array.from(participants.values()) : [];
+}
+
+function removeUserFromVoice(userId: string) {
+  const channelId = userVoiceChannel.get(userId);
+  if (!channelId) return;
+
+  const participants = voiceChannels.get(channelId);
+  if (participants) {
+    participants.delete(userId);
+    if (participants.size === 0) {
+      voiceChannels.delete(channelId);
+    }
+  }
+  userVoiceChannel.delete(userId);
+
+  broadcastToChannel(channelId, "voice:user-left", { userId, channelId });
 }
 
 async function authenticateWS(token: string): Promise<string | null> {
@@ -222,6 +247,124 @@ export const websocketHandler = {
           }
           break;
         }
+
+        case "voice:join": {
+          const { channelId } = payload.data;
+
+          const [channel] = await db
+            .select()
+            .from(channels)
+            .where(eq(channels.id, channelId))
+            .limit(1);
+
+          if (!channel || channel.type !== "voice") break;
+
+          const [member] = await db
+            .select()
+            .from(members)
+            .where(
+              and(
+                eq(members.userId, ws.data.userId),
+                eq(members.serverId, channel.serverId)
+              )
+            )
+            .limit(1);
+
+          if (!member) break;
+
+          // Remove from any existing voice channel first
+          removeUserFromVoice(ws.data.userId);
+
+          const [user] = await db
+            .select({
+              id: users.id,
+              username: users.username,
+              displayName: users.displayName,
+              avatarUrl: users.avatarUrl,
+            })
+            .from(users)
+            .where(eq(users.id, ws.data.userId))
+            .limit(1);
+
+          const participant = {
+            userId: user.id,
+            username: user.username,
+            displayName: user.displayName,
+            avatarUrl: user.avatarUrl,
+            isMuted: false,
+            isDeafened: false,
+          };
+
+          if (!voiceChannels.has(channelId)) {
+            voiceChannels.set(channelId, new Map());
+          }
+          voiceChannels.get(channelId)!.set(ws.data.userId, participant);
+          userVoiceChannel.set(ws.data.userId, channelId);
+
+          // Send full state to the joining user
+          sendToUser(ws.data.userId, "voice:state", {
+            channelId,
+            participants: getVoiceParticipants(channelId),
+          });
+
+          // Broadcast to channel that a new user joined
+          broadcastToChannel(channelId, "voice:user-joined", {
+            channelId,
+            participant,
+          });
+          break;
+        }
+
+        case "voice:leave": {
+          removeUserFromVoice(ws.data.userId);
+          break;
+        }
+
+        case "voice:offer": {
+          sendToUser(payload.data.targetUserId, "voice:offer", {
+            fromUserId: ws.data.userId,
+            sdp: payload.data.sdp,
+          });
+          break;
+        }
+
+        case "voice:answer": {
+          sendToUser(payload.data.targetUserId, "voice:answer", {
+            fromUserId: ws.data.userId,
+            sdp: payload.data.sdp,
+          });
+          break;
+        }
+
+        case "voice:ice-candidate": {
+          sendToUser(payload.data.targetUserId, "voice:ice-candidate", {
+            fromUserId: ws.data.userId,
+            candidate: payload.data.candidate,
+          });
+          break;
+        }
+
+        case "voice:mute": {
+          const { isMuted, isDeafened } = payload.data;
+          const voiceChannelId = userVoiceChannel.get(ws.data.userId);
+          if (!voiceChannelId) break;
+
+          const participants = voiceChannels.get(voiceChannelId);
+          if (!participants) break;
+
+          const entry = participants.get(ws.data.userId);
+          if (!entry) break;
+
+          entry.isMuted = isMuted;
+          entry.isDeafened = isDeafened;
+
+          broadcastToChannel(voiceChannelId, "voice:mute", {
+            userId: ws.data.userId,
+            isMuted,
+            isDeafened,
+          });
+          break;
+        }
       }
     } catch (err) {
       ws.send(
@@ -234,8 +377,10 @@ export const websocketHandler = {
     if (ws.data.userId) {
       removeClient(ws.data.userId, ws);
 
-      // Only set offline if no other connections
+      // Only set offline and leave voice if no other connections
       if (!connectedClients.has(ws.data.userId)) {
+        removeUserFromVoice(ws.data.userId);
+
         await db
           .update(users)
           .set({ status: "offline" })

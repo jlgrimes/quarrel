@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import ServerSidebar from '../../components/navigation/ServerSidebar';
 
 const mockNavigate = vi.fn();
@@ -15,12 +17,8 @@ vi.mock('react-router-dom', () => ({
   useParams: () => ({ serverId: 's1' }),
 }));
 
-vi.mock('../../stores/serverStore', () => ({
-  useServerStore: (selector: any) =>
-    selector({
-      servers: mockServers,
-      channels: [],
-    }),
+vi.mock('../../hooks/useServers', () => ({
+  useServers: () => ({ data: mockServers }),
 }));
 
 vi.mock('../../stores/uiStore', () => ({
@@ -30,29 +28,37 @@ vi.mock('../../stores/uiStore', () => ({
     }),
 }));
 
+const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+
+function Wrapper({ children }: { children: React.ReactNode }) {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>{children}</TooltipProvider>
+    </QueryClientProvider>
+  );
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
 });
 
 describe('ServerSidebar', () => {
   it('renders server icons', () => {
-    render(<ServerSidebar />);
+    render(<ServerSidebar />, { wrapper: Wrapper });
 
-    // Server icons show first letter of name
     expect(screen.getByText('G')).toBeInTheDocument();
     expect(screen.getByText('D')).toBeInTheDocument();
   });
 
   it('shows create server button', () => {
-    render(<ServerSidebar />);
+    render(<ServerSidebar />, { wrapper: Wrapper });
 
     expect(screen.getByText('+')).toBeInTheDocument();
   });
 
   it('renders home/DM button', () => {
-    render(<ServerSidebar />);
+    render(<ServerSidebar />, { wrapper: Wrapper });
 
-    // The home button shows "Q" (for Quarrel)
     expect(screen.getByText('Q')).toBeInTheDocument();
   });
 });

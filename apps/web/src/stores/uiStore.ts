@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-type ModalType = 'createServer' | 'joinServer' | 'settings' | 'createChannel' | null;
+type ModalType = 'createServer' | 'joinServer' | 'settings' | 'createChannel' | 'inviteServer' | null;
 
 type UIStore = {
   activeChannelId: string | null;

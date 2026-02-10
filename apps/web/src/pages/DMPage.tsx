@@ -1,47 +1,40 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import type { Conversation, DirectMessage } from '@quarrel/shared';
-import { api } from '../lib/api';
+import { useConversations, useDMs, useSendDM } from '../hooks/useDMs';
 import { useAuthStore } from '../stores/authStore';
+import type { Conversation } from '@quarrel/shared';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 export default function DMPage() {
   const { conversationId } = useParams();
   const navigate = useNavigate();
   const currentUser = useAuthStore((s) => s.user);
-  const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [messages, setMessages] = useState<DirectMessage[]>([]);
-  const [input, setInput] = useState('');
-  const [loading, setLoading] = useState(false);
+  const { data: conversations = [] } = useConversations();
+  const { data: dmData, isLoading: loading } = useDMs(conversationId);
+  const sendDM = useSendDM();
   const bottomRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  useEffect(() => {
-    api.getConversations().then(setConversations).catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    if (!conversationId) return;
-    setLoading(true);
-    api
-      .getDMs(conversationId)
-      .then((msgs) => {
-        setMessages(msgs);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
-  }, [conversationId]);
+  const messages = useMemo(
+    () => dmData?.pages.flatMap((p) => p.messages) ?? [],
+    [dmData],
+  );
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages.length]);
 
   const handleSend = useCallback(async () => {
-    if (!input.trim() || !conversationId) return;
+    const value = inputRef.current?.value.trim();
+    if (!value || !conversationId) return;
     try {
-      const msg = await api.sendDM(conversationId, input.trim());
-      setMessages((prev) => [...prev, msg]);
-      setInput('');
+      await sendDM.mutateAsync({ conversationId, content: value });
+      if (inputRef.current) inputRef.current.value = '';
     } catch {}
-  }, [input, conversationId]);
+  }, [conversationId, sendDM]);
 
   const getOtherUser = (conv: Conversation) => {
     return conv.members?.find((m) => m.id !== currentUser?.id) || conv.members?.[0];
@@ -52,13 +45,13 @@ export default function DMPage() {
       {/* Conversation list */}
       <div className="flex w-60 flex-col border-r border-[#1f2023] bg-[#2b2d31]">
         <div className="flex h-12 items-center border-b border-[#1f2023] px-4">
-          <input
+          <Input
             type="text"
             placeholder="Find or start a conversation"
-            className="w-full rounded bg-[#1e1f22] px-2 py-1 text-sm text-[#dbdee1] placeholder-[#949ba4] outline-none"
+            className="w-full rounded border-none bg-[#1e1f22] px-2 py-1 text-sm text-[#dbdee1] placeholder-[#949ba4] shadow-none h-auto"
           />
         </div>
-        <div className="flex-1 overflow-y-auto p-2">
+        <ScrollArea className="flex-1 p-2">
           <h3 className="mb-1 px-2 text-xs font-semibold uppercase text-[#949ba4]">
             Direct Messages
           </h3>
@@ -73,11 +66,11 @@ export default function DMPage() {
                   isActive ? 'bg-[#404249] text-white' : 'text-[#949ba4] hover:bg-[#383a40] hover:text-[#dbdee1]'
                 }`}
               >
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#5865f2]">
-                  <span className="text-xs font-medium text-white">
+                <Avatar className="h-8 w-8 shrink-0">
+                  <AvatarFallback className="bg-[#5865f2] text-xs font-medium text-white">
                     {(other?.displayName || other?.username || '?')[0].toUpperCase()}
-                  </span>
-                </div>
+                  </AvatarFallback>
+                </Avatar>
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-sm font-medium">
                     {other?.displayName || other?.username || 'Unknown'}
@@ -89,7 +82,7 @@ export default function DMPage() {
           {conversations.length === 0 && (
             <p className="px-2 py-4 text-center text-sm text-[#949ba4]">No conversations yet</p>
           )}
-        </div>
+        </ScrollArea>
       </div>
 
       {/* Chat area */}
@@ -109,7 +102,7 @@ export default function DMPage() {
             </div>
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto px-4 py-2">
+            <ScrollArea className="flex-1 px-4 py-2">
               {loading && (
                 <div className="py-4 text-center text-[#949ba4]">Loading messages...</div>
               )}
@@ -118,11 +111,11 @@ export default function DMPage() {
                 const timeStr = time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                 return (
                   <div key={msg.id} className="group flex items-start py-0.5 hover:bg-[#2e3035]">
-                    <div className="ml-4 mr-4 mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#5865f2]">
-                      <span className="text-sm font-medium text-white">
+                    <Avatar className="ml-4 mr-4 mt-0.5 h-10 w-10 shrink-0">
+                      <AvatarFallback className="bg-[#5865f2] text-sm font-medium text-white">
                         {(msg.author?.displayName || msg.author?.username || '?')[0].toUpperCase()}
-                      </span>
-                    </div>
+                      </AvatarFallback>
+                    </Avatar>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-baseline gap-2">
                         <span className="font-medium text-white">
@@ -136,14 +129,13 @@ export default function DMPage() {
                 );
               })}
               <div ref={bottomRef} />
-            </div>
+            </ScrollArea>
 
             {/* Input */}
             <div className="px-4 pb-6">
               <div className="flex items-end rounded-lg bg-[#383a40]">
                 <textarea
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
+                  ref={inputRef}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && !e.shiftKey) {
                       e.preventDefault();
@@ -154,15 +146,15 @@ export default function DMPage() {
                   rows={1}
                   className="max-h-[50vh] flex-1 resize-none bg-transparent py-3 pl-4 text-[#dbdee1] placeholder-[#6d6f78] outline-none"
                 />
-                <button
+                <Button
+                  variant="ghost"
                   onClick={handleSend}
-                  disabled={!input.trim()}
                   className="p-3 text-[#b5bac1] hover:text-[#dbdee1] disabled:opacity-30"
                 >
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
                   </svg>
-                </button>
+                </Button>
               </div>
             </div>
           </>

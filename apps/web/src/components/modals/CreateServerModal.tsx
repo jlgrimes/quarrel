@@ -1,30 +1,28 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useServerStore } from '../../stores/serverStore';
+import { useCreateServer } from '../../hooks/useServers';
 import { useUIStore } from '../../stores/uiStore';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import Modal from './Modal';
 
 export default function CreateServerModal() {
   const [name, setName] = useState('');
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const createServer = useServerStore((s) => s.createServer);
+  const createServer = useCreateServer();
   const closeModal = useUIStore((s) => s.closeModal);
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
-    setLoading(true);
     setError('');
     try {
-      const server = await createServer(name.trim());
+      const server = await createServer.mutateAsync(name.trim());
       closeModal();
       navigate(`/channels/${server.id}`);
     } catch (err: any) {
       setError(err.message || 'Failed to create server');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -41,23 +39,23 @@ export default function CreateServerModal() {
 
         <label className="mb-4 block text-xs font-bold uppercase text-[#b5bac1]">
           Server Name
-          <input
+          <Input
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="mt-2 block w-full rounded bg-[#1e1f22] p-2 text-base font-normal text-[#dbdee1] outline-none normal-case"
+            className="mt-2 block w-full rounded border-none bg-[#1e1f22] p-2 text-base font-normal text-[#dbdee1] normal-case"
             placeholder="My Awesome Server"
             autoFocus
           />
         </label>
 
-        <button
+        <Button
           type="submit"
-          disabled={!name.trim() || loading}
+          disabled={!name.trim() || createServer.isPending}
           className="w-full rounded bg-[#5865f2] p-2.5 font-medium text-white hover:bg-[#4752c4] disabled:opacity-50"
         >
-          {loading ? 'Creating...' : 'Create'}
-        </button>
+          {createServer.isPending ? 'Creating...' : 'Create'}
+        </Button>
       </form>
     </Modal>
   );

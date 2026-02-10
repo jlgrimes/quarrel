@@ -1,6 +1,6 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useMemo } from 'react';
 import type { Message } from '@quarrel/shared';
-import { useMessageStore } from '../../stores/messageStore';
+import { useMessages } from '../../hooks/useMessages';
 import { useAuthStore } from '../../stores/authStore';
 import { useUIStore } from '../../stores/uiStore';
 import { api } from '../../lib/api';
@@ -57,11 +57,9 @@ function UserAvatar({ user }: { user?: { displayName: string; avatarUrl: string 
 
 function MessageActions({
   message,
-  channelId,
   isOwn,
 }: {
   message: Message;
-  channelId: string;
   isOwn: boolean;
 }) {
   const setReplyingTo = useUIStore((s) => s.setReplyingTo);
@@ -111,25 +109,19 @@ function ReplyIndicator({ replyToId, messages }: { replyToId: string; messages: 
   );
 }
 
-const EMPTY_MESSAGES: Message[] = [];
-
 export function MessageList({ channelId }: { channelId: string }) {
-  const messages = useMessageStore((s) => s.messages[channelId] ?? EMPTY_MESSAGES);
-  const hasMore = useMessageStore((s) => s.hasMore[channelId] ?? true);
-  const fetchMessages = useMessageStore((s) => s.fetchMessages);
-  const fetchMoreMessages = useMessageStore((s) => s.fetchMoreMessages);
+  const { data, hasPreviousPage, fetchPreviousPage, isFetchingPreviousPage } = useMessages(channelId);
   const currentUser = useAuthStore((s) => s.user);
   const bottomRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const shouldAutoScroll = useRef(true);
-  const loadingMore = useRef(false);
 
-  useEffect(() => {
-    fetchMessages(channelId);
-  }, [channelId, fetchMessages]);
+  const messages = useMemo(
+    () => data?.pages.flatMap((p) => p.messages) ?? [],
+    [data],
+  );
 
-  const messagesLength = messages.length;
-  const lastMessageId = messages[messagesLength - 1]?.id;
+  const lastMessageId = messages[messages.length - 1]?.id;
 
   useEffect(() => {
     if (shouldAutoScroll.current) {
@@ -141,27 +133,20 @@ export function MessageList({ channelId }: { channelId: string }) {
     const el = containerRef.current;
     if (!el) return;
 
-    // Auto-scroll when near bottom
     const isNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 100;
     shouldAutoScroll.current = isNearBottom;
 
-    // Load more when near top
-    if (el.scrollTop < 100 && hasMore && !loadingMore.current) {
-      loadingMore.current = true;
+    if (el.scrollTop < 100 && hasPreviousPage && !isFetchingPreviousPage) {
       const prevHeight = el.scrollHeight;
-      fetchMoreMessages(channelId).then(() => {
-        // Preserve scroll position after loading older messages
+      fetchPreviousPage().then(() => {
         requestAnimationFrame(() => {
           if (containerRef.current) {
             containerRef.current.scrollTop = containerRef.current.scrollHeight - prevHeight;
           }
-          loadingMore.current = false;
         });
-      }).catch(() => {
-        loadingMore.current = false;
       });
     }
-  }, [channelId, hasMore, fetchMoreMessages]);
+  }, [hasPreviousPage, isFetchingPreviousPage, fetchPreviousPage]);
 
   return (
     <div
@@ -169,10 +154,10 @@ export function MessageList({ channelId }: { channelId: string }) {
       onScroll={handleScroll}
       className="flex-1 overflow-y-auto overflow-x-hidden"
     >
-      {hasMore && (
+      {hasPreviousPage && (
         <div className="flex justify-center py-4">
           <button
-            onClick={() => fetchMoreMessages(channelId)}
+            onClick={() => fetchPreviousPage()}
             className="text-sm text-[#00a8fc] hover:underline"
           >
             Load more messages
@@ -202,7 +187,7 @@ export function MessageList({ channelId }: { channelId: string }) {
               {msg.replyToId && <ReplyIndicator replyToId={msg.replyToId} messages={messages} />}
 
               <div className="group relative px-4 py-0.5 hover:bg-[#2e3035]">
-                <MessageActions message={msg} channelId={channelId} isOwn={isOwn} />
+                <MessageActions message={msg} isOwn={isOwn} />
 
                 {grouped ? (
                   <div className="flex items-start pl-14">

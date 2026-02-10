@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { wsClient } from '../../lib/ws';
+import useWebSocket from 'react-use-websocket';
 import { useAuthStore } from '../../stores/authStore';
+import { getWsUrl } from '../../lib/getWsUrl';
 
 type TypingUser = {
   userId: string;
@@ -11,32 +12,37 @@ type TypingUser = {
 export function TypingIndicator({ channelId }: { channelId: string }) {
   const [typingUsers, setTypingUsers] = useState<Map<string, TypingUser>>(new Map());
   const currentUserId = useAuthStore((s) => s.user?.id);
+  const token = useAuthStore((s) => s.token);
+  const { lastJsonMessage } = useWebSocket(token ? getWsUrl() : null, { share: true });
 
   useEffect(() => {
-    const cleanup = wsClient.on('typing:update', (data: { channelId: string; userId: string; username: string }) => {
-      if (data.channelId !== channelId) return;
-      if (data.userId === currentUserId) return;
+    if (!lastJsonMessage) return;
+    const { event, data } = lastJsonMessage as { event: string; data: any };
+    if (event !== 'typing:update') return;
+    if (data.channelId !== channelId) return;
+    if (data.userId === currentUserId) return;
 
-      setTypingUsers((prev) => {
-        const next = new Map(prev);
-        const existing = next.get(data.userId);
-        if (existing) clearTimeout(existing.timeout);
+    setTypingUsers((prev) => {
+      const next = new Map(prev);
+      const existing = next.get(data.userId);
+      if (existing) clearTimeout(existing.timeout);
 
-        const timeout = setTimeout(() => {
-          setTypingUsers((p) => {
-            const n = new Map(p);
-            n.delete(data.userId);
-            return n;
-          });
-        }, 5000);
+      const timeout = setTimeout(() => {
+        setTypingUsers((p) => {
+          const n = new Map(p);
+          n.delete(data.userId);
+          return n;
+        });
+      }, 5000);
 
-        next.set(data.userId, { userId: data.userId, username: data.username, timeout });
-        return next;
-      });
+      next.set(data.userId, { userId: data.userId, username: data.username, timeout });
+      return next;
     });
+  }, [lastJsonMessage, channelId, currentUserId]);
 
+  // Clear typing users on channel change
+  useEffect(() => {
     return () => {
-      cleanup();
       typingUsers.forEach((u) => clearTimeout(u.timeout));
     };
   }, [channelId]);

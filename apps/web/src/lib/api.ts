@@ -39,7 +39,7 @@ export const api = {
 
   // Messages
   getMessages: (channelId: string, cursor?: string) =>
-    request<{ messages: any[]; nextCursor: string | null }>(`/channels/${channelId}/messages${cursor ? `?cursor=${cursor}` : ''}`).then(r => r.messages),
+    request<{ messages: any[]; nextCursor: string | null }>(`/channels/${channelId}/messages${cursor ? `?cursor=${cursor}` : ''}`),
   sendMessage: (channelId: string, content: string, replyToId?: string) =>
     request<{ message: any }>(`/channels/${channelId}/messages`, {
       method: 'POST',
@@ -69,7 +69,7 @@ export const api = {
   createConversation: (userId: string) =>
     request<{ conversation: any }>('/dms/conversations', { method: 'POST', body: JSON.stringify({ userId }) }).then(r => r.conversation),
   getDMs: (conversationId: string, cursor?: string) =>
-    request<{ messages: any[]; nextCursor: string | null }>(`/dms/${conversationId}/messages${cursor ? `?cursor=${cursor}` : ''}`).then(r => r.messages),
+    request<{ messages: any[]; nextCursor: string | null }>(`/dms/${conversationId}/messages${cursor ? `?cursor=${cursor}` : ''}`),
   sendDM: (conversationId: string, content: string) =>
     request<{ message: any }>(`/dms/${conversationId}/messages`, {
       method: 'POST',

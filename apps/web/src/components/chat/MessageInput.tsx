@@ -1,27 +1,31 @@
 import { useRef, useState, useCallback } from 'react';
 import type { Message } from '@quarrel/shared';
-import { useMessageStore } from '../../stores/messageStore';
+import { useSendMessage } from '../../hooks/useMessages';
+import { useMessages } from '../../hooks/useMessages';
 import { useUIStore } from '../../stores/uiStore';
-import { wsClient } from '../../lib/ws';
-
-const EMPTY_MESSAGES: Message[] = [];
+import useWebSocket from 'react-use-websocket';
+import { useAuthStore } from '../../stores/authStore';
+import { getWsUrl } from '../../lib/getWsUrl';
 
 export function MessageInput({ channelId, channelName }: { channelId: string; channelName: string }) {
   const [content, setContent] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const sendMessage = useMessageStore((s) => s.sendMessage);
+  const sendMessage = useSendMessage();
   const replyingTo = useUIStore((s) => s.replyingTo);
   const setReplyingTo = useUIStore((s) => s.setReplyingTo);
-  const messages = useMessageStore((s) => s.messages[channelId] ?? EMPTY_MESSAGES);
+  const { data } = useMessages(channelId);
+  const messages = data?.pages.flatMap((p) => p.messages) ?? [];
   const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const token = useAuthStore((s) => s.token);
+  const { sendJsonMessage } = useWebSocket(token ? getWsUrl() : null, { share: true });
 
-  const replyMessage = replyingTo ? messages.find((m) => m.id === replyingTo) : null;
+  const replyMessage = replyingTo ? messages.find((m: Message) => m.id === replyingTo) : null;
 
   const handleSend = useCallback(async () => {
     const trimmed = content.trim();
     if (!trimmed) return;
 
-    await sendMessage(channelId, trimmed, replyingTo ?? undefined);
+    await sendMessage.mutateAsync({ channelId, content: trimmed, replyToId: replyingTo ?? undefined });
     setContent('');
     setReplyingTo(null);
 
@@ -47,7 +51,7 @@ export function MessageInput({ channelId, channelName }: { channelId: string; ch
 
     // Send typing indicator (throttled)
     if (!typingTimerRef.current) {
-      wsClient.send('typing:start', { channelId });
+      sendJsonMessage({ event: 'typing:start', data: { channelId } });
       typingTimerRef.current = setTimeout(() => {
         typingTimerRef.current = null;
       }, 3000);

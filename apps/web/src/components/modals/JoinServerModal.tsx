@@ -1,30 +1,28 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useServerStore } from '../../stores/serverStore';
+import { useJoinServer } from '../../hooks/useServers';
 import { useUIStore } from '../../stores/uiStore';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import Modal from './Modal';
 
 export default function JoinServerModal() {
   const [inviteCode, setInviteCode] = useState('');
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const joinServer = useServerStore((s) => s.joinServer);
+  const joinServer = useJoinServer();
   const closeModal = useUIStore((s) => s.closeModal);
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inviteCode.trim()) return;
-    setLoading(true);
     setError('');
     try {
-      const server = await joinServer(inviteCode.trim());
+      const server = await joinServer.mutateAsync(inviteCode.trim());
       closeModal();
       navigate(`/channels/${server.id}`);
     } catch (err: any) {
       setError(err.message || 'Failed to join server');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -41,23 +39,23 @@ export default function JoinServerModal() {
 
         <label className="mb-4 block text-xs font-bold uppercase text-[#b5bac1]">
           Invite Code
-          <input
+          <Input
             type="text"
             value={inviteCode}
             onChange={(e) => setInviteCode(e.target.value)}
-            className="mt-2 block w-full rounded bg-[#1e1f22] p-2 text-base font-normal text-[#dbdee1] outline-none normal-case"
+            className="mt-2 block w-full rounded border-none bg-[#1e1f22] p-2 text-base font-normal text-[#dbdee1] normal-case"
             placeholder="Enter invite code"
             autoFocus
           />
         </label>
 
-        <button
+        <Button
           type="submit"
-          disabled={!inviteCode.trim() || loading}
+          disabled={!inviteCode.trim() || joinServer.isPending}
           className="w-full rounded bg-[#5865f2] p-2.5 font-medium text-white hover:bg-[#4752c4] disabled:opacity-50"
         >
-          {loading ? 'Joining...' : 'Join Server'}
-        </button>
+          {joinServer.isPending ? 'Joining...' : 'Join Server'}
+        </Button>
       </form>
     </Modal>
   );

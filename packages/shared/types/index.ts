@@ -114,7 +114,11 @@ export type WSClientEvents =
   | 'typing:start'
   | 'presence:update'
   | 'voice:join'
-  | 'voice:leave';
+  | 'voice:leave'
+  | 'voice:offer'
+  | 'voice:answer'
+  | 'voice:ice-candidate'
+  | 'voice:mute';
 
 export type WSServerEvents =
   | 'message:new'
@@ -127,7 +131,14 @@ export type WSServerEvents =
   | 'member:left'
   | 'channel:created'
   | 'channel:updated'
-  | 'channel:deleted';
+  | 'channel:deleted'
+  | 'voice:user-joined'
+  | 'voice:user-left'
+  | 'voice:state'
+  | 'voice:offer'
+  | 'voice:answer'
+  | 'voice:ice-candidate'
+  | 'voice:mute';
 
 // --- WebSocket Payload Types ---
 
@@ -166,4 +177,33 @@ export type VoiceJoinPayload = {
 
 export type VoiceLeavePayload = {
   channelId: string;
+};
+
+export type VoiceParticipant = {
+  userId: string;
+  username: string;
+  displayName: string;
+  avatarUrl: string | null;
+  isMuted: boolean;
+  isDeafened: boolean;
+};
+
+export type VoiceOfferPayload = {
+  targetUserId: string;
+  sdp: RTCSessionDescriptionInit;
+};
+
+export type VoiceAnswerPayload = {
+  targetUserId: string;
+  sdp: RTCSessionDescriptionInit;
+};
+
+export type VoiceIceCandidatePayload = {
+  targetUserId: string;
+  candidate: RTCIceCandidateInit;
+};
+
+export type VoiceMutePayload = {
+  isMuted: boolean;
+  isDeafened: boolean;
 };

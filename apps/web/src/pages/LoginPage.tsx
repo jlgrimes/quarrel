@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { loginSchema } from '@quarrel/shared';
 import { useAuthStore } from '../stores/authStore';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -40,33 +42,33 @@ export default function LoginPage() {
 
         <label className="mb-2 block text-xs font-bold uppercase text-[#b5bac1]">
           Email
-          <input
+          <Input
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="mt-2 block w-full rounded bg-[#1e1f22] border border-[#3f4147] p-2.5 text-base font-normal text-[#dbdee1] outline-none focus:border-[#5865f2] normal-case"
+            className="mt-2 h-auto rounded border-[#3f4147] bg-[#1e1f22] p-2.5 text-base font-normal text-[#dbdee1] shadow-none normal-case focus-visible:border-[#5865f2] focus-visible:ring-0"
             required
           />
         </label>
 
         <label className="mb-5 block text-xs font-bold uppercase text-[#b5bac1]">
           Password
-          <input
+          <Input
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="mt-2 block w-full rounded bg-[#1e1f22] border border-[#3f4147] p-2.5 text-base font-normal text-[#dbdee1] outline-none focus:border-[#5865f2] normal-case"
+            className="mt-2 h-auto rounded border-[#3f4147] bg-[#1e1f22] p-2.5 text-base font-normal text-[#dbdee1] shadow-none normal-case focus-visible:border-[#5865f2] focus-visible:ring-0"
             required
           />
         </label>
 
-        <button
+        <Button
           type="submit"
           disabled={loading}
           className="w-full rounded bg-[#5865f2] p-2.5 font-medium text-white hover:bg-[#4752c4] disabled:opacity-50"
         >
           {loading ? 'Logging in...' : 'Log In'}
-        </button>
+        </Button>
 
         <p className="mt-3 text-sm text-[#949ba4]">
           Need an account?{' '}

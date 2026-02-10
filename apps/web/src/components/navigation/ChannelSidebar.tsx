@@ -1,9 +1,38 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useServerStore } from '../../stores/serverStore';
+import { useServers } from '../../hooks/useServers';
+import { useChannels } from '../../hooks/useChannels';
 import { useUIStore } from '../../stores/uiStore';
+import { useVoiceStore } from '../../stores/voiceStore';
 import type { Channel } from '@quarrel/shared';
+import { Button } from '@/components/ui/button';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { VoiceConnectionBar } from '../voice/VoiceConnectionBar';
 import UserBar from './UserBar';
+
+function VoiceParticipants({ channelId }: { channelId: string }) {
+  const currentChannelId = useVoiceStore((s) => s.currentChannelId);
+  const participants = useVoiceStore((s) => s.participants);
+  const speakingUsers = useVoiceStore((s) => s.speakingUsers);
+
+  if (currentChannelId !== channelId || participants.length === 0) return null;
+
+  return (
+    <div className="ml-8 mt-0.5 mb-1">
+      {participants.map((p) => (
+        <div key={p.userId} className="flex items-center gap-2 py-0.5 px-2 text-xs text-[#949ba4]">
+          <div className={`w-5 h-5 rounded-full bg-[#5865f2] flex items-center justify-center text-white text-[10px] font-semibold shrink-0 ${
+            speakingUsers.has(p.userId) ? 'ring-2 ring-[#23a559]' : ''
+          }`}>
+            {(p.displayName || p.username).charAt(0).toUpperCase()}
+          </div>
+          <span className="truncate">{p.displayName || p.username}</span>
+          {p.isMuted && <span className="text-[#ed4245] text-[10px] shrink-0">&#x1F507;</span>}
+        </div>
+      ))}
+    </div>
+  );
+}
 
 function CategorySection({
   category,
@@ -39,33 +68,37 @@ function CategorySection({
               {category.name}
             </span>
           </button>
-          <button
+          <Button
+            variant="ghost"
+            size="icon-xs"
             onClick={onAddChannel}
             className="text-[#949ba4] hover:text-[#dbdee1] opacity-0 group-hover:opacity-100 transition-opacity text-lg leading-none ml-auto"
             aria-label="Create channel"
           >
             +
-          </button>
+          </Button>
         </div>
       )}
 
       {!collapsed &&
         channels.map((channel) => (
-          <button
-            key={channel.id}
-            onClick={() => onChannelClick(channel)}
-            className={`w-full flex items-center gap-1.5 px-2 py-1.5 mx-2 rounded text-sm group ${
-              activeChannelId === channel.id
-                ? 'bg-[#404249] text-white'
-                : 'text-[#949ba4] hover:bg-[#383a40] hover:text-[#dbdee1]'
-            }`}
-            style={{ maxWidth: 'calc(100% - 16px)' }}
-          >
-            <span className="text-lg leading-none shrink-0 w-5 text-center">
-              {channel.type === 'voice' ? '\u{1F50A}' : '#'}
-            </span>
-            <span className="truncate">{channel.name}</span>
-          </button>
+          <div key={channel.id}>
+            <button
+              onClick={() => onChannelClick(channel)}
+              className={`w-full flex items-center gap-1.5 px-2 py-1.5 mx-2 rounded text-sm group ${
+                activeChannelId === channel.id
+                  ? 'bg-[#404249] text-white'
+                  : 'text-[#949ba4] hover:bg-[#383a40] hover:text-[#dbdee1]'
+              }`}
+              style={{ maxWidth: 'calc(100% - 16px)' }}
+            >
+              <span className="text-lg leading-none shrink-0 w-5 text-center">
+                {channel.type === 'voice' ? '\u{1F50A}' : '#'}
+              </span>
+              <span className="truncate">{channel.name}</span>
+            </button>
+            {channel.type === 'voice' && <VoiceParticipants channelId={channel.id} />}
+          </div>
         ))}
     </div>
   );
@@ -74,15 +107,14 @@ function CategorySection({
 export default function ChannelSidebar() {
   const navigate = useNavigate();
   const { serverId, channelId } = useParams();
-  const servers = useServerStore((s) => s.servers) || [];
-  const channels = useServerStore((s) => s.channels) || [];
+  const { data: servers = [] } = useServers();
+  const { data: channels = [] } = useChannels(serverId);
   const openModal = useUIStore((s) => s.openModal);
 
   const server = servers.find((s) => s.id === serverId);
 
   if (!server) return null;
 
-  // Separate categories from channels
   const categories = channels
     .filter((c) => c.type === 'category')
     .sort((a, b) => a.position - b.position);
@@ -91,7 +123,6 @@ export default function ChannelSidebar() {
     .filter((c) => c.type !== 'category')
     .sort((a, b) => a.position - b.position);
 
-  // Group channels by categoryId
   const uncategorized = nonCategoryChannels.filter((c) => !c.categoryId);
   const categorized = categories.map((cat) => ({
     category: cat,
@@ -100,51 +131,65 @@ export default function ChannelSidebar() {
 
   const handleChannelClick = (channel: Channel) => {
     navigate(`/channels/${serverId}/${channel.id}`);
+    if (channel.type === 'voice') {
+      useVoiceStore.getState().joinChannel(channel.id);
+    }
   };
 
   return (
     <div className="w-60 bg-[#2b2d31] flex flex-col shrink-0">
-      {/* Server header */}
       <div className="h-12 flex items-center px-4 border-b border-[#1e1f22] shrink-0 group">
         <h2 className="font-semibold text-white truncate flex-1">{server.name}</h2>
-        <button
+        <Button
+          variant="ghost"
+          size="icon-xs"
+          onClick={() => openModal('inviteServer')}
+          className="text-[#949ba4] hover:text-[#dbdee1] opacity-0 group-hover:opacity-100 transition-opacity leading-none ml-auto"
+          aria-label="Invite people"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M14 8.5a2.5 2.5 0 1 0-5 0 2.5 2.5 0 0 0 5 0M11.5 4a4.5 4.5 0 1 1 0 9 4.5 4.5 0 0 1 0-9M17.5 12a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3m0-5a3.5 3.5 0 1 1 0 7 3.5 3.5 0 0 1 0-7M3 19c0-3.04 2.46-5.5 5.5-5.5h6c3.04 0 5.5 2.46 5.5 5.5v1h-2v-1a3.5 3.5 0 0 0-3.5-3.5h-6A3.5 3.5 0 0 0 5 19v1H3zm18 1h-2v-1c0-.35-.07-.69-.18-1H21z" />
+          </svg>
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon-xs"
           onClick={() => openModal('createChannel')}
-          className="text-[#949ba4] hover:text-[#dbdee1] opacity-0 group-hover:opacity-100 transition-opacity text-lg leading-none ml-auto"
+          className="text-[#949ba4] hover:text-[#dbdee1] opacity-0 group-hover:opacity-100 transition-opacity text-lg leading-none ml-1"
           aria-label="Create channel"
         >
           +
-        </button>
+        </Button>
       </div>
 
-      {/* Channel list */}
-      <div className="flex-1 overflow-y-auto py-2 px-1">
-        {/* Uncategorized channels */}
-        {uncategorized.length > 0 && (
-          <CategorySection
-            category={null}
-            channels={uncategorized}
-            serverId={server.id}
-            activeChannelId={channelId}
-            onChannelClick={handleChannelClick}
-            onAddChannel={() => openModal('createChannel')}
-          />
-        )}
+      <ScrollArea className="flex-1">
+        <div className="py-2 px-1">
+          {uncategorized.length > 0 && (
+            <CategorySection
+              category={null}
+              channels={uncategorized}
+              serverId={server.id}
+              activeChannelId={channelId}
+              onChannelClick={handleChannelClick}
+              onAddChannel={() => openModal('createChannel')}
+            />
+          )}
 
-        {/* Categorized channels */}
-        {categorized.map(({ category, channels: catChannels }) => (
-          <CategorySection
-            key={category.id}
-            category={category}
-            channels={catChannels}
-            serverId={server.id}
-            activeChannelId={channelId}
-            onChannelClick={handleChannelClick}
-            onAddChannel={() => openModal('createChannel')}
-          />
-        ))}
-      </div>
+          {categorized.map(({ category, channels: catChannels }) => (
+            <CategorySection
+              key={category.id}
+              category={category}
+              channels={catChannels}
+              serverId={server.id}
+              activeChannelId={channelId}
+              onChannelClick={handleChannelClick}
+              onAddChannel={() => openModal('createChannel')}
+            />
+          ))}
+        </div>
+      </ScrollArea>
 
-      {/* User bar */}
+      <VoiceConnectionBar />
       <UserBar />
     </div>
   );

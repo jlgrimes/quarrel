@@ -1,11 +1,13 @@
-import { useServerStore } from '../../stores/serverStore';
+import { useChannels } from '../../hooks/useChannels';
 import { useUIStore } from '../../stores/uiStore';
 import { MessageList } from './MessageList';
 import { MessageInput } from './MessageInput';
 import { TypingIndicator } from './TypingIndicator';
+import { Button } from '@/components/ui/button';
 
-export function ChatArea({ channelId }: { channelId: string }) {
-  const channel = useServerStore((s) => s.channels.find((c) => c.id === channelId));
+export function ChatArea({ channelId, serverId }: { channelId: string; serverId: string }) {
+  const { data: channels = [] } = useChannels(serverId);
+  const channel = channels.find((c) => c.id === channelId);
   const toggleMemberList = useUIStore((s) => s.toggleMemberList);
   const showMemberList = useUIStore((s) => s.showMemberList);
   const channelName = channel?.name ?? 'unknown';
@@ -26,16 +28,18 @@ export function ChatArea({ channelId }: { channelId: string }) {
             </>
           )}
         </div>
-        <button
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={toggleMemberList}
-          className={`p-1 rounded ${showMemberList ? 'text-white' : 'text-[#949ba4]'} hover:text-white`}
+          className={`${showMemberList ? 'text-white' : 'text-[#949ba4]'} hover:text-white hover:bg-transparent`}
           title="Toggle Member List"
         >
           <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
             <path d="M14 8.00598C14 10.211 12.206 12.006 10 12.006C7.795 12.006 6 10.211 6 8.00598C6 5.80098 7.794 4.00598 10 4.00598C12.206 4.00598 14 5.80098 14 8.00598ZM2 19.006C2 15.473 5.29 13.006 10 13.006C14.711 13.006 18 15.473 18 19.006V20.006H2V19.006ZM20 20.006H22V19.006C22 16.4498 20.2085 14.4503 17.2164 13.3384C19.3019 14.4484 20 16.2273 20 18.006V20.006Z" />
             <path d="M14 8.00598C14 10.211 12.206 12.006 10 12.006C7.795 12.006 6 10.211 6 8.00598C6 5.80098 7.794 4.00598 10 4.00598C12.206 4.00598 14 5.80098 14 8.00598ZM18 8.00598C18 9.54498 17.254 10.906 16.1 11.716C17.545 10.891 18.5 9.356 18.5 7.60598C18.5 5.67698 17.345 4.00598 15.75 3.39698C17.1 3.83398 18 5.79798 18 8.00598Z" />
           </svg>
-        </button>
+        </Button>
       </div>
 
       {/* Messages */}

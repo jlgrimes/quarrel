@@ -1,18 +1,13 @@
-import { useServerStore } from '../../stores/serverStore';
+import { useMembers } from '../../hooks/useMembers';
 import type { Member, UserStatus } from '@quarrel/shared';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 const statusDot: Record<UserStatus, string> = {
   online: 'bg-green-500',
   idle: 'bg-yellow-500',
   dnd: 'bg-red-500',
   offline: 'bg-gray-500',
-};
-
-const statusLabel: Record<UserStatus, string> = {
-  online: 'Online',
-  idle: 'Idle',
-  dnd: 'Do Not Disturb',
-  offline: 'Offline',
 };
 
 function MemberRow({ member }: { member: Member }) {
@@ -23,7 +18,6 @@ function MemberRow({ member }: { member: Member }) {
   const letter = displayName.charAt(0).toUpperCase();
   const isOffline = user.status === 'offline';
 
-  // Deterministic avatar color from userId
   const colors = [
     'bg-indigo-500',
     'bg-green-500',
@@ -42,27 +36,18 @@ function MemberRow({ member }: { member: Member }) {
     <div
       className={`flex items-center gap-3 px-2 py-1.5 mx-2 rounded hover:bg-[#383a40] cursor-pointer ${isOffline ? 'opacity-40' : ''}`}
     >
-      {/* Avatar */}
       <div className="relative shrink-0">
-        {user.avatarUrl ? (
-          <img
-            src={user.avatarUrl}
-            alt={displayName}
-            className="w-8 h-8 rounded-full object-cover"
-          />
-        ) : (
-          <div
-            className={`w-8 h-8 rounded-full ${colors[colorIdx]} flex items-center justify-center text-white text-sm font-semibold`}
-          >
+        <Avatar className="size-8">
+          <AvatarImage src={user.avatarUrl ?? undefined} alt={displayName} />
+          <AvatarFallback className={`${colors[colorIdx]} text-white text-sm font-semibold`}>
             {letter}
-          </div>
-        )}
+          </AvatarFallback>
+        </Avatar>
         <div
           className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-[#2b2d31] ${statusDot[user.status] || statusDot.offline}`}
         />
       </div>
 
-      {/* Name */}
       <span
         className={`text-sm truncate ${isOffline ? 'text-[#949ba4]' : 'text-[#f2f3f5]'}`}
       >
@@ -93,8 +78,8 @@ function MemberSection({
   );
 }
 
-export default function MemberList() {
-  const members = useServerStore((s) => s.members) || [];
+export default function MemberList({ serverId }: { serverId: string }) {
+  const { data: members = [] } = useMembers(serverId);
 
   const online = members.filter(
     (m) => m.user && m.user.status !== 'offline'
@@ -104,9 +89,9 @@ export default function MemberList() {
   );
 
   return (
-    <div className="w-60 bg-[#2b2d31] flex flex-col shrink-0 overflow-y-auto">
+    <ScrollArea className="w-60 bg-[#2b2d31] shrink-0">
       <MemberSection title="Online" members={online} />
       <MemberSection title="Offline" members={offline} />
-    </div>
+    </ScrollArea>
   );
 }

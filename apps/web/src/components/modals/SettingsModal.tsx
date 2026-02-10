@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { api } from '../../lib/api';
 import { useAuthStore } from '../../stores/authStore';
 import { useUIStore } from '../../stores/uiStore';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import Modal from './Modal';
 
 export default function SettingsModal() {
@@ -42,39 +44,39 @@ export default function SettingsModal() {
 
       <label className="mb-4 block text-xs font-bold uppercase text-[#b5bac1]">
         Display Name
-        <input
+        <Input
           type="text"
           value={displayName}
           onChange={(e) => setDisplayName(e.target.value)}
-          className="mt-2 block w-full rounded bg-[#1e1f22] p-2 text-base font-normal text-[#dbdee1] outline-none normal-case"
+          className="mt-2 h-auto rounded border-none bg-[#1e1f22] p-2 text-base font-normal text-[#dbdee1] shadow-none normal-case"
         />
       </label>
 
       <label className="mb-6 block text-xs font-bold uppercase text-[#b5bac1]">
         Custom Status
-        <input
+        <Input
           type="text"
           value={customStatus}
           onChange={(e) => setCustomStatus(e.target.value)}
-          className="mt-2 block w-full rounded bg-[#1e1f22] p-2 text-base font-normal text-[#dbdee1] outline-none normal-case"
+          className="mt-2 h-auto rounded border-none bg-[#1e1f22] p-2 text-base font-normal text-[#dbdee1] shadow-none normal-case"
           placeholder="What's on your mind?"
         />
       </label>
 
       <div className="flex gap-3">
-        <button
+        <Button
           onClick={handleSave}
           disabled={saving}
           className="flex-1 rounded bg-[#5865f2] p-2.5 font-medium text-white hover:bg-[#4752c4] disabled:opacity-50"
         >
           {saving ? 'Saving...' : 'Save'}
-        </button>
-        <button
+        </Button>
+        <Button
           onClick={handleLogout}
           className="rounded bg-[#f23f43] px-4 p-2.5 font-medium text-white hover:bg-[#da373c]"
         >
           Log Out
-        </button>
+        </Button>
       </div>
     </Modal>
   );

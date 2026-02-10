@@ -1,15 +1,15 @@
 import { useEffect } from 'react';
 import { Routes, Route, Navigate, useParams, useNavigate, Outlet } from 'react-router-dom';
 import { useAuthStore } from './stores/authStore';
-import { useServerStore } from './stores/serverStore';
 import { useUIStore } from './stores/uiStore';
-import { useMessageStore } from './stores/messageStore';
-import { wsClient } from './lib/ws';
+import { useChannels } from './hooks/useChannels';
+import { useWebSocketEvents } from './hooks/useWebSocketEvents';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import FriendsPage from './pages/FriendsPage';
 import DMPage from './pages/DMPage';
 import { ChatArea } from './components/chat/ChatArea';
+import { VoiceChannelView } from './components/voice/VoiceChannelView';
 import ServerSidebar from './components/navigation/ServerSidebar';
 import ChannelSidebar from './components/navigation/ChannelSidebar';
 import MemberList from './components/navigation/MemberList';
@@ -17,6 +17,8 @@ import CreateServerModal from './components/modals/CreateServerModal';
 import JoinServerModal from './components/modals/JoinServerModal';
 import CreateChannelModal from './components/modals/CreateChannelModal';
 import SettingsModal from './components/modals/SettingsModal';
+import InviteModal from './components/modals/InviteModal';
+import { TooltipProvider } from '@/components/ui/tooltip';
 
 function ProtectedRoute() {
   const user = useAuthStore((s) => s.user);
@@ -32,16 +34,13 @@ function ModalRenderer() {
       {modal === 'joinServer' && <JoinServerModal />}
       {modal === 'createChannel' && <CreateChannelModal />}
       {modal === 'settings' && <SettingsModal />}
+      {modal === 'inviteServer' && <InviteModal />}
     </>
   );
 }
 
 function AppLayout() {
-  const fetchServers = useServerStore((s) => s.fetchServers);
-
-  useEffect(() => {
-    fetchServers();
-  }, [fetchServers]);
+  useWebSocketEvents();
 
   return (
     <div className="flex h-full">
@@ -73,22 +72,7 @@ function ServerView() {
   const navigate = useNavigate();
   const showMemberList = useUIStore((s) => s.showMemberList);
   const setActiveChannel = useUIStore((s) => s.setActiveChannel);
-  const fetchChannels = useServerStore((s) => s.fetchChannels);
-  const fetchMembers = useServerStore((s) => s.fetchMembers);
-  const setActiveServer = useServerStore((s) => s.setActiveServer);
-  const channels = useServerStore((s) => s.channels);
-  const addMessage = useMessageStore((s) => s.addMessage);
-  const updateMessage = useMessageStore((s) => s.updateMessage);
-  const removeMessage = useMessageStore((s) => s.removeMessage);
-
-  useEffect(() => {
-    if (serverId) {
-      setActiveServer(serverId);
-      fetchChannels(serverId);
-      fetchMembers(serverId);
-    }
-    return () => setActiveServer(null);
-  }, [serverId, fetchChannels, fetchMembers, setActiveServer]);
+  const { data: channels = [] } = useChannels(serverId);
 
   // Sync activeChannelId to uiStore
   useEffect(() => {
@@ -104,51 +88,23 @@ function ServerView() {
     }
   }, [serverId, channelId, channels, navigate]);
 
-  // WebSocket event handlers
-  useEffect(() => {
-    const unsubs = [
-      wsClient.on('message:new', (msg) => {
-        addMessage(msg.channelId, msg);
-      }),
-      wsClient.on('message:updated', (msg) => {
-        updateMessage(msg.channelId, msg);
-      }),
-      wsClient.on('message:deleted', (data) => {
-        removeMessage(data.channelId, data.messageId);
-      }),
-      wsClient.on('member:joined', (member) => {
-        useServerStore.getState().updateMember(member);
-      }),
-      wsClient.on('member:left', (data) => {
-        useServerStore.getState().removeMember(data.userId);
-      }),
-      wsClient.on('channel:created', (channel) => {
-        useServerStore.getState().addChannel(channel);
-      }),
-      wsClient.on('presence:update', (data: { userId: string; status: string }) => {
-        useServerStore.getState().updateMemberStatus(data.userId, data.status);
-        const currentUser = useAuthStore.getState().user;
-        if (currentUser && data.userId === currentUser.id) {
-          useAuthStore.setState({ user: { ...currentUser, status: data.status } });
-        }
-      }),
-    ];
-    return () => unsubs.forEach((u) => u());
-  }, [addMessage, updateMessage, removeMessage]);
-
   return (
     <>
       <ChannelSidebar />
       <div className="flex flex-1 flex-col bg-[#313338]">
         {channelId ? (
-          <ChatArea channelId={channelId} />
+          channels.find((c) => c.id === channelId)?.type === 'voice' ? (
+            <VoiceChannelView channelId={channelId} />
+          ) : (
+            <ChatArea channelId={channelId} serverId={serverId!} />
+          )
         ) : (
           <div className="flex flex-1 items-center justify-center text-[#949ba4]">
             Select a channel
           </div>
         )}
       </div>
-      {showMemberList && <MemberList />}
+      {showMemberList && serverId && <MemberList serverId={serverId} />}
     </>
   );
 }
@@ -171,6 +127,7 @@ export default function App() {
   }
 
   return (
+    <TooltipProvider>
     <Routes>
       <Route path="/login" element={!user ? <LoginPage /> : <Navigate to="/channels/@me" />} />
       <Route path="/register" element={!user ? <RegisterPage /> : <Navigate to="/channels/@me" />} />
@@ -183,5 +140,6 @@ export default function App() {
       </Route>
       <Route path="*" element={<Navigate to={user ? '/channels/@me' : '/login'} replace />} />
     </Routes>
+    </TooltipProvider>
   );
 }
