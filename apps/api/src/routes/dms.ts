@@ -63,7 +63,25 @@ dmRoutes.post("/conversations", async (c) => {
         .from(conversations)
         .where(eq(conversations.id, sharedConv.conversationId))
         .limit(1);
-      return c.json({ conversation: conv });
+
+      const convMembers = await db
+        .select({
+          id: users.id,
+          username: users.username,
+          displayName: users.displayName,
+          avatarUrl: users.avatarUrl,
+          status: users.status,
+        })
+        .from(conversationMembers)
+        .innerJoin(users, eq(conversationMembers.userId, users.id))
+        .where(
+          and(
+            eq(conversationMembers.conversationId, conv.id),
+            sql`${conversationMembers.userId} != ${userId}`
+          )
+        );
+
+      return c.json({ conversation: { ...conv, members: convMembers } });
     }
   }
 
@@ -78,7 +96,19 @@ dmRoutes.post("/conversations", async (c) => {
     { conversationId: conversation.id, userId: targetUserId },
   ]);
 
-  return c.json({ conversation }, 201);
+  const [otherUser] = await db
+    .select({
+      id: users.id,
+      username: users.username,
+      displayName: users.displayName,
+      avatarUrl: users.avatarUrl,
+      status: users.status,
+    })
+    .from(users)
+    .where(eq(users.id, targetUserId))
+    .limit(1);
+
+  return c.json({ conversation: { ...conversation, members: otherUser ? [otherUser] : [] } }, 201);
 });
 
 dmRoutes.get("/conversations", async (c) => {

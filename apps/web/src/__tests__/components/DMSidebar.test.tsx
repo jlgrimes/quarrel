@@ -10,7 +10,23 @@ global.ResizeObserver = class {
   disconnect() {}
 };
 
+// SidebarProvider uses matchMedia for mobile detection
+Object.defineProperty(window, 'matchMedia', {
+  writable: true,
+  value: vi.fn().mockImplementation((query: string) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  })),
+});
+
 import DMSidebar from '../../components/navigation/DMSidebar';
+import { SidebarProvider } from '../../components/ui/sidebar';
 
 const mockNavigate = vi.fn();
 let mockConversationId: string | undefined;
@@ -47,7 +63,13 @@ vi.mock('./UserBar', () => ({
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
 
 function Wrapper({ children }: { children: React.ReactNode }) {
-  return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+  return (
+    <QueryClientProvider client={queryClient}>
+      <SidebarProvider>
+        {children}
+      </SidebarProvider>
+    </QueryClientProvider>
+  );
 }
 
 beforeEach(() => {
@@ -117,9 +139,9 @@ describe('DMSidebar', () => {
     const aliceButton = screen.getByText('Alice').closest('button')!;
     const bobButton = screen.getByText('Bob').closest('button')!;
 
-    // Active conversation gets the highlight class
-    expect(aliceButton.className).toContain('bg-[#404249]');
-    expect(bobButton.className).not.toContain('bg-[#404249]');
+    // Active conversation gets data-active="true" attribute
+    expect(aliceButton.getAttribute('data-active')).toBe('true');
+    expect(bobButton.getAttribute('data-active')).not.toBe('true');
   });
 
   it('clicking a conversation calls navigate with correct path', async () => {
@@ -150,14 +172,14 @@ describe('DMSidebar', () => {
     expect(screen.getByText('No conversations yet')).toBeInTheDocument();
   });
 
-  it('shows loading spinner while loading', () => {
+  it('shows loading skeletons while loading', () => {
     mockIsLoading = true;
 
     const { container } = render(<DMSidebar />, { wrapper: Wrapper });
 
-    // The component renders a spinning div with animate-spin class
-    const spinner = container.querySelector('.animate-spin');
-    expect(spinner).toBeInTheDocument();
+    // The component renders SidebarMenuSkeleton components
+    const skeletons = container.querySelectorAll('[data-sidebar="menu-skeleton"]');
+    expect(skeletons.length).toBeGreaterThan(0);
   });
 
   it('clicking Friends button navigates to /channels/@me', async () => {

@@ -303,6 +303,52 @@ describe("GET /dms/:id/messages - author data", () => {
   });
 });
 
+describe("POST /dms/conversations - member data", () => {
+  test("new conversation includes members with user data", async () => {
+    const { token: aliceToken } = await createTestUser(app, "alice", "alice@example.com");
+    const { user: bob } = await createTestUser(app, "bob", "bob@example.com");
+
+    const res = await app.request("/dms/conversations", {
+      method: "POST",
+      body: JSON.stringify({ userId: bob.id }),
+      headers: getAuthHeaders(aliceToken),
+    });
+    expect(res.status).toBe(201);
+    const data = (await res.json()) as any;
+
+    expect(data.conversation.members).toBeDefined();
+    expect(data.conversation.members.length).toBe(1);
+    expect(data.conversation.members[0].id).toBe(bob.id);
+    expect(data.conversation.members[0].username).toBe("bob");
+  });
+
+  test("existing conversation includes members with user data", async () => {
+    const { token: aliceToken } = await createTestUser(app, "alice", "alice@example.com");
+    const { user: bob } = await createTestUser(app, "bob", "bob@example.com");
+
+    // Create first
+    await app.request("/dms/conversations", {
+      method: "POST",
+      body: JSON.stringify({ userId: bob.id }),
+      headers: getAuthHeaders(aliceToken),
+    });
+
+    // Request again — should return existing with members
+    const res = await app.request("/dms/conversations", {
+      method: "POST",
+      body: JSON.stringify({ userId: bob.id }),
+      headers: getAuthHeaders(aliceToken),
+    });
+    expect(res.status).toBe(200);
+    const data = (await res.json()) as any;
+
+    expect(data.conversation.members).toBeDefined();
+    expect(data.conversation.members.length).toBe(1);
+    expect(data.conversation.members[0].id).toBe(bob.id);
+    expect(data.conversation.members[0].username).toBe("bob");
+  });
+});
+
 describe("DM access control", () => {
   test("non-member cannot read messages from a conversation", async () => {
     const { token: aliceToken } = await createTestUser(

@@ -173,6 +173,7 @@ export function DMChat({
         onScroll={handleScroll}
         className="flex-1 overflow-y-auto overflow-x-hidden"
       >
+        <div className="flex flex-col justify-end min-h-full">
         {hasPreviousPage && (
           <div className="flex justify-center py-4">
             <button
@@ -256,6 +257,7 @@ export function DMChat({
         </div>
 
         <div ref={bottomRef} />
+        </div>
       </div>
 
       {/* Input */}

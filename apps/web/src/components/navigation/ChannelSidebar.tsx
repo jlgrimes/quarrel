@@ -1,4 +1,4 @@
-import { useState, memo, useCallback, useMemo, useEffect, useRef } from 'react';
+import { memo, useCallback, useMemo, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useServers } from '../../hooks/useServers';
 import { useChannels } from '../../hooks/useChannels';
@@ -8,7 +8,26 @@ import { useVoiceStore } from '../../stores/voiceStore';
 import { analytics } from '../../lib/analytics';
 import type { Channel } from '@quarrel/shared';
 import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupAction,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuBadge,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  useSidebar,
+} from '@/components/ui/sidebar';
 import { VoiceConnectionBar } from '../voice/VoiceConnectionBar';
 import UserBar from './UserBar';
 
@@ -36,92 +55,114 @@ function VoiceParticipants({ channelId }: { channelId: string }) {
   );
 }
 
-function UnreadBadge({ count }: { count: number }) {
-  if (count <= 0) return null;
-  return (
-    <span className="ml-auto bg-[#f23f43] text-white text-[10px] font-bold px-1.5 min-w-[18px] h-4 rounded-full flex items-center justify-center shrink-0">
-      {count > 99 ? '99+' : count}
-    </span>
-  );
-}
-
 const CategorySection = memo(function CategorySection({
   category,
   channels,
-  serverId,
   activeChannelId,
   onChannelClick,
   onAddChannel,
 }: {
   category: Channel | null;
   channels: (Channel & { unreadCount?: number })[];
-  serverId: string;
   activeChannelId: string | undefined;
   onChannelClick: (channel: Channel) => void;
   onAddChannel: () => void;
 }) {
-  const [collapsed, setCollapsed] = useState(false);
+  if (!category) {
+    return (
+      <SidebarGroup className="px-1 py-0">
+        <SidebarGroupContent>
+          <SidebarMenu>
+            {channels.map((channel) => (
+              <ChannelItem
+                key={channel.id}
+                channel={channel}
+                isActive={activeChannelId === channel.id}
+                onClick={() => onChannelClick(channel)}
+              />
+            ))}
+          </SidebarMenu>
+        </SidebarGroupContent>
+      </SidebarGroup>
+    );
+  }
 
   return (
-    <div className="mt-4">
-      {category && (
-        <div className="flex items-center px-1 mb-1 group">
-          <button
-            onClick={() => setCollapsed(!collapsed)}
-            className="flex items-center flex-1 min-w-0"
-          >
-            <span
-              className={`text-[10px] text-[#949ba4] mr-0.5 transition-transform ${collapsed ? '-rotate-90' : ''}`}
-            >
+    <Collapsible defaultOpen className="group/collapsible">
+      <SidebarGroup className="px-1 py-0 mt-4">
+        <SidebarGroupLabel
+          asChild
+          className="text-[#949ba4] text-xs uppercase font-bold tracking-wide px-1"
+        >
+          <CollapsibleTrigger className="flex items-center gap-0.5">
+            <span className="text-[10px] transition-transform group-data-[state=closed]/collapsible:-rotate-90">
               &#x25BC;
             </span>
-            <span className="text-[#949ba4] text-xs uppercase font-bold tracking-wide truncate">
-              {category.name}
-            </span>
-          </button>
-          <Button
-            variant="ghost"
-            size="icon-xs"
-            onClick={onAddChannel}
-            className="text-[#949ba4] hover:text-[#dbdee1] opacity-0 group-hover:opacity-100 transition-opacity text-lg leading-none ml-auto"
-            aria-label="Create channel"
-          >
-            +
-          </Button>
-        </div>
+            <span className="truncate">{category.name}</span>
+          </CollapsibleTrigger>
+        </SidebarGroupLabel>
+        <SidebarGroupAction
+          onClick={onAddChannel}
+          className="text-[#949ba4] hover:text-[#dbdee1]"
+          aria-label="Create channel"
+        >
+          +
+        </SidebarGroupAction>
+        <CollapsibleContent>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {channels.map((channel) => (
+                <ChannelItem
+                  key={channel.id}
+                  channel={channel}
+                  isActive={activeChannelId === channel.id}
+                  onClick={() => onChannelClick(channel)}
+                />
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </CollapsibleContent>
+      </SidebarGroup>
+    </Collapsible>
+  );
+});
+
+const ChannelItem = memo(function ChannelItem({
+  channel,
+  isActive,
+  onClick,
+}: {
+  channel: Channel & { unreadCount?: number };
+  isActive: boolean;
+  onClick: () => void;
+}) {
+  const hasUnread = (channel.unreadCount ?? 0) > 0;
+
+  return (
+    <SidebarMenuItem>
+      <SidebarMenuButton
+        isActive={isActive}
+        onClick={onClick}
+        className={
+          !isActive && hasUnread
+            ? 'text-white font-bold'
+            : !isActive
+              ? 'text-[#949ba4] hover:text-[#dbdee1]'
+              : ''
+        }
+      >
+        <span className="text-lg leading-none shrink-0 w-5 text-center">
+          {channel.type === 'voice' ? '\u{1F50A}' : '#'}
+        </span>
+        <span className="truncate">{channel.name}</span>
+      </SidebarMenuButton>
+      {!isActive && hasUnread && (
+        <SidebarMenuBadge className="bg-[#f23f43] text-white text-[10px] font-bold px-1.5 min-w-[18px] h-4 rounded-full flex items-center justify-center">
+          {(channel.unreadCount ?? 0) > 99 ? '99+' : channel.unreadCount}
+        </SidebarMenuBadge>
       )}
-
-      {!collapsed &&
-        channels.map((channel) => {
-          const hasUnread = (channel.unreadCount ?? 0) > 0;
-          const isActive = activeChannelId === channel.id;
-
-          return (
-            <div key={channel.id}>
-              <button
-                onClick={() => onChannelClick(channel)}
-                className={`w-full flex items-center gap-1.5 px-2 py-1.5 mx-2 rounded text-sm group ${
-                  isActive
-                    ? 'bg-[#404249] text-white'
-                    : hasUnread
-                      ? 'text-white hover:bg-[#383a40]'
-                      : 'text-[#949ba4] hover:bg-[#383a40] hover:text-[#dbdee1]'
-                }`}
-                style={{ maxWidth: 'calc(100% - 16px)' }}
-              >
-                <span className="text-lg leading-none shrink-0 w-5 text-center">
-                  {channel.type === 'voice' ? '\u{1F50A}' : '#'}
-                </span>
-                <span className={`truncate ${hasUnread && !isActive ? 'font-bold' : ''}`}>
-                  {channel.name}
-                </span>
-                {!isActive && <UnreadBadge count={channel.unreadCount ?? 0} />}
-              </button>
-              {channel.type === 'voice' && <VoiceParticipants channelId={channel.id} />}
-            </div>
-          );
-        })}
-    </div>
+      {channel.type === 'voice' && <VoiceParticipants channelId={channel.id} />}
+    </SidebarMenuItem>
   );
 });
 
@@ -133,6 +174,7 @@ export default function ChannelSidebar() {
   const openModal = useUIStore((s) => s.openModal);
   const ackChannel = useAckChannel();
   const prevChannelIdRef = useRef<string | undefined>(channelId);
+  const { setOpenMobile } = useSidebar();
 
   const server = servers.find((s) => s.id === serverId);
 
@@ -170,17 +212,14 @@ export default function ChannelSidebar() {
     };
   }, [channels]);
 
-  const setMobileSidebarOpen = useUIStore((s) => s.setMobileSidebarOpen);
-  const mobileSidebarOpen = useUIStore((s) => s.mobileSidebarOpen);
-
   const handleChannelClick = useCallback((channel: Channel) => {
     analytics.capture('channel:switch', { channelId: channel.id, channelType: channel.type, serverId });
     navigate(`/channels/${serverId}/${channel.id}`);
-    setMobileSidebarOpen(false);
+    setOpenMobile(false);
     if (channel.type === 'voice') {
       useVoiceStore.getState().joinChannel(channel.id);
     }
-  }, [serverId, navigate, setMobileSidebarOpen]);
+  }, [serverId, navigate, setOpenMobile]);
 
   const handleAddChannel = useCallback(() => {
     openModal('createChannel');
@@ -189,8 +228,8 @@ export default function ChannelSidebar() {
   if (!server) return null;
 
   return (
-    <div className={`w-60 bg-[#2b2d31] flex flex-col shrink-0 ${mobileSidebarOpen ? 'max-md:fixed max-md:inset-y-0 max-md:left-[72px] max-md:z-50' : 'max-md:hidden'}`}>
-      <div className="h-12 flex items-center px-4 border-b border-[#1e1f22] shrink-0 group">
+    <Sidebar side="left" collapsible="offcanvas">
+      <SidebarHeader className="h-12 flex-row items-center px-4 border-b border-[#1e1f22] py-0 group">
         <h2 className="font-semibold text-white truncate flex-1">{server.name}</h2>
         <Button
           variant="ghost"
@@ -212,37 +251,35 @@ export default function ChannelSidebar() {
         >
           +
         </Button>
-      </div>
+      </SidebarHeader>
 
-      <ScrollArea className="flex-1">
-        <div className="py-2 px-1">
-          {uncategorized.length > 0 && (
-            <CategorySection
-              category={null}
-              channels={uncategorized}
-              serverId={server.id}
-              activeChannelId={channelId}
-              onChannelClick={handleChannelClick}
-              onAddChannel={handleAddChannel}
-            />
-          )}
+      <SidebarContent>
+        {uncategorized.length > 0 && (
+          <CategorySection
+            category={null}
+            channels={uncategorized}
+            activeChannelId={channelId}
+            onChannelClick={handleChannelClick}
+            onAddChannel={handleAddChannel}
+          />
+        )}
 
-          {categorized.map(({ category, channels: catChannels }: any) => (
-            <CategorySection
-              key={category.id}
-              category={category}
-              channels={catChannels}
-              serverId={server.id}
-              activeChannelId={channelId}
-              onChannelClick={handleChannelClick}
-              onAddChannel={handleAddChannel}
-            />
-          ))}
-        </div>
-      </ScrollArea>
+        {categorized.map(({ category, channels: catChannels }: any) => (
+          <CategorySection
+            key={category.id}
+            category={category}
+            channels={catChannels}
+            activeChannelId={channelId}
+            onChannelClick={handleChannelClick}
+            onAddChannel={handleAddChannel}
+          />
+        ))}
+      </SidebarContent>
 
-      <VoiceConnectionBar />
-      <UserBar />
-    </div>
+      <SidebarFooter className="p-0 gap-0">
+        <VoiceConnectionBar />
+        <UserBar />
+      </SidebarFooter>
+    </Sidebar>
   );
 }

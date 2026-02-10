@@ -16,6 +16,7 @@ import ChannelSidebar from './components/navigation/ChannelSidebar';
 import DMSidebar from './components/navigation/DMSidebar';
 import MemberList from './components/navigation/MemberList';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { SidebarProvider, SidebarTrigger, useSidebar } from '@/components/ui/sidebar';
 
 const CreateServerModal = lazy(() => import('./components/modals/CreateServerModal'));
 const JoinServerModal = lazy(() => import('./components/modals/JoinServerModal'));
@@ -43,16 +44,15 @@ function ModalRenderer() {
   );
 }
 
-function MobileSidebarBackdrop() {
-  const mobileSidebarOpen = useUIStore((s) => s.mobileSidebarOpen);
+function MobileSidebarSync() {
+  const { openMobile } = useSidebar();
   const setMobileSidebarOpen = useUIStore((s) => s.setMobileSidebarOpen);
-  if (!mobileSidebarOpen) return null;
-  return (
-    <div
-      className="fixed inset-0 z-40 bg-black/50 md:hidden"
-      onClick={() => setMobileSidebarOpen(false)}
-    />
-  );
+
+  useEffect(() => {
+    setMobileSidebarOpen(openMobile);
+  }, [openMobile, setMobileSidebarOpen]);
+
+  return null;
 }
 
 function AppLayout() {
@@ -60,7 +60,6 @@ function AppLayout() {
 
   return (
     <div className="flex h-full overflow-hidden">
-      <MobileSidebarBackdrop />
       <ServerSidebar />
       <Outlet />
       <ModalRenderer />
@@ -70,12 +69,16 @@ function AppLayout() {
 
 function DMAreaLayout() {
   return (
-    <div className="flex flex-1 min-w-0">
+    <SidebarProvider
+      className="min-h-0 h-full flex-1 min-w-0"
+      style={{ "--sidebar-width": "15rem" } as React.CSSProperties}
+    >
       <DMSidebar />
       <div className="flex flex-1 flex-col bg-[#313338] min-w-0">
         <Outlet />
       </div>
-    </div>
+      <MobileSidebarSync />
+    </SidebarProvider>
   );
 }
 
@@ -106,7 +109,10 @@ function ServerView() {
   }, [serverId, channelId, channels, navigate]);
 
   return (
-    <>
+    <SidebarProvider
+      className="min-h-0 h-full flex-1 min-w-0"
+      style={{ "--sidebar-width": "15rem" } as React.CSSProperties}
+    >
       <ChannelSidebar />
       <div className="flex flex-1 flex-col bg-[#313338] min-w-0">
         {channelId ? (
@@ -117,21 +123,14 @@ function ServerView() {
           )
         ) : (
           <div className="flex flex-1 flex-col items-center justify-center text-[#949ba4]">
-            <button
-              onClick={() => useUIStore.getState().setMobileSidebarOpen(true)}
-              className="mb-4 text-[#b5bac1] hover:text-white md:hidden"
-              aria-label="Open sidebar"
-            >
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z" />
-              </svg>
-            </button>
+            <SidebarTrigger className="mb-4 text-[#b5bac1] hover:text-white md:hidden size-8" />
             Select a channel
           </div>
         )}
       </div>
       {showMemberList && serverId && <MemberList serverId={serverId} className="max-md:hidden" />}
-    </>
+      <MobileSidebarSync />
+    </SidebarProvider>
   );
 }
 
