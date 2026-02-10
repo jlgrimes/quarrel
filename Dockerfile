@@ -2,7 +2,7 @@ FROM oven/bun:1 AS builder
 WORKDIR /app
 COPY . .
 RUN bun install
-RUN bun run --filter=@quarrel/web build
+RUN cd apps/web && bun run build
 
 FROM oven/bun:1
 WORKDIR /app
