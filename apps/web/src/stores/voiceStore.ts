@@ -181,13 +181,17 @@ export const useVoiceStore = create<VoiceStore>((set, get) => ({
     set({ isConnecting: true, currentChannelId: channelId });
 
     try {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        throw new Error('getUserMedia not available — microphone access requires HTTPS');
+      }
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       set({ localStream: stream });
       const selfId = useAuthStore.getState().user?.id;
       if (selfId) startMonitoringStream(selfId, stream);
       wsSend('voice:join', { channelId });
       analytics.capture('voice:join', { channelId });
-    } catch {
+    } catch (err) {
+      console.error('Voice: getUserMedia failed:', err);
       set({ isConnecting: false, currentChannelId: null, localStream: null });
     }
   },

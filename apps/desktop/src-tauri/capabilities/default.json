@@ -2,5 +2,5 @@
   "identifier": "default",
   "description": "Default capabilities for Quarrel",
   "windows": ["main"],
-  "permissions": ["core:default"]
+  "permissions": ["core:default", "shell:allow-open"]
 }

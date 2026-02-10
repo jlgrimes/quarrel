@@ -2,6 +2,7 @@ import { useEffect, lazy, Suspense, useMemo } from 'react';
 import { Routes, Route, Navigate, useParams, useNavigate, Outlet } from 'react-router-dom';
 import { useAuthStore } from './stores/authStore';
 import { usePageView } from './hooks/usePageView';
+import { useTauriExternalLinks } from './hooks/useTauriExternalLinks';
 import { useUIStore } from './stores/uiStore';
 import { useChannels } from './hooks/useChannels';
 import { useWebSocketEvents } from './hooks/useWebSocketEvents';
@@ -145,6 +146,7 @@ function ServerView() {
 
 export default function App() {
   usePageView();
+  useTauriExternalLinks();
   const user = useAuthStore((s) => s.user);
   const loading = useAuthStore((s) => s.loading);
   const fetchUser = useAuthStore((s) => s.fetchUser);
