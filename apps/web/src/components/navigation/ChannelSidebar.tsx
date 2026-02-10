@@ -105,8 +105,15 @@ export default function ChannelSidebar() {
   return (
     <div className="w-60 bg-[#2b2d31] flex flex-col shrink-0">
       {/* Server header */}
-      <div className="h-12 flex items-center px-4 border-b border-[#1e1f22] shrink-0">
-        <h2 className="font-semibold text-white truncate">{server.name}</h2>
+      <div className="h-12 flex items-center px-4 border-b border-[#1e1f22] shrink-0 group">
+        <h2 className="font-semibold text-white truncate flex-1">{server.name}</h2>
+        <button
+          onClick={() => openModal('createChannel')}
+          className="text-[#949ba4] hover:text-[#dbdee1] opacity-0 group-hover:opacity-100 transition-opacity text-lg leading-none ml-auto"
+          aria-label="Create channel"
+        >
+          +
+        </button>
       </div>
 
       {/* Channel list */}
