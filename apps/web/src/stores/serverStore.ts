@@ -15,6 +15,7 @@ type ServerStore = {
   joinServer: (inviteCode: string) => Promise<Server>;
   addChannel: (channel: Channel) => void;
   updateMember: (member: Member) => void;
+  updateMemberStatus: (userId: string, status: string) => void;
   removeMember: (userId: string) => void;
 };
 
@@ -74,6 +75,16 @@ export const useServerStore = create<ServerStore>((set, get) => ({
     } else {
       set({ members: [...members, member] });
     }
+  },
+  updateMemberStatus: (userId, status) => {
+    const members = get().members;
+    set({
+      members: members.map((m) =>
+        m.userId === userId && m.user
+          ? { ...m, user: { ...m.user, status } }
+          : m
+      ),
+    });
   },
   removeMember: (userId) =>
     set({ members: get().members.filter((m) => m.userId !== userId) }),

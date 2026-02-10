@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { wsClient } from '../../lib/ws';
+import { useAuthStore } from '../../stores/authStore';
 
 type TypingUser = {
   userId: string;
@@ -9,10 +10,12 @@ type TypingUser = {
 
 export function TypingIndicator({ channelId }: { channelId: string }) {
   const [typingUsers, setTypingUsers] = useState<Map<string, TypingUser>>(new Map());
+  const currentUserId = useAuthStore((s) => s.user?.id);
 
   useEffect(() => {
     const cleanup = wsClient.on('typing:update', (data: { channelId: string; userId: string; username: string }) => {
       if (data.channelId !== channelId) return;
+      if (data.userId === currentUserId) return;
 
       setTypingUsers((prev) => {
         const next = new Map(prev);

@@ -194,8 +194,14 @@ export const websocketHandler = {
 
         case "typing:start": {
           const { channelId } = payload.data;
+          const [typingUser] = await db
+            .select({ username: users.username, displayName: users.displayName })
+            .from(users)
+            .where(eq(users.id, ws.data.userId))
+            .limit(1);
           broadcastToChannel(channelId, "typing:update", {
             userId: ws.data.userId,
+            username: typingUser?.displayName ?? typingUser?.username ?? "Unknown",
             channelId,
           });
           break;

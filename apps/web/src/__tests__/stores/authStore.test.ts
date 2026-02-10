@@ -38,7 +38,7 @@ describe('authStore', () => {
     expect(state.loading).toBe(true);
   });
 
-  it('fetchUser sets user and ws token on success', async () => {
+  it('fetchUser sets user and connects ws on success', async () => {
     mockedApi.me.mockResolvedValueOnce({ user: mockUser, token: 'session-abc' });
 
     await useAuthStore.getState().fetchUser();
@@ -47,6 +47,7 @@ describe('authStore', () => {
     expect(state.user).toEqual(mockUser);
     expect(state.loading).toBe(false);
     expect(mockedWs.setToken).toHaveBeenCalledWith('session-abc');
+    expect(mockedWs.connect).toHaveBeenCalled();
   });
 
   it('fetchUser sets user to null on failure', async () => {
@@ -60,30 +61,34 @@ describe('authStore', () => {
     expect(mockedWs.setToken).not.toHaveBeenCalled();
   });
 
-  it('login sets user and ws token', async () => {
+  it('login sets user and connects ws', async () => {
     mockedApi.login.mockResolvedValueOnce({ user: mockUser, token: 'login-token' });
 
     await useAuthStore.getState().login('alice@test.com', 'password123');
 
     expect(useAuthStore.getState().user).toEqual(mockUser);
     expect(mockedWs.setToken).toHaveBeenCalledWith('login-token');
+    expect(mockedWs.connect).toHaveBeenCalled();
   });
 
-  it('register sets user and ws token', async () => {
+  it('register sets user and connects ws', async () => {
     mockedApi.register.mockResolvedValueOnce({ user: mockUser, token: 'register-token' });
 
     await useAuthStore.getState().register('alice', 'alice@test.com', 'password123');
 
     expect(useAuthStore.getState().user).toEqual(mockUser);
     expect(mockedWs.setToken).toHaveBeenCalledWith('register-token');
+    expect(mockedWs.connect).toHaveBeenCalled();
   });
 
-  it('logout clears user', async () => {
+  it('logout clears user and disconnects ws', async () => {
     useAuthStore.setState({ user: mockUser });
     mockedApi.logout.mockResolvedValueOnce(undefined);
 
     await useAuthStore.getState().logout();
 
     expect(useAuthStore.getState().user).toBeNull();
+    expect(mockedWs.disconnect).toHaveBeenCalled();
+    expect(mockedWs.setToken).toHaveBeenCalledWith(null);
   });
 });

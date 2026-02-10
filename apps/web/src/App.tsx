@@ -40,11 +40,6 @@ function AppLayout() {
   const fetchServers = useServerStore((s) => s.fetchServers);
 
   useEffect(() => {
-    wsClient.connect();
-    return () => wsClient.disconnect();
-  }, []);
-
-  useEffect(() => {
     fetchServers();
   }, [fetchServers]);
 
@@ -129,6 +124,13 @@ function ServerView() {
       }),
       wsClient.on('channel:created', (channel) => {
         useServerStore.getState().addChannel(channel);
+      }),
+      wsClient.on('presence:update', (data: { userId: string; status: string }) => {
+        useServerStore.getState().updateMemberStatus(data.userId, data.status);
+        const currentUser = useAuthStore.getState().user;
+        if (currentUser && data.userId === currentUser.id) {
+          useAuthStore.setState({ user: { ...currentUser, status: data.status } });
+        }
       }),
     ];
     return () => unsubs.forEach((u) => u());
