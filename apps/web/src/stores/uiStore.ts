@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { analytics } from '../lib/analytics';
 
 type ModalType = 'createServer' | 'joinServer' | 'settings' | 'createChannel' | 'inviteServer' | null;
 
@@ -20,8 +21,8 @@ export const useUIStore = create<UIStore>((set, get) => ({
   replyingTo: null,
   showMemberList: true,
   setActiveChannel: (id) => set({ activeChannelId: id }),
-  openModal: (modal) => set({ modal }),
-  closeModal: () => set({ modal: null }),
+  openModal: (modal) => { set({ modal }); analytics.capture('ui:modal_open', { modal }); },
+  closeModal: () => { const prev = get().modal; set({ modal: null }); analytics.capture('ui:modal_close', { modal: prev }); },
   setReplyingTo: (id) => set({ replyingTo: id }),
   toggleMemberList: () => set({ showMemberList: !get().showMemberList }),
 }));

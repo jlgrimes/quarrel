@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { analytics } from '../lib/analytics';
 
 export default function DMPage() {
   const { conversationId } = useParams();
@@ -27,11 +28,18 @@ export default function DMPage() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages.length]);
 
+  useEffect(() => {
+    if (conversationId) {
+      analytics.capture('dm:open', { conversationId });
+    }
+  }, [conversationId]);
+
   const handleSend = useCallback(async () => {
     const value = inputRef.current?.value.trim();
     if (!value || !conversationId) return;
     try {
       await sendDM.mutateAsync({ conversationId, content: value });
+      analytics.capture('dm:send', { conversationId });
       if (inputRef.current) inputRef.current.value = '';
     } catch {}
   }, [conversationId, sendDM]);

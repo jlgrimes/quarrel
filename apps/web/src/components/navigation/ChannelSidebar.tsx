@@ -4,6 +4,7 @@ import { useServers } from '../../hooks/useServers';
 import { useChannels } from '../../hooks/useChannels';
 import { useUIStore } from '../../stores/uiStore';
 import { useVoiceStore } from '../../stores/voiceStore';
+import { analytics } from '../../lib/analytics';
 import type { Channel } from '@quarrel/shared';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -130,6 +131,7 @@ export default function ChannelSidebar() {
   }));
 
   const handleChannelClick = (channel: Channel) => {
+    analytics.capture('channel:switch', { channelId: channel.id, channelType: channel.type, serverId });
     navigate(`/channels/${serverId}/${channel.id}`);
     if (channel.type === 'voice') {
       useVoiceStore.getState().joinChannel(channel.id);

@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import type { ChannelType } from '@quarrel/shared';
 import { useCreateChannel } from '../../hooks/useChannels';
 import { useUIStore } from '../../stores/uiStore';
+import { analytics } from '../../lib/analytics';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import Modal from './Modal';
@@ -21,6 +22,7 @@ export default function CreateChannelModal() {
     setError('');
     try {
       await createChannel.mutateAsync({ serverId, data: { name: name.trim(), type } });
+      analytics.capture('channel:create', { serverId, channelType: type });
       closeModal();
     } catch (err: any) {
       setError(err.message || 'Failed to create channel');

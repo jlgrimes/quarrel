@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { VoiceParticipant } from '@quarrel/shared';
 import { wsSend } from '../lib/wsBridge';
+import { analytics } from '../lib/analytics';
 import { useAuthStore } from './authStore';
 
 const ICE_SERVERS: RTCConfiguration = {
@@ -175,6 +176,7 @@ export const useVoiceStore = create<VoiceStore>((set, get) => ({
       const selfId = useAuthStore.getState().user?.id;
       if (selfId) startMonitoringStream(selfId, stream);
       wsSend('voice:join', { channelId });
+      analytics.capture('voice:join', { channelId });
     } catch {
       set({ isConnecting: false, currentChannelId: null, localStream: null });
     }
@@ -199,6 +201,8 @@ export const useVoiceStore = create<VoiceStore>((set, get) => ({
     }
 
     stopAllMonitoring();
+
+    if (state.currentChannelId) { analytics.capture('voice:leave', { channelId: state.currentChannelId }); }
 
     set({
       currentChannelId: null,

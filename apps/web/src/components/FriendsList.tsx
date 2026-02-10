@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { analytics } from '../lib/analytics';
 
 type Tab = 'all' | 'online' | 'pending' | 'blocked';
 
@@ -28,6 +29,7 @@ export default function FriendsList() {
     if (!addInput.trim()) return;
     try {
       await addFriend.mutateAsync(addInput.trim());
+      analytics.capture('friend:request_sent');
       setAddStatus('Friend request sent!');
       setAddInput('');
     } catch (err: any) {
@@ -37,6 +39,7 @@ export default function FriendsList() {
 
   const handleAccept = (id: string) => {
     acceptFriend.mutate(id);
+    analytics.capture('friend:request_accepted');
   };
 
   const handleRemove = (id: string) => {

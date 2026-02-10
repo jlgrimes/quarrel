@@ -6,6 +6,7 @@ import { useUIStore } from '../../stores/uiStore';
 import useWebSocket from 'react-use-websocket';
 import { useAuthStore } from '../../stores/authStore';
 import { getWsUrl } from '../../lib/getWsUrl';
+import { analytics } from '../../lib/analytics';
 
 export function MessageInput({ channelId, channelName }: { channelId: string; channelName: string }) {
   const [content, setContent] = useState('');
@@ -26,6 +27,7 @@ export function MessageInput({ channelId, channelName }: { channelId: string; ch
     if (!trimmed) return;
 
     await sendMessage.mutateAsync({ channelId, content: trimmed, replyToId: replyingTo ?? undefined });
+    analytics.capture('message:send', { channelId });
     setContent('');
     setReplyingTo(null);
 

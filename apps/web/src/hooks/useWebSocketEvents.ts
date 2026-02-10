@@ -46,6 +46,10 @@ export function useWebSocketEvents() {
         const msg = data as Message;
         queryClient.setQueryData(queryKeys.messages(msg.channelId), (old: any) => {
           if (!old) return old;
+          const exists = old.pages.some((p: any) =>
+            p.messages.some((m: Message) => m.id === msg.id),
+          );
+          if (exists) return old;
           const lastPage = old.pages[old.pages.length - 1];
           return {
             ...old,

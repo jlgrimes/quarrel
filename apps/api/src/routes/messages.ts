@@ -3,6 +3,7 @@ import { db, messages, channels, members, users, servers } from "@quarrel/db";
 import { sendMessageSchema, editMessageSchema, MESSAGE_BATCH_SIZE } from "@quarrel/shared";
 import { eq, and, lt, desc, inArray } from "drizzle-orm";
 import { authMiddleware, type AuthEnv } from "../middleware/auth";
+import { broadcastToChannel } from "../ws";
 
 export const messageRoutes = new Hono<AuthEnv>();
 
@@ -64,7 +65,10 @@ messageRoutes.post("/channels/:channelId/messages", async (c) => {
     .where(eq(users.id, userId))
     .limit(1);
 
-  return c.json({ message: { ...message, author } }, 201);
+  const fullMessage = { ...message, author };
+  broadcastToChannel(channelId, "message:new", fullMessage);
+
+  return c.json({ message: fullMessage }, 201);
 });
 
 messageRoutes.get("/channels/:channelId/messages", async (c) => {
@@ -133,15 +137,16 @@ messageRoutes.get("/channels/:channelId/messages", async (c) => {
       : [];
 
   const authorMap = new Map(authors.map((a) => [a.id, a]));
-  const messagesWithAuthors = result.map((m) => ({
-    ...m,
-    author: authorMap.get(m.authorId),
-  }));
 
   const nextCursor =
     result.length === limit
       ? result[result.length - 1].createdAt?.toISOString()
       : null;
+
+  const messagesWithAuthors = [...result].reverse().map((m) => ({
+    ...m,
+    author: authorMap.get(m.authorId),
+  }));
 
   return c.json({ messages: messagesWithAuthors, nextCursor });
 });

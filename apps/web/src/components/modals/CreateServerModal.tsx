@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCreateServer } from '../../hooks/useServers';
 import { useUIStore } from '../../stores/uiStore';
+import { analytics } from '../../lib/analytics';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import Modal from './Modal';
@@ -19,6 +20,7 @@ export default function CreateServerModal() {
     setError('');
     try {
       const server = await createServer.mutateAsync(name.trim());
+      analytics.capture('server:create', { serverId: server.id });
       closeModal();
       navigate(`/channels/${server.id}`);
     } catch (err: any) {

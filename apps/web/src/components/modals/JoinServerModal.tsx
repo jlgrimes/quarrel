@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useJoinServer } from '../../hooks/useServers';
 import { useUIStore } from '../../stores/uiStore';
+import { analytics } from '../../lib/analytics';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import Modal from './Modal';
@@ -19,6 +20,7 @@ export default function JoinServerModal() {
     setError('');
     try {
       const server = await joinServer.mutateAsync(inviteCode.trim());
+      analytics.capture('server:join', { serverId: server.id });
       closeModal();
       navigate(`/channels/${server.id}`);
     } catch (err: any) {
