@@ -1,7 +1,7 @@
 import { Hono } from "hono";
-import { db, messages, channels, members, users, servers } from "@quarrel/db";
+import { db, messages, channels, members, users, servers, reactions } from "@quarrel/db";
 import { sendMessageSchema, editMessageSchema, MESSAGE_BATCH_SIZE } from "@quarrel/shared";
-import { eq, and, lt, desc, inArray } from "drizzle-orm";
+import { eq, and, lt, desc, inArray, isNotNull, sql } from "drizzle-orm";
 import { authMiddleware, type AuthEnv } from "../middleware/auth";
 import { broadcastToChannel } from "../ws";
 
@@ -120,6 +120,10 @@ messageRoutes.get("/channels/:channelId/messages", async (c) => {
 
   const authorMap = new Map(authors.map((a) => [a.id, a]));
 
+  // Fetch reactions for all messages in this batch
+  const messageIds = result.map((m) => m.id);
+  const reactionsMap = await getReactionsForMessages(messageIds, userId);
+
   const nextCursor =
     result.length === limit
       ? result[result.length - 1].createdAt?.toISOString()
@@ -128,6 +132,7 @@ messageRoutes.get("/channels/:channelId/messages", async (c) => {
   const messagesWithAuthors = result.map((m) => ({
     ...m,
     author: authorMap.get(m.authorId),
+    reactions: reactionsMap.get(m.id) ?? [],
   }));
 
   return c.json({ messages: messagesWithAuthors, nextCursor });
@@ -212,4 +217,313 @@ messageRoutes.delete("/messages/:id", async (c) => {
     .where(eq(messages.id, messageId));
 
   return c.json({ success: true });
+});
+
+// Pin a message (server owner only)
+messageRoutes.post("/messages/:id/pin", async (c) => {
+  const messageId = c.req.param("id");
+  const userId = c.get("userId");
+
+  const [message] = await db
+    .select({
+      id: messages.id,
+      channelId: messages.channelId,
+      pinnedAt: messages.pinnedAt,
+    })
+    .from(messages)
+    .where(eq(messages.id, messageId))
+    .limit(1);
+
+  if (!message) {
+    return c.json({ error: "Message not found" }, 404);
+  }
+
+  if (message.pinnedAt) {
+    return c.json({ error: "Message already pinned" }, 400);
+  }
+
+  // Check server ownership
+  const [channelServer] = await db
+    .select({ ownerId: servers.ownerId })
+    .from(channels)
+    .innerJoin(servers, eq(channels.serverId, servers.id))
+    .where(eq(channels.id, message.channelId))
+    .limit(1);
+
+  if (!channelServer || channelServer.ownerId !== userId) {
+    return c.json({ error: "Only server owner can pin messages" }, 403);
+  }
+
+  const [updated] = await db
+    .update(messages)
+    .set({ pinnedAt: new Date(), pinnedBy: userId })
+    .where(eq(messages.id, messageId))
+    .returning();
+
+  broadcastToChannel(message.channelId, "message:pinned", {
+    messageId: updated.id,
+    channelId: updated.channelId,
+    pinnedAt: updated.pinnedAt,
+    pinnedBy: updated.pinnedBy,
+  });
+
+  return c.json({ message: updated });
+});
+
+// Unpin a message (server owner only)
+messageRoutes.delete("/messages/:id/pin", async (c) => {
+  const messageId = c.req.param("id");
+  const userId = c.get("userId");
+
+  const [message] = await db
+    .select({
+      id: messages.id,
+      channelId: messages.channelId,
+      pinnedAt: messages.pinnedAt,
+    })
+    .from(messages)
+    .where(eq(messages.id, messageId))
+    .limit(1);
+
+  if (!message) {
+    return c.json({ error: "Message not found" }, 404);
+  }
+
+  if (!message.pinnedAt) {
+    return c.json({ error: "Message is not pinned" }, 400);
+  }
+
+  const [channelServer] = await db
+    .select({ ownerId: servers.ownerId })
+    .from(channels)
+    .innerJoin(servers, eq(channels.serverId, servers.id))
+    .where(eq(channels.id, message.channelId))
+    .limit(1);
+
+  if (!channelServer || channelServer.ownerId !== userId) {
+    return c.json({ error: "Only server owner can unpin messages" }, 403);
+  }
+
+  const [updated] = await db
+    .update(messages)
+    .set({ pinnedAt: null, pinnedBy: null })
+    .where(eq(messages.id, messageId))
+    .returning();
+
+  broadcastToChannel(message.channelId, "message:unpinned", {
+    messageId: updated.id,
+    channelId: updated.channelId,
+  });
+
+  return c.json({ message: updated });
+});
+
+// List pinned messages for a channel
+messageRoutes.get("/channels/:channelId/pins", async (c) => {
+  const channelId = c.req.param("channelId");
+  const userId = c.get("userId");
+
+  const [channelMember] = await db
+    .select({ serverId: channels.serverId })
+    .from(channels)
+    .innerJoin(
+      members,
+      and(eq(members.serverId, channels.serverId), eq(members.userId, userId))
+    )
+    .where(eq(channels.id, channelId))
+    .limit(1);
+
+  if (!channelMember) {
+    return c.json({ error: "Channel not found or not a member" }, 403);
+  }
+
+  const pinned = await db
+    .select()
+    .from(messages)
+    .where(
+      and(
+        eq(messages.channelId, channelId),
+        isNotNull(messages.pinnedAt)
+      )
+    )
+    .orderBy(desc(messages.pinnedAt));
+
+  const authorIds = [...new Set(pinned.map((m) => m.authorId))];
+  const authors =
+    authorIds.length > 0
+      ? await db
+          .select({
+            id: users.id,
+            username: users.username,
+            displayName: users.displayName,
+            avatarUrl: users.avatarUrl,
+          })
+          .from(users)
+          .where(
+            authorIds.length === 1
+              ? eq(users.id, authorIds[0])
+              : inArray(users.id, authorIds)
+          )
+      : [];
+
+  const authorMap = new Map(authors.map((a) => [a.id, a]));
+
+  const messagesWithAuthors = pinned.map((m) => ({
+    ...m,
+    author: authorMap.get(m.authorId),
+  }));
+
+  return c.json({ messages: messagesWithAuthors });
+});
+
+// Helper to get aggregated reactions for a set of message IDs
+export async function getReactionsForMessages(messageIds: string[], currentUserId: string) {
+  if (messageIds.length === 0) return new Map<string, { emoji: string; count: number; me: boolean }[]>();
+
+  const allReactions = await db
+    .select()
+    .from(reactions)
+    .where(
+      messageIds.length === 1
+        ? eq(reactions.messageId, messageIds[0])
+        : inArray(reactions.messageId, messageIds)
+    );
+
+  const grouped = new Map<string, Map<string, { count: number; userIds: Set<string> }>>();
+  for (const r of allReactions) {
+    let msgMap = grouped.get(r.messageId);
+    if (!msgMap) {
+      msgMap = new Map();
+      grouped.set(r.messageId, msgMap);
+    }
+    let emojiData = msgMap.get(r.emoji);
+    if (!emojiData) {
+      emojiData = { count: 0, userIds: new Set() };
+      msgMap.set(r.emoji, emojiData);
+    }
+    emojiData.count++;
+    emojiData.userIds.add(r.userId);
+  }
+
+  const result = new Map<string, { emoji: string; count: number; me: boolean }[]>();
+  for (const [msgId, emojiMap] of grouped) {
+    result.set(
+      msgId,
+      Array.from(emojiMap.entries()).map(([emoji, data]) => ({
+        emoji,
+        count: data.count,
+        me: data.userIds.has(currentUserId),
+      }))
+    );
+  }
+  return result;
+}
+
+// Add reaction to a message
+messageRoutes.put("/messages/:id/reactions/:emoji", async (c) => {
+  const messageId = c.req.param("id");
+  const emoji = decodeURIComponent(c.req.param("emoji"));
+  const userId = c.get("userId");
+
+  const [message] = await db
+    .select({ id: messages.id, channelId: messages.channelId })
+    .from(messages)
+    .where(eq(messages.id, messageId))
+    .limit(1);
+
+  if (!message) {
+    return c.json({ error: "Message not found" }, 404);
+  }
+
+  // Check if user already reacted with this emoji
+  const [existing] = await db
+    .select()
+    .from(reactions)
+    .where(
+      and(
+        eq(reactions.messageId, messageId),
+        eq(reactions.userId, userId),
+        eq(reactions.emoji, emoji)
+      )
+    )
+    .limit(1);
+
+  if (existing) {
+    return c.json({ reaction: existing });
+  }
+
+  const [reaction] = await db
+    .insert(reactions)
+    .values({ messageId, userId, emoji })
+    .returning();
+
+  // Get updated reaction counts for this message
+  const reactionsMap = await getReactionsForMessages([messageId], userId);
+  const messageReactions = reactionsMap.get(messageId) ?? [];
+
+  broadcastToChannel(message.channelId, "reaction:update", {
+    messageId,
+    channelId: message.channelId,
+    reactions: messageReactions,
+  });
+
+  return c.json({ reaction }, 201);
+});
+
+// Remove reaction from a message
+messageRoutes.delete("/messages/:id/reactions/:emoji", async (c) => {
+  const messageId = c.req.param("id");
+  const emoji = decodeURIComponent(c.req.param("emoji"));
+  const userId = c.get("userId");
+
+  const [message] = await db
+    .select({ id: messages.id, channelId: messages.channelId })
+    .from(messages)
+    .where(eq(messages.id, messageId))
+    .limit(1);
+
+  if (!message) {
+    return c.json({ error: "Message not found" }, 404);
+  }
+
+  const [existing] = await db
+    .select()
+    .from(reactions)
+    .where(
+      and(
+        eq(reactions.messageId, messageId),
+        eq(reactions.userId, userId),
+        eq(reactions.emoji, emoji)
+      )
+    )
+    .limit(1);
+
+  if (!existing) {
+    return c.json({ error: "Reaction not found" }, 404);
+  }
+
+  await db.delete(reactions).where(eq(reactions.id, existing.id));
+
+  // Get updated reaction counts for this message
+  const reactionsMap = await getReactionsForMessages([messageId], userId);
+  const messageReactions = reactionsMap.get(messageId) ?? [];
+
+  broadcastToChannel(message.channelId, "reaction:update", {
+    messageId,
+    channelId: message.channelId,
+    reactions: messageReactions,
+  });
+
+  return c.json({ success: true });
+});
+
+// Get reactions for a message
+messageRoutes.get("/messages/:id/reactions", async (c) => {
+  const messageId = c.req.param("id");
+  const userId = c.get("userId");
+
+  const reactionsMap = await getReactionsForMessages([messageId], userId);
+  const messageReactions = reactionsMap.get(messageId) ?? [];
+
+  return c.json({ reactions: messageReactions });
 });

@@ -33,8 +33,8 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex h-full items-center justify-center bg-[#313338]">
-      <form onSubmit={handleSubmit} noValidate className="w-[480px] rounded-md bg-[#2b2d31] p-8">
+    <div className="flex h-full items-center justify-center bg-[#313338] px-4">
+      <form onSubmit={handleSubmit} noValidate className="w-full max-w-[480px] rounded-md bg-[#2b2d31] p-6 md:p-8">
         <h1 className="mb-2 text-center text-2xl font-semibold text-white">Welcome back!</h1>
         <p className="mb-5 text-center text-[#949ba4]">We're so excited to see you again!</p>
 

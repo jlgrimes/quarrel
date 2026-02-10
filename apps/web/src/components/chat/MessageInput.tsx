@@ -1,5 +1,5 @@
 import { useRef, useState, useCallback, useMemo } from 'react';
-import type { Message } from '@quarrel/shared';
+import type { Message, Member } from '@quarrel/shared';
 import { useSendMessage } from '../../hooks/useMessages';
 import { useMessages } from '../../hooks/useMessages';
 import { useUIStore } from '../../stores/uiStore';
@@ -7,9 +7,13 @@ import useWebSocket from 'react-use-websocket';
 import { useAuthStore } from '../../stores/authStore';
 import { getWsUrl } from '../../lib/getWsUrl';
 import { analytics } from '../../lib/analytics';
+import { EmojiPicker } from './EmojiPicker';
 
-export function MessageInput({ channelId, channelName }: { channelId: string; channelName: string }) {
+export function MessageInput({ channelId, channelName, members }: { channelId: string; channelName: string; members?: Member[] }) {
   const [content, setContent] = useState('');
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [mentionQuery, setMentionQuery] = useState<string | null>(null);
+  const [mentionIndex, setMentionIndex] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const sendMessage = useSendMessage();
   const replyingTo = useUIStore((s) => s.replyingTo);
@@ -22,12 +26,34 @@ export function MessageInput({ channelId, channelName }: { channelId: string; ch
 
   const replyMessage = replyingTo ? messages.find((m: Message) => m.id === replyingTo) : null;
 
+  const mentionSuggestions = useMemo(() => {
+    if (mentionQuery === null || !members) return [];
+    const q = mentionQuery.toLowerCase();
+    const results: Array<{ userId: string; displayName: string; username?: string }> = [];
+    // Always include @everyone
+    if ('everyone'.startsWith(q)) {
+      results.push({ userId: 'everyone', displayName: 'everyone' });
+    }
+    for (const m of members) {
+      const name = m.user?.displayName ?? m.nickname ?? '';
+      const username = m.user?.username ?? '';
+      if (name.toLowerCase().startsWith(q) || username.toLowerCase().startsWith(q)) {
+        results.push({ userId: m.userId, displayName: name || username, username });
+      }
+    }
+    return results.slice(0, 8);
+  }, [mentionQuery, members]);
+
   const handleSend = useCallback(async () => {
     const trimmed = content.trim();
     if (!trimmed) return;
 
+    const hasMentions = /<@[a-zA-Z0-9-]+>/.test(trimmed);
     await sendMessage.mutateAsync({ channelId, content: trimmed, replyToId: replyingTo ?? undefined });
     analytics.capture('message:send', { channelId });
+    if (hasMentions) {
+      analytics.capture('message:mention', { channelId });
+    }
     setContent('');
     setReplyingTo(null);
 
@@ -36,20 +62,100 @@ export function MessageInput({ channelId, channelName }: { channelId: string; ch
     }
   }, [content, channelId, replyingTo, sendMessage, setReplyingTo]);
 
+  const insertMention = useCallback((userId: string, displayName: string) => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    const text = textarea.value;
+    const cursorPos = textarea.selectionStart;
+    // Find the @ that started this mention
+    let atPos = cursorPos - 1;
+    while (atPos >= 0 && text[atPos] !== '@') atPos--;
+    if (atPos < 0) return;
+
+    const before = text.slice(0, atPos);
+    const after = text.slice(cursorPos);
+    const mention = `<@${userId}> `;
+    const newContent = before + mention + after;
+    setContent(newContent);
+    setMentionQuery(null);
+    setMentionIndex(0);
+    requestAnimationFrame(() => {
+      const newPos = before.length + mention.length;
+      textarea.selectionStart = textarea.selectionEnd = newPos;
+      textarea.focus();
+    });
+  }, []);
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    // Mention autocomplete navigation
+    if (mentionQuery !== null && mentionSuggestions.length > 0) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setMentionIndex((prev) => (prev + 1) % mentionSuggestions.length);
+        return;
+      }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setMentionIndex((prev) => (prev - 1 + mentionSuggestions.length) % mentionSuggestions.length);
+        return;
+      }
+      if (e.key === 'Tab' || e.key === 'Enter') {
+        e.preventDefault();
+        const selected = mentionSuggestions[mentionIndex];
+        if (selected) {
+          insertMention(selected.userId, selected.displayName);
+        }
+        return;
+      }
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setMentionQuery(null);
+        return;
+      }
+    }
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
     }
   };
 
+  const handleEmojiSelect = useCallback((emoji: string) => {
+    const textarea = textareaRef.current;
+    if (textarea) {
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const newContent = content.slice(0, start) + emoji + content.slice(end);
+      setContent(newContent);
+      // Set cursor position after the inserted emoji
+      requestAnimationFrame(() => {
+        textarea.selectionStart = textarea.selectionEnd = start + emoji.length;
+        textarea.focus();
+      });
+    } else {
+      setContent(content + emoji);
+    }
+    setShowEmojiPicker(false);
+  }, [content]);
+
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setContent(e.target.value);
+    const value = e.target.value;
+    setContent(value);
 
     // Auto-resize textarea
     const el = e.target;
     el.style.height = 'auto';
     el.style.height = Math.min(el.scrollHeight, 300) + 'px';
+
+    // Detect @mention query
+    const cursorPos = el.selectionStart;
+    const textBeforeCursor = value.slice(0, cursorPos);
+    const atMatch = textBeforeCursor.match(/@(\w*)$/);
+    if (atMatch) {
+      setMentionQuery(atMatch[1]);
+      setMentionIndex(0);
+    } else {
+      setMentionQuery(null);
+    }
 
     // Send typing indicator (throttled)
     if (!typingTimerRef.current) {
@@ -77,7 +183,29 @@ export function MessageInput({ channelId, channelName }: { channelId: string; ch
           </button>
         </div>
       )}
-      <div className={`bg-[#383a40] ${replyMessage ? 'rounded-b-lg' : 'rounded-lg'}`}>
+      <div className={`relative bg-[#383a40] ${replyMessage ? 'rounded-b-lg' : 'rounded-lg'}`}>
+        {mentionQuery !== null && mentionSuggestions.length > 0 && (
+          <div className="absolute bottom-full left-0 right-0 mb-1 bg-[#2b2d31] border border-[#1e1f22] rounded-lg shadow-xl max-h-48 overflow-y-auto z-50">
+            {mentionSuggestions.map((s, idx) => (
+              <button
+                key={s.userId}
+                className={`w-full text-left px-3 py-2 flex items-center gap-2 text-sm ${
+                  idx === mentionIndex ? 'bg-[#5865f2] text-white' : 'text-[#dbdee1] hover:bg-[#383a40]'
+                }`}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  insertMention(s.userId, s.displayName);
+                }}
+                onMouseEnter={() => setMentionIndex(idx)}
+              >
+                <span className="font-medium">{s.displayName}</span>
+                {s.username && s.userId !== 'everyone' && (
+                  <span className="text-xs text-[#949ba4]">@{s.username}</span>
+                )}
+              </button>
+            ))}
+          </div>
+        )}
         <textarea
           ref={textareaRef}
           value={content}
@@ -85,8 +213,26 @@ export function MessageInput({ channelId, channelName }: { channelId: string; ch
           onKeyDown={handleKeyDown}
           placeholder={`Message #${channelName}`}
           rows={1}
-          className="w-full bg-transparent text-[#dbdee1] placeholder-[#6d6f78] p-3 resize-none outline-none max-h-[300px]"
+          className="w-full bg-transparent text-[#dbdee1] placeholder-[#6d6f78] p-3 pr-10 resize-none outline-none max-h-[300px]"
         />
+        <button
+          onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+          className="absolute right-2 top-2.5 text-[#b5bac1] hover:text-white transition-colors"
+          title="Emoji"
+          type="button"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z" />
+          </svg>
+        </button>
+        {showEmojiPicker && (
+          <div className="absolute bottom-full right-0 mb-2 z-50">
+            <EmojiPicker
+              onSelect={handleEmojiSelect}
+              onClose={() => setShowEmojiPicker(false)}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

@@ -5,9 +5,10 @@ import {
   conversationMembers,
   directMessages,
   users,
+  readState,
 } from "@quarrel/db";
 import { sendMessageSchema, MESSAGE_BATCH_SIZE } from "@quarrel/shared";
-import { eq, and, lt, desc, inArray } from "drizzle-orm";
+import { eq, and, lt, desc, inArray, gt, sql } from "drizzle-orm";
 import { authMiddleware, type AuthEnv } from "../middleware/auth";
 
 export const dmRoutes = new Hono<AuthEnv>();
@@ -128,16 +129,58 @@ dmRoutes.get("/conversations", async (c) => {
 
   const userMap = new Map(memberUsers.map((u) => [u.id, u]));
 
-  const result = convs.map((conv) => {
-    const convMembers = allMembers
-      .filter(
-        (m) => m.conversationId === conv.id && m.userId !== userId
+  // Get read states for all conversations
+  const userReadStates = await db
+    .select()
+    .from(readState)
+    .where(
+      and(
+        eq(readState.userId, userId),
+        inArray(readState.conversationId, convIds)
       )
-      .map((m) => userMap.get(m.userId))
-      .filter(Boolean);
+    );
 
-    return { ...conv, members: convMembers };
-  });
+  const readMap = new Map(
+    userReadStates
+      .filter((rs) => rs.conversationId)
+      .map((rs) => [rs.conversationId, rs])
+  );
+
+  const result = await Promise.all(
+    convs.map(async (conv) => {
+      const convMembers = allMembers
+        .filter(
+          (m) => m.conversationId === conv.id && m.userId !== userId
+        )
+        .map((m) => userMap.get(m.userId))
+        .filter(Boolean);
+
+      // Calculate unread count
+      const rs = readMap.get(conv.id);
+      let unreadCount = 0;
+
+      if (rs?.lastReadAt) {
+        const [countResult] = await db
+          .select({ count: sql<number>`count(*)` })
+          .from(directMessages)
+          .where(
+            and(
+              eq(directMessages.conversationId, conv.id),
+              gt(directMessages.createdAt, rs.lastReadAt)
+            )
+          );
+        unreadCount = countResult?.count ?? 0;
+      } else {
+        const [countResult] = await db
+          .select({ count: sql<number>`count(*)` })
+          .from(directMessages)
+          .where(eq(directMessages.conversationId, conv.id));
+        unreadCount = countResult?.count ?? 0;
+      }
+
+      return { ...conv, members: convMembers, unreadCount };
+    })
+  );
 
   return c.json({ conversations: result });
 });
@@ -251,4 +294,70 @@ dmRoutes.get("/:conversationId/messages", async (c) => {
       : null;
 
   return c.json({ messages: messagesWithAuthors, nextCursor });
+});
+
+// Mark DM conversation as read
+dmRoutes.post("/:conversationId/ack", async (c) => {
+  const conversationId = c.req.param("conversationId");
+  const userId = c.get("userId");
+
+  // Verify membership
+  const [membership] = await db
+    .select({ conversationId: conversationMembers.conversationId })
+    .from(conversationMembers)
+    .where(
+      and(
+        eq(conversationMembers.conversationId, conversationId),
+        eq(conversationMembers.userId, userId)
+      )
+    )
+    .limit(1);
+
+  if (!membership) {
+    return c.json({ error: "Not a member of this conversation" }, 403);
+  }
+
+  // Get latest message
+  const [latestMessage] = await db
+    .select({ id: directMessages.id })
+    .from(directMessages)
+    .where(eq(directMessages.conversationId, conversationId))
+    .orderBy(desc(directMessages.createdAt))
+    .limit(1);
+
+  const now = new Date();
+
+  // Upsert read state
+  const existing = await db
+    .select()
+    .from(readState)
+    .where(
+      and(
+        eq(readState.userId, userId),
+        eq(readState.conversationId, conversationId)
+      )
+    )
+    .limit(1);
+
+  if (existing.length > 0) {
+    await db
+      .update(readState)
+      .set({
+        lastReadMessageId: latestMessage?.id ?? null,
+        lastReadAt: now,
+      })
+      .where(eq(readState.id, existing[0].id));
+  } else {
+    await db.insert(readState).values({
+      userId,
+      conversationId,
+      lastReadMessageId: latestMessage?.id ?? null,
+      lastReadAt: now,
+    });
+  }
+
+  return c.json({
+    success: true,
+    lastReadMessageId: latestMessage?.id ?? null,
+  });
 });

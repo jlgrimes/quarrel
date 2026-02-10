@@ -20,6 +20,8 @@ export const messages = sqliteTable(
     replyToId: text("reply_to_id").references((): any => messages.id),
     createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
     deleted: integer("deleted", { mode: "boolean" }).default(false),
+    pinnedAt: integer("pinned_at", { mode: "timestamp" }),
+    pinnedBy: text("pinned_by").references(() => users.id),
   },
   (table) => ({
     channelCreatedAtIdx: index("messages_channel_created_at_idx").on(table.channelId, table.createdAt),

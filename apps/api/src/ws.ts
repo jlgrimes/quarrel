@@ -1,6 +1,7 @@
 import type { ServerWebSocket } from "bun";
 import { db, sessions, members, channels, users, messages } from "@quarrel/db";
 import { eq, and, inArray } from "drizzle-orm";
+import { sendMessageSchema } from "@quarrel/shared";
 
 type WSData = {
   userId: string;
@@ -178,7 +179,25 @@ type EventHandler = (ws: ServerWebSocket<WSData>, data: any) => Promise<void> | 
 
 const eventHandlers: Record<string, EventHandler> = {
   "message:send": async (ws, data) => {
-    const { channelId, content, attachments, replyToId } = data;
+    // Validate channelId exists and is a string
+    if (!data.channelId || typeof data.channelId !== 'string') {
+      ws.send(JSON.stringify({ event: "error", data: { message: "Invalid channel ID" } }));
+      return;
+    }
+
+    // Validate message content using shared schema
+    const parsed = sendMessageSchema.safeParse({
+      content: data.content,
+      attachments: data.attachments,
+      replyToId: data.replyToId,
+    });
+    if (!parsed.success) {
+      ws.send(JSON.stringify({ event: "error", data: { message: "Invalid message format" } }));
+      return;
+    }
+
+    const channelId = data.channelId;
+    const { content, attachments, replyToId } = parsed.data;
 
     const [channel] = await db
       .select()
@@ -231,6 +250,7 @@ const eventHandlers: Record<string, EventHandler> = {
 
   "typing:start": async (ws, data) => {
     const { channelId } = data;
+    if (!channelId || !ws.data.subscribedChannels.has(channelId)) return;
     const [typingUser] = await db
       .select({ username: users.username, displayName: users.displayName })
       .from(users)
@@ -244,6 +264,8 @@ const eventHandlers: Record<string, EventHandler> = {
   },
 
   "presence:update": async (ws, data) => {
+    const validStatuses = ['online', 'offline', 'idle', 'dnd'];
+    if (!data.status || !validStatuses.includes(data.status)) return;
     const { status } = data;
     await db
       .update(users)
@@ -338,6 +360,10 @@ const eventHandlers: Record<string, EventHandler> = {
   },
 
   "voice:offer": (ws, data) => {
+    if (!data.targetUserId || !data.sdp) return;
+    const senderChannel = userVoiceChannel.get(ws.data.userId);
+    const targetChannel = userVoiceChannel.get(data.targetUserId);
+    if (!senderChannel || senderChannel !== targetChannel) return;
     sendToUser(data.targetUserId, "voice:offer", {
       fromUserId: ws.data.userId,
       sdp: data.sdp,
@@ -345,6 +371,10 @@ const eventHandlers: Record<string, EventHandler> = {
   },
 
   "voice:answer": (ws, data) => {
+    if (!data.targetUserId || !data.sdp) return;
+    const senderChannel = userVoiceChannel.get(ws.data.userId);
+    const targetChannel = userVoiceChannel.get(data.targetUserId);
+    if (!senderChannel || senderChannel !== targetChannel) return;
     sendToUser(data.targetUserId, "voice:answer", {
       fromUserId: ws.data.userId,
       sdp: data.sdp,
@@ -352,6 +382,10 @@ const eventHandlers: Record<string, EventHandler> = {
   },
 
   "voice:ice-candidate": (ws, data) => {
+    if (!data.targetUserId || !data.candidate) return;
+    const senderChannel = userVoiceChannel.get(ws.data.userId);
+    const targetChannel = userVoiceChannel.get(data.targetUserId);
+    if (!senderChannel || senderChannel !== targetChannel) return;
     sendToUser(data.targetUserId, "voice:ice-candidate", {
       fromUserId: ws.data.userId,
       candidate: data.candidate,
@@ -359,6 +393,7 @@ const eventHandlers: Record<string, EventHandler> = {
   },
 
   "voice:mute": (ws, data) => {
+    if (typeof data.isMuted !== 'boolean' || typeof data.isDeafened !== 'boolean') return;
     const { isMuted, isDeafened } = data;
     const voiceChannelId = userVoiceChannel.get(ws.data.userId);
     if (!voiceChannelId) return;

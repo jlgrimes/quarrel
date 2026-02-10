@@ -7,6 +7,7 @@ import { queryClient } from '../lib/queryClient';
 import { queryKeys } from './queryKeys';
 import { getWsUrl } from '../lib/getWsUrl';
 import { setWsSend } from '../lib/wsBridge';
+import { api } from '../lib/api';
 
 export function useWebSocketEvents() {
   const token = useAuthStore((s) => s.token);
@@ -57,6 +58,29 @@ export function useWebSocketEvents() {
             ],
           };
         });
+        // Auto-ack if the user is currently viewing this channel
+        const path = window.location.pathname;
+        const channelMatch = path.match(/\/channels\/[^/]+\/([^/]+)/);
+        const dmMatch = path.match(/\/channels\/@me\/([^/]+)/);
+        if (dmMatch && dmMatch[1] === msg.channelId) {
+          api.ackDM(msg.channelId).catch(() => {});
+        } else if (channelMatch && channelMatch[1] === msg.channelId) {
+          api.ackChannel(msg.channelId).catch(() => {});
+        } else {
+          // Increment unread count in sidebar for non-active channels
+          for (const query of queryClient.getQueryCache().findAll({ queryKey: ['channels'] })) {
+            const channels = queryClient.getQueryData<any[]>(query.queryKey);
+            if (channels?.some((ch: any) => ch.id === msg.channelId)) {
+              queryClient.setQueryData<any[]>(query.queryKey, (old) =>
+                old?.map((ch) =>
+                  ch.id === msg.channelId
+                    ? { ...ch, unreadCount: (ch.unreadCount ?? 0) + 1 }
+                    : ch
+                )
+              );
+            }
+          }
+        }
         break;
       }
       case 'message:updated': {
@@ -129,6 +153,72 @@ export function useWebSocketEvents() {
         if (currentUser && presenceUserId === currentUser.id) {
           useAuthStore.setState({ user: { ...currentUser, status } });
         }
+        break;
+      }
+
+      // Pin events
+      case 'message:pinned': {
+        const { messageId, channelId, pinnedAt, pinnedBy } = data as {
+          messageId: string;
+          channelId: string;
+          pinnedAt: string;
+          pinnedBy: string;
+        };
+        queryClient.setQueryData(queryKeys.messages(channelId), (old: any) => {
+          if (!old) return old;
+          return {
+            ...old,
+            pages: old.pages.map((page: any) => ({
+              ...page,
+              messages: page.messages.map((m: Message) =>
+                m.id === messageId ? { ...m, pinnedAt, pinnedBy } : m
+              ),
+            })),
+          };
+        });
+        queryClient.invalidateQueries({ queryKey: queryKeys.pins(channelId) });
+        break;
+      }
+      case 'message:unpinned': {
+        const { messageId: unpinnedId, channelId: unpinnedChannelId } = data as {
+          messageId: string;
+          channelId: string;
+        };
+        queryClient.setQueryData(queryKeys.messages(unpinnedChannelId), (old: any) => {
+          if (!old) return old;
+          return {
+            ...old,
+            pages: old.pages.map((page: any) => ({
+              ...page,
+              messages: page.messages.map((m: Message) =>
+                m.id === unpinnedId ? { ...m, pinnedAt: null, pinnedBy: null } : m
+              ),
+            })),
+          };
+        });
+        queryClient.invalidateQueries({ queryKey: queryKeys.pins(unpinnedChannelId) });
+        break;
+      }
+
+      // Reaction events
+      case 'reaction:update': {
+        const { messageId: reactMsgId, channelId: reactChannelId, reactions: newReactions } = data as {
+          messageId: string;
+          channelId: string;
+          reactions: { emoji: string; count: number; me: boolean }[];
+        };
+        queryClient.setQueryData(queryKeys.messages(reactChannelId), (old: any) => {
+          if (!old) return old;
+          return {
+            ...old,
+            pages: old.pages.map((page: any) => ({
+              ...page,
+              messages: page.messages.map((m: any) =>
+                m.id === reactMsgId ? { ...m, reactions: newReactions } : m
+              ),
+            })),
+          };
+        });
         break;
       }
 

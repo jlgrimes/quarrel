@@ -20,7 +20,7 @@ export const api = {
   register: (username: string, email: string, password: string) =>
     request<{ user: any; token: string }>('/auth/register', { method: 'POST', body: JSON.stringify({ username, email, password }) }),
   logout: () => request('/auth/logout', { method: 'POST' }),
-  me: () => request<{ user: any; token: string }>('/auth/me'),
+  me: () => request<{ user: any }>('/auth/me'),
 
   // Servers
   getServers: () => request<{ servers: any[] }>('/servers').then(r => r.servers),
@@ -52,10 +52,34 @@ export const api = {
     }).then(r => r.message),
   deleteMessage: (messageId: string) =>
     request(`/messages/${messageId}`, { method: 'DELETE' }),
+  addReaction: (messageId: string, emoji: string) =>
+    request<{ reaction: any }>(`/messages/${messageId}/reactions/${encodeURIComponent(emoji)}`, { method: 'PUT' }),
+  removeReaction: (messageId: string, emoji: string) =>
+    request(`/messages/${messageId}/reactions/${encodeURIComponent(emoji)}`, { method: 'DELETE' }),
+  pinMessage: (messageId: string) =>
+    request<{ message: any }>(`/messages/${messageId}/pin`, { method: 'POST' }).then(r => r.message),
+  unpinMessage: (messageId: string) =>
+    request<{ message: any }>(`/messages/${messageId}/pin`, { method: 'DELETE' }).then(r => r.message),
+  getPinnedMessages: (channelId: string) =>
+    request<{ messages: any[] }>(`/channels/${channelId}/pins`).then(r => r.messages),
 
   // Members
   getMembers: (serverId: string) =>
     request<{ members: any[] }>(`/servers/${serverId}/members`).then(r => r.members),
+
+  // Roles
+  getRoles: (serverId: string) =>
+    request<{ roles: any[] }>(`/servers/${serverId}/roles`).then(r => r.roles),
+  createRole: (serverId: string, data: { name: string; color?: string; permissions?: number }) =>
+    request<{ role: any }>(`/servers/${serverId}/roles`, { method: 'POST', body: JSON.stringify(data) }).then(r => r.role),
+  updateRole: (roleId: string, data: { name?: string; color?: string; permissions?: number }) =>
+    request<{ role: any }>(`/roles/${roleId}`, { method: 'PATCH', body: JSON.stringify(data) }).then(r => r.role),
+  deleteRole: (roleId: string) =>
+    request(`/roles/${roleId}`, { method: 'DELETE' }),
+  assignRole: (serverId: string, userId: string, roleId: string) =>
+    request(`/servers/${serverId}/members/${userId}/roles/${roleId}`, { method: 'PUT' }),
+  removeRole: (serverId: string, userId: string, roleId: string) =>
+    request(`/servers/${serverId}/members/${userId}/roles/${roleId}`, { method: 'DELETE' }),
 
   // Friends
   getFriends: () => request<{ friends: any[] }>('/friends').then(r => r.friends),
@@ -76,7 +100,33 @@ export const api = {
       body: JSON.stringify({ content }),
     }).then(r => r.message),
 
+  // Read state
+  ackChannel: (channelId: string) =>
+    request<{ success: boolean; lastReadMessageId: string | null }>(`/channels/${channelId}/ack`, { method: 'POST' }),
+  ackDM: (conversationId: string) =>
+    request<{ success: boolean; lastReadMessageId: string | null }>(`/dms/${conversationId}/ack`, { method: 'POST' }),
+
   // Profile
   updateProfile: (data: { displayName?: string; avatarUrl?: string; customStatus?: string }) =>
     request('/users/me', { method: 'PATCH', body: JSON.stringify(data) }),
+
+  // Avatar
+  getAvatarPresignUrl: (contentType: string, contentLength: number) =>
+    request<{ presignedUrl: string; publicUrl: string }>('/users/me/avatar/presign', {
+      method: 'POST',
+      body: JSON.stringify({ contentType, contentLength }),
+    }),
+
+  uploadAvatar: async (file: File) => {
+    const { presignedUrl, publicUrl } = await api.getAvatarPresignUrl(file.type, file.size);
+    await fetch(presignedUrl, {
+      method: 'PUT',
+      body: file,
+      headers: { 'Content-Type': file.type },
+    });
+    return api.updateProfile({ avatarUrl: publicUrl });
+  },
+
+  removeAvatar: () =>
+    request('/users/me/avatar', { method: 'DELETE' }),
 };

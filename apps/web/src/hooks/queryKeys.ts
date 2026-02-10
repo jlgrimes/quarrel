@@ -6,4 +6,6 @@ export const queryKeys = {
   friends: ['friends'] as const,
   conversations: ['conversations'] as const,
   dms: (conversationId: string) => ['dms', conversationId] as const,
+  pins: (channelId: string) => ['pins', channelId] as const,
+  roles: (serverId: string) => ['roles', serverId] as const,
 };

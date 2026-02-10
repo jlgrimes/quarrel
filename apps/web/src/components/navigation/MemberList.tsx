@@ -11,13 +11,23 @@ const statusDot: Record<UserStatus, string> = {
   offline: 'bg-gray-500',
 };
 
-const MemberRow = memo(function MemberRow({ member }: { member: Member }) {
+type MemberWithRoles = Member & {
+  roles?: { id: string; name: string; color: string | null; position: number }[];
+};
+
+const MemberRow = memo(function MemberRow({ member }: { member: MemberWithRoles }) {
   const user = member.user;
   if (!user) return null;
 
   const displayName = member.nickname || user.displayName || user.username;
   const letter = displayName.charAt(0).toUpperCase();
   const isOffline = user.status === 'offline';
+
+  // Use the highest role's color for the member name
+  const highestRole = member.roles && member.roles.length > 0
+    ? member.roles.reduce((a, b) => (a.position < b.position ? a : b))
+    : null;
+  const nameColor = highestRole?.color || undefined;
 
   const colors = [
     'bg-indigo-500',
@@ -51,6 +61,7 @@ const MemberRow = memo(function MemberRow({ member }: { member: Member }) {
 
       <span
         className={`text-sm truncate ${isOffline ? 'text-[#949ba4]' : 'text-[#f2f3f5]'}`}
+        style={nameColor ? { color: nameColor } : undefined}
       >
         {displayName}
       </span>
@@ -60,16 +71,21 @@ const MemberRow = memo(function MemberRow({ member }: { member: Member }) {
 
 const MemberSection = memo(function MemberSection({
   title,
+  titleColor,
   members,
 }: {
   title: string;
-  members: Member[];
+  titleColor?: string | null;
+  members: MemberWithRoles[];
 }) {
   if (members.length === 0) return null;
 
   return (
     <div className="mt-4">
-      <h3 className="text-[#949ba4] text-xs uppercase font-semibold px-4 mb-1">
+      <h3
+        className="text-[#949ba4] text-xs uppercase font-semibold px-4 mb-1"
+        style={titleColor ? { color: titleColor } : undefined}
+      >
         {title} — {members.length}
       </h3>
       {members.map((member) => (
@@ -79,22 +95,63 @@ const MemberSection = memo(function MemberSection({
   );
 });
 
-export default function MemberList({ serverId }: { serverId: string }) {
+export default function MemberList({ serverId, className }: { serverId: string; className?: string }) {
   const { data: members = [] } = useMembers(serverId);
 
-  const online = useMemo(
-    () => members.filter((m) => m.user && m.user.status !== 'offline'),
-    [members],
-  );
-  const offline = useMemo(
-    () => members.filter((m) => m.user && m.user.status === 'offline'),
-    [members],
-  );
+  const { roleSections, onlineNoRole, offlineMembers } = useMemo(() => {
+    const typedMembers = members as MemberWithRoles[];
+
+    // Collect unique roles with their members (online only)
+    const roleMap = new Map<string, { role: { id: string; name: string; color: string | null; position: number }; members: MemberWithRoles[] }>();
+
+    const onlineNoRole: MemberWithRoles[] = [];
+    const offlineMembers: MemberWithRoles[] = [];
+
+    for (const m of typedMembers) {
+      if (!m.user) continue;
+
+      if (m.user.status === 'offline') {
+        offlineMembers.push(m);
+        continue;
+      }
+
+      // Find the highest role (lowest position number) for grouping
+      const highestRole = m.roles && m.roles.length > 0
+        ? m.roles.reduce((a, b) => (a.position < b.position ? a : b))
+        : null;
+
+      if (highestRole) {
+        const existing = roleMap.get(highestRole.id);
+        if (existing) {
+          existing.members.push(m);
+        } else {
+          roleMap.set(highestRole.id, { role: highestRole, members: [m] });
+        }
+      } else {
+        onlineNoRole.push(m);
+      }
+    }
+
+    // Sort role sections by position
+    const roleSections = Array.from(roleMap.values()).sort(
+      (a, b) => a.role.position - b.role.position,
+    );
+
+    return { roleSections, onlineNoRole, offlineMembers };
+  }, [members]);
 
   return (
-    <ScrollArea className="w-60 bg-[#2b2d31] shrink-0">
-      <MemberSection title="Online" members={online} />
-      <MemberSection title="Offline" members={offline} />
+    <ScrollArea className={`w-60 bg-[#2b2d31] shrink-0 ${className ?? ''}`}>
+      {roleSections.map((section) => (
+        <MemberSection
+          key={section.role.id}
+          title={section.role.name}
+          titleColor={section.role.color}
+          members={section.members}
+        />
+      ))}
+      <MemberSection title="Online" members={onlineNoRole} />
+      <MemberSection title="Offline" members={offlineMembers} />
     </ScrollArea>
   );
 }

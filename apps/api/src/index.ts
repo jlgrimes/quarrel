@@ -9,7 +9,9 @@ import { memberRoutes } from "./routes/members";
 import { friendRoutes } from "./routes/friends";
 import { dmRoutes } from "./routes/dms";
 import { userRoutes } from "./routes/users";
+import { roleRoutes } from "./routes/roles";
 import { websocketHandler } from "./ws";
+import { globalRateLimit } from "./middleware/rateLimit";
 
 const app = new Hono();
 
@@ -20,6 +22,7 @@ app.use(
   })
 );
 app.use(logger());
+app.use(globalRateLimit);
 
 // Health check
 app.get("/health", (c) => c.json({ status: "ok" }));
@@ -33,6 +36,7 @@ app.route("/", memberRoutes);
 app.route("/friends", friendRoutes);
 app.route("/dms", dmRoutes);
 app.route("/users", userRoutes);
+app.route("/", roleRoutes);
 
 const port = parseInt(process.env.PORT || "3001");
 

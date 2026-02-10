@@ -4,12 +4,13 @@ import { db, users, sessions } from "@quarrel/db";
 import { loginSchema, registerSchema } from "@quarrel/shared";
 import { eq } from "drizzle-orm";
 import { authMiddleware, type AuthEnv } from "../middleware/auth";
+import { authRateLimit } from "../middleware/rateLimit";
 
 const isProduction = process.env.NODE_ENV === "production";
 
 export const authRoutes = new Hono<AuthEnv>();
 
-authRoutes.post("/register", async (c) => {
+authRoutes.post("/register", authRateLimit, async (c) => {
   const body = await c.req.json();
   const parsed = registerSchema.safeParse(body);
   if (!parsed.success) {
@@ -68,10 +69,11 @@ authRoutes.post("/register", async (c) => {
   });
 
   const { hashedPassword: _, ...safeUser } = user;
+  // Token returned for WebSocket auth only — REST API uses httpOnly cookie
   return c.json({ user: safeUser, token: sessionId }, 201);
 });
 
-authRoutes.post("/login", async (c) => {
+authRoutes.post("/login", authRateLimit, async (c) => {
   const body = await c.req.json();
   const parsed = loginSchema.safeParse(body);
   if (!parsed.success) {
@@ -113,6 +115,7 @@ authRoutes.post("/login", async (c) => {
   });
 
   const { hashedPassword: _, ...safeUser } = user;
+  // Token returned for WebSocket auth only — REST API uses httpOnly cookie
   return c.json({ user: safeUser, token: sessionId });
 });
 
@@ -131,7 +134,6 @@ authRoutes.post("/logout", authMiddleware, async (c) => {
 
 authRoutes.get("/me", authMiddleware, async (c) => {
   const user = c.get("user");
-  const token = c.get("sessionToken");
   const { hashedPassword: _, ...safeUser } = user;
-  return c.json({ user: safeUser, token });
+  return c.json({ user: safeUser });
 });

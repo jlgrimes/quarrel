@@ -1,6 +1,7 @@
 import { memo, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useServers } from '../../hooks/useServers';
+import { useChannels } from '../../hooks/useChannels';
 import { useUIStore } from '../../stores/uiStore';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -8,10 +9,12 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 const ServerIcon = memo(function ServerIcon({
   server,
   isActive,
+  hasUnread,
   onClick,
 }: {
   server: { id: string; name: string; iconUrl: string | null };
   isActive: boolean;
+  hasUnread: boolean;
   onClick: () => void;
 }) {
   const letter = server.name.charAt(0).toUpperCase();
@@ -34,7 +37,7 @@ const ServerIcon = memo(function ServerIcon({
     <div className="relative flex items-center justify-center mb-2 group">
       <div
         className={`absolute left-0 w-[3px] bg-white rounded-r-sm transition-all ${
-          isActive ? 'h-10' : 'h-0 group-hover:h-5'
+          isActive ? 'h-10' : hasUnread ? 'h-2' : 'h-0 group-hover:h-5'
         }`}
       />
 
@@ -65,18 +68,41 @@ const ServerIcon = memo(function ServerIcon({
   );
 });
 
+function ServerWithUnread({
+  server,
+  isActive,
+  onClick,
+}: {
+  server: { id: string; name: string; iconUrl: string | null };
+  isActive: boolean;
+  onClick: () => void;
+}) {
+  const { data: channels = [] } = useChannels(server.id);
+  const hasUnread = channels.some((ch: any) => (ch.unreadCount ?? 0) > 0);
+
+  return (
+    <ServerIcon
+      server={server}
+      isActive={isActive}
+      hasUnread={hasUnread}
+      onClick={onClick}
+    />
+  );
+}
+
 export default function ServerSidebar() {
   const navigate = useNavigate();
   const { serverId } = useParams();
   const { data: servers = [] } = useServers();
   const openModal = useUIStore((s) => s.openModal);
+  const mobileSidebarOpen = useUIStore((s) => s.mobileSidebarOpen);
 
   const handleServerClick = useCallback((server: { id: string }) => {
     navigate(`/channels/${server.id}`);
   }, [navigate]);
 
   return (
-    <div className="w-[72px] bg-[#1e1f22] flex flex-col items-center py-3 overflow-y-auto shrink-0">
+    <div className={`w-[72px] bg-[#1e1f22] flex flex-col items-center py-3 overflow-y-auto shrink-0 ${mobileSidebarOpen ? 'max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:z-50' : 'max-md:hidden'}`}>
       <div className="relative flex items-center justify-center mb-2 group">
         <Button
           variant="ghost"
@@ -94,7 +120,7 @@ export default function ServerSidebar() {
       <div className="w-8 h-[2px] bg-[#35363c] rounded-full mb-2" />
 
       {servers.map((server) => (
-        <ServerIcon
+        <ServerWithUnread
           key={server.id}
           server={server}
           isActive={serverId === server.id}

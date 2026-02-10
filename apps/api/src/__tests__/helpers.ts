@@ -65,7 +65,9 @@ const createTablesSql = `
     attachments TEXT,
     reply_to_id TEXT REFERENCES messages(id),
     created_at INTEGER,
-    deleted INTEGER DEFAULT 0
+    deleted INTEGER DEFAULT 0,
+    pinned_at INTEGER,
+    pinned_by TEXT REFERENCES users(id)
   );
 
   CREATE TABLE IF NOT EXISTS friends (
@@ -120,6 +122,18 @@ const createTablesSql = `
     user_id TEXT NOT NULL REFERENCES users(id),
     emoji TEXT NOT NULL
   );
+
+  CREATE TABLE IF NOT EXISTS read_state (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL REFERENCES users(id),
+    channel_id TEXT REFERENCES channels(id),
+    conversation_id TEXT REFERENCES conversations(id),
+    last_read_message_id TEXT,
+    last_read_at INTEGER
+  );
+  CREATE UNIQUE INDEX IF NOT EXISTS read_state_user_channel_idx ON read_state(user_id, channel_id);
+  CREATE UNIQUE INDEX IF NOT EXISTS read_state_user_conversation_idx ON read_state(user_id, conversation_id);
+  CREATE INDEX IF NOT EXISTS read_state_user_idx ON read_state(user_id);
 `;
 
 export async function setupDatabase() {
@@ -136,6 +150,7 @@ export async function setupDatabase() {
 
 export async function clearDatabase() {
   const tables = [
+    "read_state",
     "reactions",
     "member_roles",
     "roles",
@@ -153,6 +168,7 @@ export async function clearDatabase() {
   for (const table of tables) {
     await client.execute(`DELETE FROM ${table}`);
   }
+  await resetRateLimiters();
 }
 
 // Build the Hono app the same way index.ts does, but importing routes fresh
@@ -165,6 +181,20 @@ mock.module("@quarrel/db", () => ({
   ...schema,
 }));
 
+// Mock R2 client for testing
+mock.module("../lib/r2", () => ({
+  createPresignedUploadUrl: async (key: string, contentType: string, contentLength: number) => ({
+    presignedUrl: `https://r2-mock.example.com/upload/${key}?presigned=true`,
+    publicUrl: `https://cdn.example.com/${key}`,
+  }),
+  deleteR2Object: async (key: string) => {},
+  R2_PUBLIC_URL: "https://cdn.example.com",
+}));
+
+// Import rate limiter reset after mocks so it shares the same module instance as routes
+const { resetRateLimiters } = await import("../middleware/rateLimit");
+export { resetRateLimiters };
+
 // Now import route constructors — they'll get the mocked db
 const { authRoutes } = await import("../routes/auth");
 const { serverRoutes } = await import("../routes/servers");
@@ -174,6 +204,7 @@ const { memberRoutes } = await import("../routes/members");
 const { friendRoutes } = await import("../routes/friends");
 const { dmRoutes } = await import("../routes/dms");
 const { userRoutes } = await import("../routes/users");
+const { roleRoutes } = await import("../routes/roles");
 
 export function createApp() {
   const app = new Hono();
@@ -186,6 +217,7 @@ export function createApp() {
   app.route("/friends", friendRoutes);
   app.route("/dms", dmRoutes);
   app.route("/users", userRoutes);
+  app.route("/", roleRoutes);
   return app;
 }
 

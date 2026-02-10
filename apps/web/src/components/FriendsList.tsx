@@ -3,9 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { useFriends, useAddFriend, useAcceptFriend, useRemoveFriend } from '../hooks/useFriends';
 import { useCreateConversation } from '../hooks/useDMs';
 import { useAuthStore } from '../stores/authStore';
+import { useUIStore } from '../stores/uiStore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { analytics } from '../lib/analytics';
 
@@ -70,12 +71,21 @@ export default function FriendsList() {
   return (
     <div className="flex flex-1 flex-col">
       {/* Header with tabs */}
-      <div className="flex h-12 items-center gap-4 border-b border-[#1f2023] px-4">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="#949ba4">
+      <div className="flex h-12 items-center gap-2 md:gap-4 border-b border-[#1f2023] px-4 overflow-x-auto">
+        <button
+          onClick={() => useUIStore.getState().setMobileSidebarOpen(true)}
+          className="mr-1 text-[#b5bac1] hover:text-white md:hidden flex-shrink-0"
+          aria-label="Open sidebar"
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z" />
+          </svg>
+        </button>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="#949ba4" className="hidden md:block flex-shrink-0">
           <path d="M14 8.00598C14 10.211 12.206 12.006 10 12.006C7.795 12.006 6 10.211 6 8.00598C6 5.80098 7.795 4.00598 10 4.00598C12.206 4.00598 14 5.80098 14 8.00598ZM2 19.006C2 15.473 5.29 13.006 10 13.006C14.711 13.006 18 15.473 18 19.006V20.006H2V19.006Z" />
         </svg>
-        <span className="font-semibold text-white">Friends</span>
-        <div className="h-6 w-px bg-[#3f4147]" />
+        <span className="font-semibold text-white shrink-0">Friends</span>
+        <div className="h-6 w-px bg-[#3f4147] shrink-0" />
         {tabs.map((t) => (
           <Button
             key={t.value}
@@ -111,9 +121,10 @@ export default function FriendsList() {
           <Button
             onClick={handleAdd}
             disabled={!addInput.trim()}
-            className="rounded bg-[#5865f2] px-4 py-1.5 text-sm font-medium text-white hover:bg-[#4752c4] disabled:opacity-50"
+            className="rounded bg-[#5865f2] px-2 md:px-4 py-1.5 text-sm font-medium text-white hover:bg-[#4752c4] disabled:opacity-50 whitespace-nowrap"
           >
-            Send Friend Request
+            <span className="hidden md:inline">Send Friend Request</span>
+            <span className="md:hidden">Send</span>
           </Button>
         </div>
         {addStatus && <p className="mt-1 text-sm text-[#949ba4]">{addStatus}</p>}
@@ -130,6 +141,7 @@ export default function FriendsList() {
             <div key={friend.id} className="flex items-center gap-3 rounded-lg px-2 py-2 hover:bg-[#383a40]">
               <div className="relative">
                 <Avatar className="h-8 w-8">
+                  <AvatarImage src={user?.avatarUrl ?? undefined} alt={user?.username} />
                   <AvatarFallback className="bg-[#5865f2] text-xs font-medium text-white">
                     {(user?.displayName || user?.username || '?')[0].toUpperCase()}
                   </AvatarFallback>

@@ -59,3 +59,8 @@ export const updateRoleSchema = z.object({
   color: z.string().optional(),
   permissions: z.number().int().optional(),
 });
+
+export const avatarPresignSchema = z.object({
+  contentType: z.enum(['image/png', 'image/jpeg', 'image/gif', 'image/webp']),
+  contentLength: z.number().int().positive().max(8 * 1024 * 1024),
+});

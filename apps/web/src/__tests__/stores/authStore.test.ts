@@ -36,14 +36,14 @@ describe('authStore', () => {
     expect(state.loading).toBe(true);
   });
 
-  it('fetchUser sets user and token on success', async () => {
-    mockedApi.me.mockResolvedValueOnce({ user: mockUser, token: 'session-abc' });
+  it('fetchUser sets user on success (no token from /me)', async () => {
+    mockedApi.me.mockResolvedValueOnce({ user: mockUser });
 
     await useAuthStore.getState().fetchUser();
 
     const state = useAuthStore.getState();
     expect(state.user).toEqual(mockUser);
-    expect(state.token).toBe('session-abc');
+    expect(state.token).toBeNull();
     expect(state.loading).toBe(false);
   });
 

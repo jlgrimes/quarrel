@@ -158,14 +158,14 @@ describe("GET /auth/me", () => {
     expect(data.user.hashedPassword).toBeUndefined();
   });
 
-  test("returns session token for websocket auth", async () => {
+  test("does not expose session token in response", async () => {
     const { token } = await createTestUser(app, "alice", "alice@example.com");
     const res = await app.request("/auth/me", {
       headers: getAuthHeaders(token),
     });
     expect(res.status).toBe(200);
     const data = (await res.json()) as any;
-    expect(data.token).toBe(token);
+    expect(data.token).toBeUndefined();
   });
 
   test("returns 401 without auth", async () => {

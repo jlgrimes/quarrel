@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { db, members, servers, users } from "@quarrel/db";
+import { db, members, servers, users, roles, memberRoles } from "@quarrel/db";
 import { eq, and } from "drizzle-orm";
 import { authMiddleware, type AuthEnv } from "../middleware/auth";
 
@@ -38,20 +38,45 @@ memberRoutes.get("/servers/:serverId/members", async (c) => {
     .innerJoin(users, eq(members.userId, users.id))
     .where(eq(members.serverId, serverId));
 
-  const result = serverMembers.map((m) => ({
-    id: m.id,
-    userId: m.userId,
-    serverId: m.serverId,
-    nickname: m.nickname,
-    joinedAt: m.joinedAt,
-    user: {
-      id: m.userId,
-      username: m.username,
-      displayName: m.displayName,
-      avatarUrl: m.avatarUrl,
-      status: m.status,
-    },
-  }));
+  // Fetch role assignments for all members in this server
+  const roleAssignments = await db
+    .select({
+      memberId: memberRoles.memberId,
+      roleId: roles.id,
+      roleName: roles.name,
+      roleColor: roles.color,
+      rolePosition: roles.position,
+      rolePermissions: roles.permissions,
+    })
+    .from(memberRoles)
+    .innerJoin(roles, eq(memberRoles.roleId, roles.id))
+    .where(eq(roles.serverId, serverId));
+
+  const rolesByMemberId = new Map<string, { id: string; name: string; color: string | null; position: number; permissions: number }[]>();
+  for (const ra of roleAssignments) {
+    const arr = rolesByMemberId.get(ra.memberId) || [];
+    arr.push({ id: ra.roleId, name: ra.roleName, color: ra.roleColor, position: ra.rolePosition, permissions: ra.rolePermissions });
+    rolesByMemberId.set(ra.memberId, arr);
+  }
+
+  const result = serverMembers.map((m) => {
+    const memberRolesList = (rolesByMemberId.get(m.id) || []).sort((a, b) => a.position - b.position);
+    return {
+      id: m.id,
+      userId: m.userId,
+      serverId: m.serverId,
+      nickname: m.nickname,
+      joinedAt: m.joinedAt,
+      user: {
+        id: m.userId,
+        username: m.username,
+        displayName: m.displayName,
+        avatarUrl: m.avatarUrl,
+        status: m.status,
+      },
+      roles: memberRolesList,
+    };
+  });
 
   return c.json({ members: result });
 });

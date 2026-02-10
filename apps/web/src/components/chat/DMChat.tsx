@@ -2,6 +2,7 @@ import { useEffect, useRef, useCallback, useMemo, useState, memo } from 'react';
 import type { DirectMessage, Conversation } from '@quarrel/shared';
 import { useDMs, useSendDM } from '../../hooks/useDMs';
 import { useAuthStore } from '../../stores/authStore';
+import { useUIStore } from '../../stores/uiStore';
 import { analytics } from '../../lib/analytics';
 
 function formatTimestamp(dateStr: string) {
@@ -73,6 +74,7 @@ export function DMChat({
   conversation?: Conversation;
 }) {
   const currentUser = useAuthStore((s) => s.user);
+  const setMobileSidebarOpen = useUIStore((s) => s.setMobileSidebarOpen);
   const { data: dmData, isLoading, hasPreviousPage, fetchPreviousPage, isFetchingPreviousPage } = useDMs(conversationId);
   const sendDM = useSendDM();
   const [content, setContent] = useState('');
@@ -150,6 +152,15 @@ export function DMChat({
     <div className="flex flex-1 flex-col bg-[#313338]">
       {/* Header */}
       <div className="h-12 flex items-center px-4 border-b border-[#1e1f22] flex-shrink-0 shadow-sm gap-3">
+        <button
+          onClick={() => setMobileSidebarOpen(true)}
+          className="mr-1 text-[#b5bac1] hover:text-white md:hidden flex-shrink-0"
+          aria-label="Open sidebar"
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z" />
+          </svg>
+        </button>
         <span className="text-[#949ba4] text-xl">@</span>
         <UserAvatar user={otherUser ? { displayName: otherUser.displayName, avatarUrl: otherUser.avatarUrl } : undefined} />
         <span className="font-semibold text-white">{displayName}</span>

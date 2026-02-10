@@ -18,3 +18,6 @@ export const MAX_SERVER_NAME_LENGTH = 100;
 export const MAX_CHANNEL_NAME_LENGTH = 100;
 export const MAX_USERNAME_LENGTH = 32;
 export const MESSAGE_BATCH_SIZE = 50;
+
+export const MAX_AVATAR_SIZE_BYTES = 8 * 1024 * 1024; // 8 MB
+export const ALLOWED_AVATAR_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'] as const;

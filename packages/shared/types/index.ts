@@ -66,6 +66,8 @@ export type Message = {
   replyToId: string | null;
   createdAt: string;
   deleted: boolean;
+  pinnedAt: string | null;
+  pinnedBy: string | null;
   author?: User;
 };
 
@@ -124,6 +126,8 @@ export type WSServerEvents =
   | 'message:new'
   | 'message:updated'
   | 'message:deleted'
+  | 'message:pinned'
+  | 'message:unpinned'
   | 'reaction:updated'
   | 'typing:update'
   | 'presence:update'
