@@ -5,8 +5,15 @@ class WebSocketClient {
   private handlers = new Map<string, Set<EventHandler>>();
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private reconnectDelay = 1000;
+  private token: string | null = null;
+
+  setToken(token: string | null) {
+    this.token = token;
+  }
 
   connect() {
+    if (!this.token) return;
+
     const wsUrl = import.meta.env.VITE_WS_URL;
     if (wsUrl) {
       this.ws = new WebSocket(wsUrl);
@@ -17,6 +24,7 @@ class WebSocketClient {
 
     this.ws.onopen = () => {
       this.reconnectDelay = 1000;
+      this.send('auth', { token: this.token });
     };
 
     this.ws.onmessage = (e) => {

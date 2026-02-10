@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { User } from '@quarrel/shared';
 import { api } from '../lib/api';
+import { wsClient } from '../lib/ws';
 
 type AuthStore = {
   user: User | null;
@@ -15,14 +16,14 @@ export const useAuthStore = create<AuthStore>((set) => ({
   user: null,
   loading: true,
   login: async (email, password) => {
-    await api.login(email, password);
-    const user = await api.me();
-    set({ user });
+    const res = await api.login(email, password);
+    wsClient.setToken(res.token);
+    set({ user: res.user });
   },
   register: async (username, email, password) => {
-    await api.register(username, email, password);
-    const user = await api.me();
-    set({ user });
+    const res = await api.register(username, email, password);
+    wsClient.setToken(res.token);
+    set({ user: res.user });
   },
   logout: async () => {
     await api.logout();
@@ -30,8 +31,9 @@ export const useAuthStore = create<AuthStore>((set) => ({
   },
   fetchUser: async () => {
     try {
-      const user = await api.me();
-      set({ user, loading: false });
+      const res = await api.me();
+      wsClient.setToken(res.token);
+      set({ user: res.user, loading: false });
     } catch {
       set({ user: null, loading: false });
     }

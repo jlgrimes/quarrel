@@ -20,7 +20,7 @@ export const api = {
   register: (username: string, email: string, password: string) =>
     request<{ user: any; token: string }>('/auth/register', { method: 'POST', body: JSON.stringify({ username, email, password }) }),
   logout: () => request('/auth/logout', { method: 'POST' }),
-  me: () => request<{ user: any }>('/auth/me').then(r => r.user),
+  me: () => request<{ user: any; token: string }>('/auth/me'),
 
   // Servers
   getServers: () => request<{ servers: any[] }>('/servers').then(r => r.servers),

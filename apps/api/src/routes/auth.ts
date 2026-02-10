@@ -131,6 +131,7 @@ authRoutes.post("/logout", authMiddleware, async (c) => {
 
 authRoutes.get("/me", authMiddleware, async (c) => {
   const user = c.get("user");
+  const token = c.get("sessionToken");
   const { hashedPassword: _, ...safeUser } = user;
-  return c.json({ user: safeUser });
+  return c.json({ user: safeUser, token });
 });

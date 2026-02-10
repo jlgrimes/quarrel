@@ -7,6 +7,7 @@ export type AuthEnv = {
   Variables: {
     userId: string;
     user: typeof users.$inferSelect;
+    sessionToken: string;
   };
 };
 
@@ -41,5 +42,6 @@ export const authMiddleware = createMiddleware<AuthEnv>(async (c, next) => {
 
   c.set("userId", user.id);
   c.set("user", user);
+  c.set("sessionToken", token);
   await next();
 });
