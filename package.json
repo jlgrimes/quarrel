@@ -1,0 +1,18 @@
+{
+  "name": "quarrel",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "db:push": "turbo db:push --filter=@quarrel/db",
+    "db:generate": "turbo db:generate --filter=@quarrel/db"
+  },
+  "devDependencies": {
+    "turbo": "^2.3.0",
+    "typescript": "^5.7.0"
+  }
+}

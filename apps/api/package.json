@@ -1,0 +1,16 @@
+{
+  "name": "@quarrel/api",
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "bun run --hot src/index.ts",
+    "build": "bun build src/index.ts --outdir dist --target bun"
+  },
+  "dependencies": {
+    "hono": "^4.6.0",
+    "@quarrel/db": "workspace:*",
+    "@quarrel/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.1.0"
+  }
+}
