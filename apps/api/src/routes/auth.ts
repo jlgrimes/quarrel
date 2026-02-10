@@ -48,6 +48,7 @@ authRoutes.post("/register", authRateLimit, async (c) => {
       email,
       hashedPassword,
       displayName: username,
+      status: "online",
     })
     .returning();
 
@@ -106,6 +107,12 @@ authRoutes.post("/login", authRateLimit, async (c) => {
     expiresAt,
   });
 
+  // Set user status to online on login
+  await db
+    .update(users)
+    .set({ status: "online" })
+    .where(eq(users.id, user.id));
+
   setCookie(c, "session", sessionId, {
     httpOnly: true,
     secure: isProduction,
@@ -116,7 +123,7 @@ authRoutes.post("/login", authRateLimit, async (c) => {
 
   const { hashedPassword: _, ...safeUser } = user;
   // Token returned for WebSocket auth only — REST API uses httpOnly cookie
-  return c.json({ user: safeUser, token: sessionId });
+  return c.json({ user: { ...safeUser, status: "online" }, token: sessionId });
 });
 
 authRoutes.post("/logout", authMiddleware, async (c) => {
@@ -134,6 +141,7 @@ authRoutes.post("/logout", authMiddleware, async (c) => {
 
 authRoutes.get("/me", authMiddleware, async (c) => {
   const user = c.get("user");
+  const token = c.get("sessionToken");
   const { hashedPassword: _, ...safeUser } = user;
-  return c.json({ user: safeUser });
+  return c.json({ user: safeUser, token });
 });

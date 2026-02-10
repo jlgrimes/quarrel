@@ -40,7 +40,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
   fetchUser: async () => {
     try {
       const res = await api.me();
-      set({ user: res.user, loading: false });
+      set({ user: res.user, token: res.token ?? null, loading: false });
       if (res.user) {
         analytics.identify(res.user.id, { username: res.user.username, email: res.user.email });
       }

@@ -158,19 +158,32 @@ describe("GET /auth/me", () => {
     expect(data.user.hashedPassword).toBeUndefined();
   });
 
-  test("does not expose session token in response", async () => {
+  test("returns session token for WebSocket auth", async () => {
     const { token } = await createTestUser(app, "alice", "alice@example.com");
     const res = await app.request("/auth/me", {
       headers: getAuthHeaders(token),
     });
     expect(res.status).toBe(200);
     const data = (await res.json()) as any;
-    expect(data.token).toBeUndefined();
+    expect(data.token).toBe(token);
   });
 
   test("returns 401 without auth", async () => {
     const res = await app.request("/auth/me");
     expect(res.status).toBe(401);
+  });
+});
+
+describe("online status", () => {
+  test("user status is online after register", async () => {
+    const { user } = await createTestUser(app, "alice", "alice@example.com");
+    expect(user.status).toBe("online");
+  });
+
+  test("user status is online after login", async () => {
+    await createTestUser(app, "alice", "alice@example.com", "password123");
+    const { user } = await loginTestUser(app, "alice@example.com", "password123");
+    expect(user.status).toBe("online");
   });
 });
 
