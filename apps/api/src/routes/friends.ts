@@ -7,22 +7,22 @@ export const friendRoutes = new Hono<AuthEnv>();
 
 friendRoutes.use(authMiddleware);
 
-friendRoutes.post("/:userId", async (c) => {
-  const targetId = c.req.param("userId");
+friendRoutes.post("/:username", async (c) => {
+  const targetUsername = c.req.param("username");
   const userId = c.get("userId");
-
-  if (targetId === userId) {
-    return c.json({ error: "Cannot friend yourself" }, 400);
-  }
 
   const [targetUser] = await db
     .select()
     .from(users)
-    .where(eq(users.id, targetId))
+    .where(eq(users.username, targetUsername))
     .limit(1);
 
   if (!targetUser) {
     return c.json({ error: "User not found" }, 404);
+  }
+
+  if (targetUser.id === userId) {
+    return c.json({ error: "Cannot friend yourself" }, 400);
   }
 
   const [existing] = await db
@@ -30,8 +30,8 @@ friendRoutes.post("/:userId", async (c) => {
     .from(friends)
     .where(
       or(
-        and(eq(friends.userId, userId), eq(friends.friendId, targetId)),
-        and(eq(friends.userId, targetId), eq(friends.friendId, userId))
+        and(eq(friends.userId, userId), eq(friends.friendId, targetUser.id)),
+        and(eq(friends.userId, targetUser.id), eq(friends.friendId, userId))
       )
     )
     .limit(1);
@@ -44,7 +44,7 @@ friendRoutes.post("/:userId", async (c) => {
     .insert(friends)
     .values({
       userId,
-      friendId: targetId,
+      friendId: targetUser.id,
       status: "pending",
     })
     .returning();

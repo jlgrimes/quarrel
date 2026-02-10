@@ -12,7 +12,7 @@ export function useFriends() {
 export function useAddFriend() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (userId: string) => api.addFriend(userId),
+    mutationFn: (username: string) => api.addFriend(username),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.friends });
     },

@@ -59,8 +59,8 @@ export const api = {
 
   // Friends
   getFriends: () => request<{ friends: any[] }>('/friends').then(r => r.friends),
-  addFriend: (userId: string) =>
-    request('/friends/' + userId, { method: 'POST' }),
+  addFriend: (username: string) =>
+    request('/friends/' + username, { method: 'POST' }),
   acceptFriend: (id: string) => request(`/friends/${id}/accept`, { method: 'PATCH' }),
   removeFriend: (id: string) => request(`/friends/${id}`, { method: 'DELETE' }),
 
