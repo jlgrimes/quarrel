@@ -33,7 +33,7 @@ export default function RegisterPage() {
 
   return (
     <div className="flex h-full items-center justify-center bg-[#313338]">
-      <form onSubmit={handleSubmit} className="w-[480px] rounded-md bg-[#2b2d31] p-8">
+      <form onSubmit={handleSubmit} noValidate className="w-[480px] rounded-md bg-[#2b2d31] p-8">
         <h1 className="mb-5 text-center text-2xl font-semibold text-white">Create an account</h1>
 
         {error && <div className="mb-4 rounded bg-[#f23f43]/10 p-3 text-sm text-[#f23f43]">{error}</div>}
