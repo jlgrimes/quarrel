@@ -3,7 +3,9 @@ dist/
 .env
 .env.*
 !.env.example
+!.env.desktop
 .turbo/
 *.tsbuildinfo
 .vite/
+apps/web/electron/app/
 .DS_Store

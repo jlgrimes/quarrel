@@ -1,15 +1,19 @@
 import { useParams } from 'react-router-dom';
 import { useVoiceStore } from '../../stores/voiceStore';
 import { useChannels } from '../../hooks/useChannels';
-import { PhoneOff, Mic, MicOff, Headphones, HeadphoneOff } from 'lucide-react';
+import { PhoneOff, Mic, MicOff, Headphones, HeadphoneOff, MonitorUp, MonitorOff } from 'lucide-react';
 
 export function VoiceConnectionBar() {
   const { serverId } = useParams();
   const currentChannelId = useVoiceStore((s) => s.currentChannelId);
   const isMuted = useVoiceStore((s) => s.isMuted);
   const isDeafened = useVoiceStore((s) => s.isDeafened);
+  const isScreenSharing = useVoiceStore((s) => s.isScreenSharing);
+  const screenShareUserId = useVoiceStore((s) => s.screenShareUserId);
   const toggleMute = useVoiceStore((s) => s.toggleMute);
   const toggleDeafen = useVoiceStore((s) => s.toggleDeafen);
+  const startScreenShare = useVoiceStore((s) => s.startScreenShare);
+  const stopScreenShare = useVoiceStore((s) => s.stopScreenShare);
   const leaveChannel = useVoiceStore((s) => s.leaveChannel);
   const { data: channels = [] } = useChannels(serverId);
 
@@ -17,6 +21,7 @@ export function VoiceConnectionBar() {
 
   const channel = channels.find((c) => c.id === currentChannelId);
   const channelName = channel?.name ?? 'Voice Channel';
+  const someoneElseSharing = screenShareUserId !== null && !isScreenSharing;
 
   return (
     <div className="bg-[#232428] px-3 py-2">
@@ -60,6 +65,22 @@ export function VoiceConnectionBar() {
         >
           {isDeafened ? <HeadphoneOff size={14} /> : <Headphones size={14} />}
           {isDeafened ? 'Undeafen' : 'Deafen'}
+        </button>
+        <button
+          onClick={isScreenSharing ? stopScreenShare : startScreenShare}
+          disabled={someoneElseSharing}
+          className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded text-xs font-medium transition-colors ${
+            isScreenSharing
+              ? 'bg-[#5865f2]/20 text-[#5865f2]'
+              : someoneElseSharing
+                ? 'bg-[#383a40] text-[#949ba4] opacity-50 cursor-not-allowed'
+                : 'bg-[#383a40] text-[#dbdee1] hover:bg-[#404249]'
+          }`}
+          title={isScreenSharing ? 'Stop Sharing' : someoneElseSharing ? 'Someone is sharing' : 'Share Screen'}
+          data-testid="screen-share-toggle"
+        >
+          {isScreenSharing ? <MonitorOff size={14} /> : <MonitorUp size={14} />}
+          {isScreenSharing ? 'Stop' : 'Share'}
         </button>
       </div>
     </div>

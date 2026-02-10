@@ -349,6 +349,426 @@ describe("POST /dms/conversations - member data", () => {
   });
 });
 
+// ===== Group DM Tests =====
+
+describe("POST /dms/conversations/group", () => {
+  test("creates group conversation with multiple users", async () => {
+    const { token: aliceToken, user: alice } = await createTestUser(app, "alice", "alice@example.com");
+    const { user: bob } = await createTestUser(app, "bob", "bob@example.com");
+    const { user: carol } = await createTestUser(app, "carol", "carol@example.com");
+
+    const res = await app.request("/dms/conversations/group", {
+      method: "POST",
+      body: JSON.stringify({ userIds: [bob.id, carol.id] }),
+      headers: getAuthHeaders(aliceToken),
+    });
+    expect(res.status).toBe(201);
+    const data = (await res.json()) as any;
+    expect(data.conversation).toBeDefined();
+    expect(data.conversation.isGroup).toBe(true);
+    expect(data.conversation.ownerId).toBe(alice.id);
+    expect(data.conversation.members.length).toBe(2);
+  });
+
+  test("creates group conversation with custom name", async () => {
+    const { token: aliceToken } = await createTestUser(app, "alice", "alice@example.com");
+    const { user: bob } = await createTestUser(app, "bob", "bob@example.com");
+    const { user: carol } = await createTestUser(app, "carol", "carol@example.com");
+
+    const res = await app.request("/dms/conversations/group", {
+      method: "POST",
+      body: JSON.stringify({ userIds: [bob.id, carol.id], name: "The Gang" }),
+      headers: getAuthHeaders(aliceToken),
+    });
+    expect(res.status).toBe(201);
+    const data = (await res.json()) as any;
+    expect(data.conversation.name).toBe("The Gang");
+  });
+
+  test("rejects group DM with fewer than 2 other users", async () => {
+    const { token: aliceToken } = await createTestUser(app, "alice", "alice@example.com");
+    const { user: bob } = await createTestUser(app, "bob", "bob@example.com");
+
+    const res = await app.request("/dms/conversations/group", {
+      method: "POST",
+      body: JSON.stringify({ userIds: [bob.id] }),
+      headers: getAuthHeaders(aliceToken),
+    });
+    expect(res.status).toBe(400);
+  });
+
+  test("rejects group DM that includes self", async () => {
+    const { token: aliceToken, user: alice } = await createTestUser(app, "alice", "alice@example.com");
+    const { user: bob } = await createTestUser(app, "bob", "bob@example.com");
+    const { user: carol } = await createTestUser(app, "carol", "carol@example.com");
+
+    const res = await app.request("/dms/conversations/group", {
+      method: "POST",
+      body: JSON.stringify({ userIds: [alice.id, bob.id, carol.id] }),
+      headers: getAuthHeaders(aliceToken),
+    });
+    expect(res.status).toBe(400);
+  });
+
+  test("rejects group DM with non-existent user", async () => {
+    const { token: aliceToken } = await createTestUser(app, "alice", "alice@example.com");
+    const { user: bob } = await createTestUser(app, "bob", "bob@example.com");
+
+    const res = await app.request("/dms/conversations/group", {
+      method: "POST",
+      body: JSON.stringify({ userIds: [bob.id, "nonexistent-id"] }),
+      headers: getAuthHeaders(aliceToken),
+    });
+    expect(res.status).toBe(404);
+  });
+});
+
+describe("PATCH /dms/:conversationId", () => {
+  test("owner can update group name", async () => {
+    const { token: aliceToken } = await createTestUser(app, "alice", "alice@example.com");
+    const { user: bob } = await createTestUser(app, "bob", "bob@example.com");
+    const { user: carol } = await createTestUser(app, "carol", "carol@example.com");
+
+    const convRes = await app.request("/dms/conversations/group", {
+      method: "POST",
+      body: JSON.stringify({ userIds: [bob.id, carol.id], name: "Old Name" }),
+      headers: getAuthHeaders(aliceToken),
+    });
+    const { conversation } = (await convRes.json()) as any;
+
+    const res = await app.request(`/dms/${conversation.id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ name: "New Name" }),
+      headers: getAuthHeaders(aliceToken),
+    });
+    expect(res.status).toBe(200);
+    const data = (await res.json()) as any;
+    expect(data.conversation.name).toBe("New Name");
+  });
+
+  test("non-owner cannot update group", async () => {
+    const { token: aliceToken } = await createTestUser(app, "alice", "alice@example.com");
+    const { token: bobToken, user: bob } = await createTestUser(app, "bob", "bob@example.com");
+    const { user: carol } = await createTestUser(app, "carol", "carol@example.com");
+
+    const convRes = await app.request("/dms/conversations/group", {
+      method: "POST",
+      body: JSON.stringify({ userIds: [bob.id, carol.id] }),
+      headers: getAuthHeaders(aliceToken),
+    });
+    const { conversation } = (await convRes.json()) as any;
+
+    const res = await app.request(`/dms/${conversation.id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ name: "Bob's Name" }),
+      headers: getAuthHeaders(bobToken),
+    });
+    expect(res.status).toBe(403);
+  });
+
+  test("cannot update a 1:1 conversation", async () => {
+    const { token: aliceToken } = await createTestUser(app, "alice", "alice@example.com");
+    const { user: bob } = await createTestUser(app, "bob", "bob@example.com");
+
+    const convRes = await app.request("/dms/conversations", {
+      method: "POST",
+      body: JSON.stringify({ userId: bob.id }),
+      headers: getAuthHeaders(aliceToken),
+    });
+    const { conversation } = (await convRes.json()) as any;
+
+    const res = await app.request(`/dms/${conversation.id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ name: "New Name" }),
+      headers: getAuthHeaders(aliceToken),
+    });
+    expect(res.status).toBe(400);
+  });
+});
+
+describe("POST /dms/:conversationId/members", () => {
+  test("owner can add member to group DM", async () => {
+    const { token: aliceToken } = await createTestUser(app, "alice", "alice@example.com");
+    const { user: bob } = await createTestUser(app, "bob", "bob@example.com");
+    const { user: carol } = await createTestUser(app, "carol", "carol@example.com");
+    const { user: dave } = await createTestUser(app, "dave", "dave@example.com");
+
+    const convRes = await app.request("/dms/conversations/group", {
+      method: "POST",
+      body: JSON.stringify({ userIds: [bob.id, carol.id] }),
+      headers: getAuthHeaders(aliceToken),
+    });
+    const { conversation } = (await convRes.json()) as any;
+
+    const res = await app.request(`/dms/${conversation.id}/members`, {
+      method: "POST",
+      body: JSON.stringify({ userId: dave.id }),
+      headers: getAuthHeaders(aliceToken),
+    });
+    expect(res.status).toBe(201);
+    const data = (await res.json()) as any;
+    expect(data.member.id).toBe(dave.id);
+  });
+
+  test("non-owner cannot add member", async () => {
+    const { token: aliceToken } = await createTestUser(app, "alice", "alice@example.com");
+    const { token: bobToken, user: bob } = await createTestUser(app, "bob", "bob@example.com");
+    const { user: carol } = await createTestUser(app, "carol", "carol@example.com");
+    const { user: dave } = await createTestUser(app, "dave", "dave@example.com");
+
+    const convRes = await app.request("/dms/conversations/group", {
+      method: "POST",
+      body: JSON.stringify({ userIds: [bob.id, carol.id] }),
+      headers: getAuthHeaders(aliceToken),
+    });
+    const { conversation } = (await convRes.json()) as any;
+
+    const res = await app.request(`/dms/${conversation.id}/members`, {
+      method: "POST",
+      body: JSON.stringify({ userId: dave.id }),
+      headers: getAuthHeaders(bobToken),
+    });
+    expect(res.status).toBe(403);
+  });
+
+  test("cannot add duplicate member", async () => {
+    const { token: aliceToken } = await createTestUser(app, "alice", "alice@example.com");
+    const { user: bob } = await createTestUser(app, "bob", "bob@example.com");
+    const { user: carol } = await createTestUser(app, "carol", "carol@example.com");
+
+    const convRes = await app.request("/dms/conversations/group", {
+      method: "POST",
+      body: JSON.stringify({ userIds: [bob.id, carol.id] }),
+      headers: getAuthHeaders(aliceToken),
+    });
+    const { conversation } = (await convRes.json()) as any;
+
+    const res = await app.request(`/dms/${conversation.id}/members`, {
+      method: "POST",
+      body: JSON.stringify({ userId: bob.id }),
+      headers: getAuthHeaders(aliceToken),
+    });
+    expect(res.status).toBe(409);
+  });
+});
+
+describe("DELETE /dms/:conversationId/members/:userId", () => {
+  test("owner can remove member from group DM", async () => {
+    const { token: aliceToken } = await createTestUser(app, "alice", "alice@example.com");
+    const { user: bob } = await createTestUser(app, "bob", "bob@example.com");
+    const { user: carol } = await createTestUser(app, "carol", "carol@example.com");
+
+    const convRes = await app.request("/dms/conversations/group", {
+      method: "POST",
+      body: JSON.stringify({ userIds: [bob.id, carol.id] }),
+      headers: getAuthHeaders(aliceToken),
+    });
+    const { conversation } = (await convRes.json()) as any;
+
+    const res = await app.request(`/dms/${conversation.id}/members/${bob.id}`, {
+      method: "DELETE",
+      headers: getAuthHeaders(aliceToken),
+    });
+    expect(res.status).toBe(200);
+    const data = (await res.json()) as any;
+    expect(data.success).toBe(true);
+  });
+
+  test("non-owner cannot remove member", async () => {
+    const { token: aliceToken } = await createTestUser(app, "alice", "alice@example.com");
+    const { token: bobToken, user: bob } = await createTestUser(app, "bob", "bob@example.com");
+    const { user: carol } = await createTestUser(app, "carol", "carol@example.com");
+
+    const convRes = await app.request("/dms/conversations/group", {
+      method: "POST",
+      body: JSON.stringify({ userIds: [bob.id, carol.id] }),
+      headers: getAuthHeaders(aliceToken),
+    });
+    const { conversation } = (await convRes.json()) as any;
+
+    const res = await app.request(`/dms/${conversation.id}/members/${carol.id}`, {
+      method: "DELETE",
+      headers: getAuthHeaders(bobToken),
+    });
+    expect(res.status).toBe(403);
+  });
+
+  test("owner cannot remove themselves", async () => {
+    const { token: aliceToken, user: alice } = await createTestUser(app, "alice", "alice@example.com");
+    const { user: bob } = await createTestUser(app, "bob", "bob@example.com");
+    const { user: carol } = await createTestUser(app, "carol", "carol@example.com");
+
+    const convRes = await app.request("/dms/conversations/group", {
+      method: "POST",
+      body: JSON.stringify({ userIds: [bob.id, carol.id] }),
+      headers: getAuthHeaders(aliceToken),
+    });
+    const { conversation } = (await convRes.json()) as any;
+
+    const res = await app.request(`/dms/${conversation.id}/members/${alice.id}`, {
+      method: "DELETE",
+      headers: getAuthHeaders(aliceToken),
+    });
+    expect(res.status).toBe(400);
+  });
+});
+
+describe("POST /dms/:conversationId/leave", () => {
+  test("member can leave group DM", async () => {
+    const { token: aliceToken } = await createTestUser(app, "alice", "alice@example.com");
+    const { token: bobToken, user: bob } = await createTestUser(app, "bob", "bob@example.com");
+    const { user: carol } = await createTestUser(app, "carol", "carol@example.com");
+
+    const convRes = await app.request("/dms/conversations/group", {
+      method: "POST",
+      body: JSON.stringify({ userIds: [bob.id, carol.id] }),
+      headers: getAuthHeaders(aliceToken),
+    });
+    const { conversation } = (await convRes.json()) as any;
+
+    const res = await app.request(`/dms/${conversation.id}/leave`, {
+      method: "POST",
+      headers: getAuthHeaders(bobToken),
+    });
+    expect(res.status).toBe(200);
+    const data = (await res.json()) as any;
+    expect(data.success).toBe(true);
+
+    // Bob should no longer be able to send messages
+    const msgRes = await app.request(`/dms/${conversation.id}/messages`, {
+      method: "POST",
+      body: JSON.stringify({ content: "Hello" }),
+      headers: getAuthHeaders(bobToken),
+    });
+    expect(msgRes.status).toBe(403);
+  });
+
+  test("owner leaving transfers ownership", async () => {
+    const { token: aliceToken } = await createTestUser(app, "alice", "alice@example.com");
+    const { token: bobToken, user: bob } = await createTestUser(app, "bob", "bob@example.com");
+    const { user: carol } = await createTestUser(app, "carol", "carol@example.com");
+
+    const convRes = await app.request("/dms/conversations/group", {
+      method: "POST",
+      body: JSON.stringify({ userIds: [bob.id, carol.id] }),
+      headers: getAuthHeaders(aliceToken),
+    });
+    const { conversation } = (await convRes.json()) as any;
+
+    // Alice (owner) leaves
+    const res = await app.request(`/dms/${conversation.id}/leave`, {
+      method: "POST",
+      headers: getAuthHeaders(aliceToken),
+    });
+    expect(res.status).toBe(200);
+
+    // Bob should now be able to update the group (as new owner)
+    const updateRes = await app.request(`/dms/${conversation.id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ name: "Bob's Group" }),
+      headers: getAuthHeaders(bobToken),
+    });
+    expect(updateRes.status).toBe(200);
+  });
+
+  test("cannot leave 1:1 conversation", async () => {
+    const { token: aliceToken } = await createTestUser(app, "alice", "alice@example.com");
+    const { user: bob } = await createTestUser(app, "bob", "bob@example.com");
+
+    const convRes = await app.request("/dms/conversations", {
+      method: "POST",
+      body: JSON.stringify({ userId: bob.id }),
+      headers: getAuthHeaders(aliceToken),
+    });
+    const { conversation } = (await convRes.json()) as any;
+
+    const res = await app.request(`/dms/${conversation.id}/leave`, {
+      method: "POST",
+      headers: getAuthHeaders(aliceToken),
+    });
+    expect(res.status).toBe(400);
+  });
+});
+
+describe("Group DM messaging", () => {
+  test("all members can send and read messages in group DM", async () => {
+    const { token: aliceToken } = await createTestUser(app, "alice", "alice@example.com");
+    const { token: bobToken, user: bob } = await createTestUser(app, "bob", "bob@example.com");
+    const { token: carolToken, user: carol } = await createTestUser(app, "carol", "carol@example.com");
+
+    const convRes = await app.request("/dms/conversations/group", {
+      method: "POST",
+      body: JSON.stringify({ userIds: [bob.id, carol.id] }),
+      headers: getAuthHeaders(aliceToken),
+    });
+    const { conversation } = (await convRes.json()) as any;
+
+    // All three send messages
+    await app.request(`/dms/${conversation.id}/messages`, {
+      method: "POST",
+      body: JSON.stringify({ content: "Alice here" }),
+      headers: getAuthHeaders(aliceToken),
+    });
+    await app.request(`/dms/${conversation.id}/messages`, {
+      method: "POST",
+      body: JSON.stringify({ content: "Bob here" }),
+      headers: getAuthHeaders(bobToken),
+    });
+    await app.request(`/dms/${conversation.id}/messages`, {
+      method: "POST",
+      body: JSON.stringify({ content: "Carol here" }),
+      headers: getAuthHeaders(carolToken),
+    });
+
+    // All can read
+    const res = await app.request(`/dms/${conversation.id}/messages`, {
+      headers: getAuthHeaders(carolToken),
+    });
+    expect(res.status).toBe(200);
+    const data = (await res.json()) as any;
+    expect(data.messages.length).toBe(3);
+  });
+});
+
+describe("GET /dms/conversations - group DMs", () => {
+  test("group DMs appear in conversation list with isGroup flag", async () => {
+    const { token: aliceToken } = await createTestUser(app, "alice", "alice@example.com");
+    const { user: bob } = await createTestUser(app, "bob", "bob@example.com");
+    const { user: carol } = await createTestUser(app, "carol", "carol@example.com");
+
+    // Create a 1:1 DM
+    await app.request("/dms/conversations", {
+      method: "POST",
+      body: JSON.stringify({ userId: bob.id }),
+      headers: getAuthHeaders(aliceToken),
+    });
+
+    // Create a group DM
+    await app.request("/dms/conversations/group", {
+      method: "POST",
+      body: JSON.stringify({ userIds: [bob.id, carol.id], name: "Group Chat" }),
+      headers: getAuthHeaders(aliceToken),
+    });
+
+    const res = await app.request("/dms/conversations", {
+      headers: getAuthHeaders(aliceToken),
+    });
+    expect(res.status).toBe(200);
+    const data = (await res.json()) as any;
+    expect(data.conversations.length).toBe(2);
+
+    const groupConv = data.conversations.find((c: any) => c.isGroup);
+    const dmConv = data.conversations.find((c: any) => !c.isGroup);
+
+    expect(groupConv).toBeDefined();
+    expect(groupConv.name).toBe("Group Chat");
+    expect(groupConv.members.length).toBe(2); // bob and carol (excludes self)
+
+    expect(dmConv).toBeDefined();
+    expect(dmConv.members.length).toBe(1); // just bob
+  });
+});
+
 describe("DM access control", () => {
   test("non-member cannot read messages from a conversation", async () => {
     const { token: aliceToken } = await createTestUser(

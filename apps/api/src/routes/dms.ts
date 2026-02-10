@@ -7,8 +7,8 @@ import {
   users,
   readState,
 } from "@quarrel/db";
-import { sendMessageSchema, MESSAGE_BATCH_SIZE } from "@quarrel/shared";
-import { eq, and, lt, desc, inArray, gt, sql } from "drizzle-orm";
+import { sendMessageSchema, createGroupConversationSchema, updateGroupConversationSchema, MESSAGE_BATCH_SIZE } from "@quarrel/shared";
+import { eq, and, lt, desc, inArray, gt, sql, ne } from "drizzle-orm";
 import { authMiddleware, type AuthEnv } from "../middleware/auth";
 
 export const dmRoutes = new Hono<AuthEnv>();
@@ -58,30 +58,38 @@ dmRoutes.post("/conversations", async (c) => {
       .limit(1);
 
     if (sharedConv) {
+      // Only match non-group (1:1) conversations
       const [conv] = await db
         .select()
         .from(conversations)
-        .where(eq(conversations.id, sharedConv.conversationId))
-        .limit(1);
-
-      const convMembers = await db
-        .select({
-          id: users.id,
-          username: users.username,
-          displayName: users.displayName,
-          avatarUrl: users.avatarUrl,
-          status: users.status,
-        })
-        .from(conversationMembers)
-        .innerJoin(users, eq(conversationMembers.userId, users.id))
         .where(
           and(
-            eq(conversationMembers.conversationId, conv.id),
-            sql`${conversationMembers.userId} != ${userId}`
+            eq(conversations.id, sharedConv.conversationId),
+            sql`(${conversations.isGroup} = 0 OR ${conversations.isGroup} IS NULL)`
           )
-        );
+        )
+        .limit(1);
 
-      return c.json({ conversation: { ...conv, members: convMembers } });
+      if (conv) {
+        const convMembers = await db
+          .select({
+            id: users.id,
+            username: users.username,
+            displayName: users.displayName,
+            avatarUrl: users.avatarUrl,
+            status: users.status,
+          })
+          .from(conversationMembers)
+          .innerJoin(users, eq(conversationMembers.userId, users.id))
+          .where(
+            and(
+              eq(conversationMembers.conversationId, conv.id),
+              sql`${conversationMembers.userId} != ${userId}`
+            )
+          );
+
+        return c.json({ conversation: { ...conv, members: convMembers } });
+      }
     }
   }
 
@@ -109,6 +117,292 @@ dmRoutes.post("/conversations", async (c) => {
     .limit(1);
 
   return c.json({ conversation: { ...conversation, members: otherUser ? [otherUser] : [] } }, 201);
+});
+
+// Create a group DM conversation
+dmRoutes.post("/conversations/group", async (c) => {
+  const userId = c.get("userId");
+  const body = await c.req.json();
+  const parsed = createGroupConversationSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json({ error: parsed.error.flatten() }, 400);
+  }
+
+  const { userIds, name } = parsed.data;
+
+  if (userIds.includes(userId)) {
+    return c.json({ error: "Cannot include yourself in userIds" }, 400);
+  }
+
+  // Verify all target users exist
+  const targetUsers = await db
+    .select({ id: users.id, username: users.username, displayName: users.displayName, avatarUrl: users.avatarUrl, status: users.status })
+    .from(users)
+    .where(inArray(users.id, userIds));
+
+  if (targetUsers.length !== userIds.length) {
+    return c.json({ error: "One or more users not found" }, 404);
+  }
+
+  // Create group conversation
+  const [conversation] = await db
+    .insert(conversations)
+    .values({
+      isGroup: true,
+      name: name ?? null,
+      ownerId: userId,
+    })
+    .returning();
+
+  // Add all members (creator + target users)
+  const memberValues = [userId, ...userIds].map((uid) => ({
+    conversationId: conversation.id,
+    userId: uid,
+  }));
+  await db.insert(conversationMembers).values(memberValues);
+
+  return c.json({ conversation: { ...conversation, members: targetUsers } }, 201);
+});
+
+// Update group DM (name, icon) — owner only
+dmRoutes.patch("/:conversationId", async (c) => {
+  const conversationId = c.req.param("conversationId");
+  const userId = c.get("userId");
+
+  const [conv] = await db
+    .select()
+    .from(conversations)
+    .where(eq(conversations.id, conversationId))
+    .limit(1);
+
+  if (!conv) {
+    return c.json({ error: "Conversation not found" }, 404);
+  }
+
+  if (!conv.isGroup) {
+    return c.json({ error: "Cannot update a 1:1 conversation" }, 400);
+  }
+
+  if (conv.ownerId !== userId) {
+    return c.json({ error: "Only the group owner can update this conversation" }, 403);
+  }
+
+  const body = await c.req.json();
+  const parsed = updateGroupConversationSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json({ error: parsed.error.flatten() }, 400);
+  }
+
+  const updates: Record<string, any> = {};
+  if (parsed.data.name !== undefined) updates.name = parsed.data.name;
+  if (parsed.data.iconUrl !== undefined) updates.iconUrl = parsed.data.iconUrl;
+
+  if (Object.keys(updates).length === 0) {
+    return c.json({ error: "No fields to update" }, 400);
+  }
+
+  const [updated] = await db
+    .update(conversations)
+    .set(updates)
+    .where(eq(conversations.id, conversationId))
+    .returning();
+
+  return c.json({ conversation: updated });
+});
+
+// Add member to group DM — owner only
+dmRoutes.post("/:conversationId/members", async (c) => {
+  const conversationId = c.req.param("conversationId");
+  const userId = c.get("userId");
+
+  const [conv] = await db
+    .select()
+    .from(conversations)
+    .where(eq(conversations.id, conversationId))
+    .limit(1);
+
+  if (!conv) {
+    return c.json({ error: "Conversation not found" }, 404);
+  }
+
+  if (!conv.isGroup) {
+    return c.json({ error: "Cannot add members to a 1:1 conversation" }, 400);
+  }
+
+  if (conv.ownerId !== userId) {
+    return c.json({ error: "Only the group owner can add members" }, 403);
+  }
+
+  const body = await c.req.json();
+  const targetUserId = body.userId;
+
+  if (!targetUserId) {
+    return c.json({ error: "userId is required" }, 400);
+  }
+
+  // Check user exists
+  const [targetUser] = await db
+    .select({ id: users.id, username: users.username, displayName: users.displayName, avatarUrl: users.avatarUrl, status: users.status })
+    .from(users)
+    .where(eq(users.id, targetUserId))
+    .limit(1);
+
+  if (!targetUser) {
+    return c.json({ error: "User not found" }, 404);
+  }
+
+  // Check not already a member
+  const [existing] = await db
+    .select()
+    .from(conversationMembers)
+    .where(
+      and(
+        eq(conversationMembers.conversationId, conversationId),
+        eq(conversationMembers.userId, targetUserId)
+      )
+    )
+    .limit(1);
+
+  if (existing) {
+    return c.json({ error: "User is already a member" }, 409);
+  }
+
+  // Check member limit (10 total including owner)
+  const memberCount = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(conversationMembers)
+    .where(eq(conversationMembers.conversationId, conversationId));
+
+  if ((memberCount[0]?.count ?? 0) >= 10) {
+    return c.json({ error: "Group DM member limit reached (max 10)" }, 400);
+  }
+
+  await db.insert(conversationMembers).values({
+    conversationId,
+    userId: targetUserId,
+  });
+
+  return c.json({ member: targetUser }, 201);
+});
+
+// Remove member from group DM — owner only
+dmRoutes.delete("/:conversationId/members/:userId", async (c) => {
+  const conversationId = c.req.param("conversationId");
+  const currentUserId = c.get("userId");
+  const targetUserId = c.req.param("userId");
+
+  const [conv] = await db
+    .select()
+    .from(conversations)
+    .where(eq(conversations.id, conversationId))
+    .limit(1);
+
+  if (!conv) {
+    return c.json({ error: "Conversation not found" }, 404);
+  }
+
+  if (!conv.isGroup) {
+    return c.json({ error: "Cannot remove members from a 1:1 conversation" }, 400);
+  }
+
+  if (conv.ownerId !== currentUserId) {
+    return c.json({ error: "Only the group owner can remove members" }, 403);
+  }
+
+  if (targetUserId === currentUserId) {
+    return c.json({ error: "Owner cannot remove themselves. Use /leave instead" }, 400);
+  }
+
+  // Check target is a member
+  const [membership] = await db
+    .select()
+    .from(conversationMembers)
+    .where(
+      and(
+        eq(conversationMembers.conversationId, conversationId),
+        eq(conversationMembers.userId, targetUserId)
+      )
+    )
+    .limit(1);
+
+  if (!membership) {
+    return c.json({ error: "User is not a member of this conversation" }, 404);
+  }
+
+  await db
+    .delete(conversationMembers)
+    .where(
+      and(
+        eq(conversationMembers.conversationId, conversationId),
+        eq(conversationMembers.userId, targetUserId)
+      )
+    );
+
+  return c.json({ success: true });
+});
+
+// Leave a group DM
+dmRoutes.post("/:conversationId/leave", async (c) => {
+  const conversationId = c.req.param("conversationId");
+  const userId = c.get("userId");
+
+  const [conv] = await db
+    .select()
+    .from(conversations)
+    .where(eq(conversations.id, conversationId))
+    .limit(1);
+
+  if (!conv) {
+    return c.json({ error: "Conversation not found" }, 404);
+  }
+
+  if (!conv.isGroup) {
+    return c.json({ error: "Cannot leave a 1:1 conversation" }, 400);
+  }
+
+  // Check membership
+  const [membership] = await db
+    .select()
+    .from(conversationMembers)
+    .where(
+      and(
+        eq(conversationMembers.conversationId, conversationId),
+        eq(conversationMembers.userId, userId)
+      )
+    )
+    .limit(1);
+
+  if (!membership) {
+    return c.json({ error: "Not a member of this conversation" }, 403);
+  }
+
+  // Remove from conversation
+  await db
+    .delete(conversationMembers)
+    .where(
+      and(
+        eq(conversationMembers.conversationId, conversationId),
+        eq(conversationMembers.userId, userId)
+      )
+    );
+
+  // If the owner leaves, transfer ownership to another member
+  if (conv.ownerId === userId) {
+    const [nextMember] = await db
+      .select({ userId: conversationMembers.userId })
+      .from(conversationMembers)
+      .where(eq(conversationMembers.conversationId, conversationId))
+      .limit(1);
+
+    if (nextMember) {
+      await db
+        .update(conversations)
+        .set({ ownerId: nextMember.userId })
+        .where(eq(conversations.id, conversationId));
+    }
+  }
+
+  return c.json({ success: true });
 });
 
 dmRoutes.get("/conversations", async (c) => {
@@ -254,7 +548,7 @@ dmRoutes.get("/:conversationId/messages", async (c) => {
   const userId = c.get("userId");
   const cursor = c.req.query("cursor");
   const limit = Math.min(
-    parseInt(c.req.query("limit") || String(MESSAGE_BATCH_SIZE)),
+    Number(c.req.query("limit")) || MESSAGE_BATCH_SIZE,
     MESSAGE_BATCH_SIZE
   );
 
@@ -280,9 +574,13 @@ dmRoutes.get("/:conversationId/messages", async (c) => {
       cursor
         ? and(
             eq(directMessages.conversationId, conversationId),
+            eq(directMessages.deleted, false),
             lt(directMessages.createdAt, new Date(cursor))
           )
-        : eq(directMessages.conversationId, conversationId)
+        : and(
+            eq(directMessages.conversationId, conversationId),
+            eq(directMessages.deleted, false)
+          )
     )
     .orderBy(desc(directMessages.createdAt))
     .limit(limit);

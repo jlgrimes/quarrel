@@ -6,6 +6,7 @@ import { useUIStore } from '../../stores/uiStore';
 import { api } from '../../lib/api';
 import { useAddReaction, useRemoveReaction, type ReactionData } from '../../hooks/useReactions';
 import { EmojiPicker } from './EmojiPicker';
+import { EmbedPreview } from './EmbedPreview';
 import { analytics } from '../../lib/analytics';
 
 function formatTimestamp(dateStr: string) {
@@ -404,6 +405,8 @@ export function MessageList({ channelId, lastReadMessageId, members: membersList
                     </div>
                   </div>
                 )}
+
+                {!msg.deleted && <EmbedPreview content={msg.content} />}
 
                 <MessageReactions reactions={msgReactions} messageId={msg.id} />
 

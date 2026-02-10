@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, useRef, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useVoiceStore } from '../../stores/voiceStore';
 import { useAuthStore } from '../../stores/authStore';
@@ -49,6 +49,14 @@ const ParticipantCard = memo(function ParticipantCard({ participant }: { partici
             </svg>
           </div>
         )}
+        {participant.isScreenSharing && (
+          <div className="absolute -top-1 -right-1 w-6 h-6 bg-[#5865f2] rounded-full flex items-center justify-center">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="white">
+              <rect x="2" y="3" width="20" height="14" rx="2" stroke="white" strokeWidth="2" fill="none" />
+              <path d="M8 21h8M12 17v4" stroke="white" strokeWidth="2" />
+            </svg>
+          </div>
+        )}
       </div>
       <span className={`text-sm ${isSelf ? 'text-white font-medium' : 'text-[#dbdee1]'}`}>
         {name}{isSelf ? ' (You)' : ''}
@@ -56,6 +64,72 @@ const ParticipantCard = memo(function ParticipantCard({ participant }: { partici
     </div>
   );
 });
+
+function ScreenShareView() {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const screenShareUserId = useVoiceStore((s) => s.screenShareUserId);
+  const participants = useVoiceStore((s) => s.participants);
+  const peerConnections = useVoiceStore((s) => s.peerConnections);
+  const screenStream = useVoiceStore((s) => s.screenStream);
+  const isScreenSharing = useVoiceStore((s) => s.isScreenSharing);
+  const currentUser = useAuthStore((s) => s.user);
+  const stopScreenShare = useVoiceStore((s) => s.stopScreenShare);
+
+  const sharer = participants.find((p) => p.userId === screenShareUserId);
+  const isSelfSharing = screenShareUserId === currentUser?.id;
+  const sharerName = sharer ? (sharer.displayName || sharer.username) : 'Unknown';
+
+  useEffect(() => {
+    if (!videoRef.current || !screenShareUserId) return;
+
+    if (isSelfSharing && screenStream) {
+      videoRef.current.srcObject = screenStream;
+    } else {
+      // Get the remote screen stream from the peer connection
+      const peer = peerConnections.get(screenShareUserId);
+      if (peer) {
+        const receivers = peer.connection.getReceivers();
+        const videoReceiver = receivers.find((r) => r.track?.kind === 'video');
+        if (videoReceiver?.track) {
+          videoRef.current.srcObject = new MediaStream([videoReceiver.track]);
+        }
+      }
+    }
+  }, [screenShareUserId, isSelfSharing, screenStream, peerConnections]);
+
+  if (!screenShareUserId) return null;
+
+  return (
+    <div className="flex flex-col items-center w-full px-4 pb-4">
+      <div className="relative w-full max-w-4xl bg-black rounded-lg overflow-hidden">
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          muted={isSelfSharing}
+          className="w-full h-auto max-h-[60vh] object-contain"
+          data-testid="screen-share-video"
+        />
+        <div className="absolute top-2 left-2 bg-black/70 text-white text-xs px-2 py-1 rounded flex items-center gap-1.5">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+            <rect x="2" y="3" width="20" height="14" rx="2" stroke="currentColor" strokeWidth="2" fill="none" />
+            <path d="M8 21h8M12 17v4" stroke="currentColor" strokeWidth="2" />
+          </svg>
+          {sharerName}'s screen
+        </div>
+        {isSelfSharing && (
+          <button
+            onClick={stopScreenShare}
+            className="absolute top-2 right-2 bg-[#ed4245] hover:bg-[#c03537] text-white text-xs px-3 py-1.5 rounded font-medium transition-colors"
+            data-testid="stop-screen-share-btn"
+          >
+            Stop Sharing
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export function VoiceChannelView({ channelId }: { channelId: string }) {
   const { serverId } = useParams();
@@ -65,6 +139,7 @@ export function VoiceChannelView({ channelId }: { channelId: string }) {
   const participants = useVoiceStore((s) => s.participants);
   const joinChannel = useVoiceStore((s) => s.joinChannel);
   const isConnecting = useVoiceStore((s) => s.isConnecting);
+  const screenShareUserId = useVoiceStore((s) => s.screenShareUserId);
 
   const isInThisChannel = currentChannelId === channelId;
   const channelName = channel?.name ?? 'Voice Channel';
@@ -87,17 +162,20 @@ export function VoiceChannelView({ channelId }: { channelId: string }) {
       </div>
 
       {/* Participants grid */}
-      <div className="flex-1 flex items-center justify-center">
+      <div className="flex-1 flex flex-col items-center justify-center overflow-y-auto">
         {isInThisChannel ? (
-          participants.length > 0 ? (
-            <div className="flex flex-wrap justify-center gap-4 p-8">
-              {participants.map((p) => (
-                <ParticipantCard key={p.userId} participant={p} />
-              ))}
-            </div>
-          ) : (
-            <p className="text-[#949ba4]">No one else is here yet...</p>
-          )
+          <>
+            {screenShareUserId && <ScreenShareView />}
+            {participants.length > 0 ? (
+              <div className="flex flex-wrap justify-center gap-4 p-8">
+                {participants.map((p) => (
+                  <ParticipantCard key={p.userId} participant={p} />
+                ))}
+              </div>
+            ) : (
+              <p className="text-[#949ba4]">No one else is here yet...</p>
+            )}
+          </>
         ) : (
           <div className="text-center">
             <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-[#5865f2] flex items-center justify-center">

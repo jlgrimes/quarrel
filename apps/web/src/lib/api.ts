@@ -129,4 +129,38 @@ export const api = {
 
   removeAvatar: () =>
     request('/users/me/avatar', { method: 'DELETE' }),
+
+  // Settings
+  getSettings: () =>
+    request<{ settings: any }>('/users/me/settings').then(r => r.settings),
+  updateSettings: (data: {
+    theme?: string;
+    fontSize?: string;
+    compactMode?: boolean;
+    notificationsEnabled?: boolean;
+    notificationSounds?: boolean;
+    allowDms?: string;
+  }) =>
+    request<{ settings: any }>('/users/me/settings', { method: 'PATCH', body: JSON.stringify(data) }).then(r => r.settings),
+
+  // Password
+  changePassword: (currentPassword: string, newPassword: string) =>
+    request<{ success: boolean }>('/users/me/password', {
+      method: 'PATCH',
+      body: JSON.stringify({ currentPassword, newPassword }),
+    }),
+
+  // Account deletion
+  deleteAccount: (password: string) =>
+    request<{ success: boolean }>('/users/me/account', {
+      method: 'DELETE',
+      body: JSON.stringify({ password }),
+    }),
+
+  // Embeds
+  getUrlMetadata: (url: string) =>
+    request<{ metadata: { url: string; title: string | null; description: string | null; image: string | null; siteName: string | null; type: string | null; favicon: string | null } }>('/embeds/metadata', {
+      method: 'POST',
+      body: JSON.stringify({ url }),
+    }).then(r => r.metadata),
 };

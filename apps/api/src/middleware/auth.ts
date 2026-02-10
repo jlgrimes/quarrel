@@ -32,6 +32,10 @@ export const authMiddleware = createMiddleware<AuthEnv>(async (c, next) => {
     .limit(1);
 
   if (!result || result.session.expiresAt < new Date()) {
+    // Clean up expired session from the database
+    if (result) {
+      await db.delete(sessions).where(eq(sessions.id, token));
+    }
     return c.json({ error: "Session expired" }, 401);
   }
 

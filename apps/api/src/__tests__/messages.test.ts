@@ -183,13 +183,12 @@ describe("DELETE /messages/:id", () => {
     const data = (await res.json()) as any;
     expect(data.success).toBe(true);
 
-    // Message should still exist in the list but be marked deleted
+    // Soft-deleted messages should NOT appear in the listing
     const listRes = await app.request(`/channels/${channel.id}/messages`, {
       headers: getAuthHeaders(token),
     });
     const listData = (await listRes.json()) as any;
     const deletedMsg = listData.messages.find((m: any) => m.id === message.id);
-    expect(deletedMsg).toBeDefined();
-    expect(deletedMsg.deleted).toBe(true);
+    expect(deletedMsg).toBeUndefined();
   });
 });

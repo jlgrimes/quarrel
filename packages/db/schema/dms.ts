@@ -5,6 +5,10 @@ export const conversations = sqliteTable("conversations", {
   id: text("id")
     .primaryKey()
     .$defaultFn(() => crypto.randomUUID()),
+  isGroup: integer("is_group", { mode: "boolean" }).default(false),
+  name: text("name"),
+  iconUrl: text("icon_url"),
+  ownerId: text("owner_id").references(() => users.id),
   createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
 });
 

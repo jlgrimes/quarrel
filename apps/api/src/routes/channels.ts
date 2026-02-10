@@ -1,8 +1,9 @@
 import { Hono } from "hono";
 import { db, channels, members, servers, messages, readState } from "@quarrel/db";
-import { createChannelSchema, updateChannelSchema } from "@quarrel/shared";
+import { createChannelSchema, updateChannelSchema, PERMISSIONS } from "@quarrel/shared";
 import { eq, and, gt, sql, desc } from "drizzle-orm";
 import { authMiddleware, type AuthEnv } from "../middleware/auth";
+import { hasPermission } from "../lib/permissions";
 
 export const channelRoutes = new Hono<AuthEnv>();
 
@@ -12,14 +13,12 @@ channelRoutes.post("/servers/:serverId/channels", async (c) => {
   const serverId = c.req.param("serverId");
   const userId = c.get("userId");
 
-  const [member] = await db
-    .select({ id: members.id })
-    .from(members)
-    .where(and(eq(members.userId, userId), eq(members.serverId, serverId)))
-    .limit(1);
-
-  if (!member) {
+  const allowed = await hasPermission(userId, serverId, PERMISSIONS.MANAGE_CHANNELS);
+  if (allowed === null) {
     return c.json({ error: "Not a member of this server" }, 403);
+  }
+  if (!allowed) {
+    return c.json({ error: "Missing MANAGE_CHANNELS permission" }, 403);
   }
 
   const body = await c.req.json();
@@ -112,7 +111,7 @@ channelRoutes.get("/servers/:serverId/channels", async (c) => {
   return c.json({ channels: channelsWithUnread });
 });
 
-// Select only serverId for the channel lookup (needed for member check)
+// Select only serverId for the channel lookup (needed for permission check)
 channelRoutes.patch("/channels/:id", async (c) => {
   const channelId = c.req.param("id");
   const userId = c.get("userId");
@@ -127,16 +126,12 @@ channelRoutes.patch("/channels/:id", async (c) => {
     return c.json({ error: "Channel not found" }, 404);
   }
 
-  const [member] = await db
-    .select({ id: members.id })
-    .from(members)
-    .where(
-      and(eq(members.userId, userId), eq(members.serverId, channel.serverId))
-    )
-    .limit(1);
-
-  if (!member) {
+  const allowed = await hasPermission(userId, channel.serverId, PERMISSIONS.MANAGE_CHANNELS);
+  if (allowed === null) {
     return c.json({ error: "Not a member of this server" }, 403);
+  }
+  if (!allowed) {
+    return c.json({ error: "Missing MANAGE_CHANNELS permission" }, 403);
   }
 
   const body = await c.req.json();

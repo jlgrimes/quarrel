@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { db, messages, channels, members, users, servers, reactions } from "@quarrel/db";
-import { sendMessageSchema, editMessageSchema, MESSAGE_BATCH_SIZE } from "@quarrel/shared";
-import { eq, and, lt, desc, inArray, isNotNull, sql } from "drizzle-orm";
+import { sendMessageSchema, editMessageSchema, searchMessagesSchema, MESSAGE_BATCH_SIZE } from "@quarrel/shared";
+import { eq, and, lt, gt, desc, inArray, isNotNull, like, sql } from "drizzle-orm";
 import { authMiddleware, type AuthEnv } from "../middleware/auth";
 import { broadcastToChannel } from "../ws";
 
@@ -67,7 +67,7 @@ messageRoutes.get("/channels/:channelId/messages", async (c) => {
   const userId = c.get("userId");
   const cursor = c.req.query("cursor");
   const limit = Math.min(
-    parseInt(c.req.query("limit") || String(MESSAGE_BATCH_SIZE)),
+    Number(c.req.query("limit")) || MESSAGE_BATCH_SIZE,
     MESSAGE_BATCH_SIZE
   );
 
@@ -93,9 +93,13 @@ messageRoutes.get("/channels/:channelId/messages", async (c) => {
       cursor
         ? and(
             eq(messages.channelId, channelId),
+            eq(messages.deleted, false),
             lt(messages.createdAt, new Date(cursor))
           )
-        : eq(messages.channelId, channelId)
+        : and(
+            eq(messages.channelId, channelId),
+            eq(messages.deleted, false)
+          )
     )
     .orderBy(desc(messages.createdAt))
     .limit(limit);
@@ -374,6 +378,190 @@ messageRoutes.get("/channels/:channelId/pins", async (c) => {
   }));
 
   return c.json({ messages: messagesWithAuthors });
+});
+
+// Search messages across servers the user is a member of
+messageRoutes.get("/search", async (c) => {
+  const userId = c.get("userId");
+
+  const parsed = searchMessagesSchema.safeParse({
+    q: c.req.query("q"),
+    serverId: c.req.query("serverId"),
+    channelId: c.req.query("channelId"),
+    authorId: c.req.query("authorId"),
+    before: c.req.query("before"),
+    after: c.req.query("after"),
+    limit: c.req.query("limit"),
+    offset: c.req.query("offset"),
+  });
+
+  if (!parsed.success) {
+    return c.json({ error: parsed.error.flatten() }, 400);
+  }
+
+  const { q, serverId, channelId, authorId, before, after, limit, offset } =
+    parsed.data;
+
+  // Get all server IDs the user is a member of
+  const userMemberships = await db
+    .select({ serverId: members.serverId })
+    .from(members)
+    .where(eq(members.userId, userId));
+
+  if (userMemberships.length === 0) {
+    return c.json({ messages: [], total: 0 });
+  }
+
+  const memberServerIds = userMemberships.map((m) => m.serverId);
+
+  // If serverId filter is specified, verify user is a member
+  if (serverId && !memberServerIds.includes(serverId)) {
+    return c.json({ error: "Not a member of this server" }, 403);
+  }
+
+  // If channelId filter is specified, verify user has access
+  if (channelId) {
+    const [ch] = await db
+      .select({ serverId: channels.serverId })
+      .from(channels)
+      .where(eq(channels.id, channelId))
+      .limit(1);
+
+    if (!ch || !memberServerIds.includes(ch.serverId)) {
+      return c.json({ error: "Channel not found or not a member" }, 403);
+    }
+  }
+
+  // Build the list of channel IDs to search within
+  let searchChannelIds: string[];
+
+  if (channelId) {
+    searchChannelIds = [channelId];
+  } else {
+    const targetServerIds = serverId ? [serverId] : memberServerIds;
+    const accessibleChannels = await db
+      .select({ id: channels.id })
+      .from(channels)
+      .where(
+        targetServerIds.length === 1
+          ? eq(channels.serverId, targetServerIds[0])
+          : inArray(channels.serverId, targetServerIds)
+      );
+    searchChannelIds = accessibleChannels.map((ch) => ch.id);
+  }
+
+  if (searchChannelIds.length === 0) {
+    return c.json({ messages: [], total: 0 });
+  }
+
+  // Build conditions
+  const conditions = [
+    searchChannelIds.length === 1
+      ? eq(messages.channelId, searchChannelIds[0])
+      : inArray(messages.channelId, searchChannelIds),
+    like(messages.content, `%${q}%`),
+    eq(messages.deleted, false),
+  ];
+
+  if (authorId) {
+    conditions.push(eq(messages.authorId, authorId));
+  }
+  if (before) {
+    conditions.push(lt(messages.createdAt, new Date(before)));
+  }
+  if (after) {
+    conditions.push(gt(messages.createdAt, new Date(after)));
+  }
+
+  // Get total count
+  const [countResult] = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(messages)
+    .where(and(...conditions));
+  const total = countResult?.count ?? 0;
+
+  // Get matching messages
+  const result = await db
+    .select()
+    .from(messages)
+    .where(and(...conditions))
+    .orderBy(desc(messages.createdAt))
+    .limit(limit)
+    .offset(offset);
+
+  // Fetch authors
+  const authorIds = [...new Set(result.map((m) => m.authorId))];
+  const authors =
+    authorIds.length > 0
+      ? await db
+          .select({
+            id: users.id,
+            username: users.username,
+            displayName: users.displayName,
+            avatarUrl: users.avatarUrl,
+          })
+          .from(users)
+          .where(
+            authorIds.length === 1
+              ? eq(users.id, authorIds[0])
+              : inArray(users.id, authorIds)
+          )
+      : [];
+
+  const authorMap = new Map(authors.map((a) => [a.id, a]));
+
+  // Fetch channel info for context
+  const resultChannelIds = [...new Set(result.map((m) => m.channelId))];
+  const channelInfos =
+    resultChannelIds.length > 0
+      ? await db
+          .select({
+            id: channels.id,
+            name: channels.name,
+            serverId: channels.serverId,
+          })
+          .from(channels)
+          .where(
+            resultChannelIds.length === 1
+              ? eq(channels.id, resultChannelIds[0])
+              : inArray(channels.id, resultChannelIds)
+          )
+      : [];
+
+  const channelMap = new Map(channelInfos.map((ch) => [ch.id, ch]));
+
+  // Fetch server names for context
+  const resultServerIds = [
+    ...new Set(channelInfos.map((ch) => ch.serverId)),
+  ];
+  const serverInfos =
+    resultServerIds.length > 0
+      ? await db
+          .select({ id: servers.id, name: servers.name })
+          .from(servers)
+          .where(
+            resultServerIds.length === 1
+              ? eq(servers.id, resultServerIds[0])
+              : inArray(servers.id, resultServerIds)
+          )
+      : [];
+
+  const serverMap = new Map(serverInfos.map((s) => [s.id, s]));
+
+  const messagesWithContext = result.map((m) => {
+    const channel = channelMap.get(m.channelId);
+    const server = channel ? serverMap.get(channel.serverId) : undefined;
+    return {
+      ...m,
+      author: authorMap.get(m.authorId),
+      channel: channel
+        ? { id: channel.id, name: channel.name }
+        : undefined,
+      server: server ? { id: server.id, name: server.name } : undefined,
+    };
+  });
+
+  return c.json({ messages: messagesWithContext, total });
 });
 
 // Helper to get aggregated reactions for a set of message IDs

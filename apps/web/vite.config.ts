@@ -6,8 +6,9 @@ import tailwindcss from '@tailwindcss/vite';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [react(), tailwindcss()],
+  base: mode === 'desktop' ? './' : '/',
   resolve: {
     alias: {
       '@': resolve(__dirname, './src'),
@@ -26,4 +27,4 @@ export default defineConfig({
       },
     },
   },
-});
+}));

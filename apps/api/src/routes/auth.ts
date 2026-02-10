@@ -8,6 +8,15 @@ import { authRateLimit } from "../middleware/rateLimit";
 
 const isProduction = process.env.NODE_ENV === "production";
 
+function generateSessionToken(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(32));
+  // base64url encoding (no padding)
+  return btoa(String.fromCharCode(...bytes))
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+}
+
 export const authRoutes = new Hono<AuthEnv>();
 
 authRoutes.post("/register", authRateLimit, async (c) => {
@@ -26,7 +35,7 @@ authRoutes.post("/register", authRateLimit, async (c) => {
     .limit(1);
 
   if (existing) {
-    return c.json({ error: "Email already in use" }, 409);
+    return c.json({ error: "Registration failed. Please try different credentials." }, 409);
   }
 
   const [existingUsername] = await db
@@ -36,7 +45,7 @@ authRoutes.post("/register", authRateLimit, async (c) => {
     .limit(1);
 
   if (existingUsername) {
-    return c.json({ error: "Username already taken" }, 409);
+    return c.json({ error: "Registration failed. Please try different credentials." }, 409);
   }
 
   const hashedPassword = await Bun.password.hash(password);
@@ -52,7 +61,7 @@ authRoutes.post("/register", authRateLimit, async (c) => {
     })
     .returning();
 
-  const sessionId = crypto.randomUUID();
+  const sessionId = generateSessionToken();
   const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
   await db.insert(sessions).values({
@@ -64,7 +73,7 @@ authRoutes.post("/register", authRateLimit, async (c) => {
   setCookie(c, "session", sessionId, {
     httpOnly: true,
     secure: isProduction,
-    sameSite: isProduction ? "None" : "Lax",
+    sameSite: isProduction ? "Lax" : "Lax",
     path: "/",
     maxAge: 30 * 24 * 60 * 60,
   });
@@ -98,7 +107,7 @@ authRoutes.post("/login", authRateLimit, async (c) => {
     return c.json({ error: "Invalid credentials" }, 401);
   }
 
-  const sessionId = crypto.randomUUID();
+  const sessionId = generateSessionToken();
   const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
   await db.insert(sessions).values({
@@ -116,7 +125,7 @@ authRoutes.post("/login", authRateLimit, async (c) => {
   setCookie(c, "session", sessionId, {
     httpOnly: true,
     secure: isProduction,
-    sameSite: isProduction ? "None" : "Lax",
+    sameSite: isProduction ? "Lax" : "Lax",
     path: "/",
     maxAge: 30 * 24 * 60 * 60,
   });

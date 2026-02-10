@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { db, servers, members, channels } from "@quarrel/db";
+import { db, servers, members, channels, bans } from "@quarrel/db";
 import { createServerSchema, updateServerSchema } from "@quarrel/shared";
 import { eq, and } from "drizzle-orm";
 import { authMiddleware, type AuthEnv } from "../middleware/auth";
@@ -7,6 +7,16 @@ import { authMiddleware, type AuthEnv } from "../middleware/auth";
 export const serverRoutes = new Hono<AuthEnv>();
 
 serverRoutes.use(authMiddleware);
+
+function generateInviteCode(length = 16): string {
+  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  const bytes = crypto.getRandomValues(new Uint8Array(length));
+  let code = "";
+  for (const byte of bytes) {
+    code += alphabet[byte % alphabet.length];
+  }
+  return code;
+}
 
 serverRoutes.post("/", async (c) => {
   const body = await c.req.json();
@@ -16,7 +26,7 @@ serverRoutes.post("/", async (c) => {
   }
 
   const userId = c.get("userId");
-  const inviteCode = crypto.randomUUID().slice(0, 8);
+  const inviteCode = generateInviteCode();
 
   const [server] = await db
     .insert(servers)
@@ -165,6 +175,17 @@ serverRoutes.post("/join/:inviteCode", async (c) => {
 
   if (existingMember) {
     return c.json({ error: "Already a member" }, 409);
+  }
+
+  // Check if the user is banned from this server
+  const [existingBan] = await db
+    .select({ id: bans.id })
+    .from(bans)
+    .where(and(eq(bans.userId, userId), eq(bans.serverId, server.id)))
+    .limit(1);
+
+  if (existingBan) {
+    return c.json({ error: "You are banned from this server" }, 403);
   }
 
   await db.insert(members).values({

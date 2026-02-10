@@ -9,3 +9,6 @@ export * from "./dms";
 export * from "./sessions";
 export * from "./friends";
 export * from "./readState";
+export * from "./bans";
+export * from "./threads";
+export * from "./userSettings";

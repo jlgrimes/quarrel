@@ -5,6 +5,7 @@ import { usePageView } from './hooks/usePageView';
 import { useUIStore } from './stores/uiStore';
 import { useChannels } from './hooks/useChannels';
 import { useWebSocketEvents } from './hooks/useWebSocketEvents';
+import NotificationToast from './components/NotificationToast';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import FriendsPage from './pages/FriendsPage';
@@ -21,7 +22,7 @@ import { SidebarProvider, SidebarTrigger, useSidebar } from '@/components/ui/sid
 const CreateServerModal = lazy(() => import('./components/modals/CreateServerModal'));
 const JoinServerModal = lazy(() => import('./components/modals/JoinServerModal'));
 const CreateChannelModal = lazy(() => import('./components/modals/CreateChannelModal'));
-const SettingsModal = lazy(() => import('./components/modals/SettingsModal'));
+const UserSettingsOverlay = lazy(() => import('./components/settings/UserSettingsOverlay'));
 const InviteModal = lazy(() => import('./components/modals/InviteModal'));
 
 function ProtectedRoute() {
@@ -38,7 +39,7 @@ function ModalRenderer() {
       {modal === 'createServer' && <CreateServerModal />}
       {modal === 'joinServer' && <JoinServerModal />}
       {modal === 'createChannel' && <CreateChannelModal />}
-      {modal === 'settings' && <SettingsModal />}
+      {modal === 'settings' && <UserSettingsOverlay />}
       {modal === 'inviteServer' && <InviteModal />}
     </Suspense>
   );
@@ -70,6 +71,7 @@ function AppLayout() {
       <ServerSidebar />
       <Outlet />
       <ModalRenderer />
+      <NotificationToast />
     </div>
   );
 }

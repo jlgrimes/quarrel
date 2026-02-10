@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import { api } from '../../lib/api';
 import { useAuthStore } from '../../stores/authStore';
 import { useUIStore } from '../../stores/uiStore';
+import { useNotificationStore } from '../../stores/notificationStore';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useUploadAvatar, useRemoveAvatar } from '../../hooks/useAvatarUpload';
@@ -18,6 +19,15 @@ export default function SettingsModal() {
   const [customStatus, setCustomStatus] = useState(user?.customStatus || '');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+
+  const notifEnabled = useNotificationStore(s => s.enabled);
+  const soundEnabled = useNotificationStore(s => s.soundEnabled);
+  const desktopEnabled = useNotificationStore(s => s.desktopEnabled);
+  const browserPermission = useNotificationStore(s => s.browserPermission);
+  const setNotifEnabled = useNotificationStore(s => s.setEnabled);
+  const setSoundEnabled = useNotificationStore(s => s.setSoundEnabled);
+  const setDesktopEnabled = useNotificationStore(s => s.setDesktopEnabled);
+  const requestBrowserPermission = useNotificationStore(s => s.requestBrowserPermission);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const uploadAvatar = useUploadAvatar();
@@ -128,6 +138,52 @@ export default function SettingsModal() {
           placeholder="What's on your mind?"
         />
       </label>
+
+      {/* Notification Settings */}
+      <div className='mb-6'>
+        <h3 className='mb-3 text-xs font-bold uppercase text-[#b5bac1]'>Notifications</h3>
+        <div className='space-y-2'>
+          <label className='flex items-center justify-between'>
+            <span className='text-sm text-[#dbdee1]'>Enable Notifications</span>
+            <input
+              type='checkbox'
+              checked={notifEnabled}
+              onChange={(e) => setNotifEnabled(e.target.checked)}
+              className='h-4 w-4 accent-[#5865f2]'
+              data-testid='notif-enabled'
+            />
+          </label>
+          <label className='flex items-center justify-between'>
+            <span className='text-sm text-[#dbdee1]'>Notification Sounds</span>
+            <input
+              type='checkbox'
+              checked={soundEnabled}
+              onChange={(e) => setSoundEnabled(e.target.checked)}
+              className='h-4 w-4 accent-[#5865f2]'
+              data-testid='notif-sound'
+            />
+          </label>
+          <label className='flex items-center justify-between'>
+            <span className='text-sm text-[#dbdee1]'>Desktop Notifications</span>
+            <input
+              type='checkbox'
+              checked={desktopEnabled}
+              onChange={(e) => setDesktopEnabled(e.target.checked)}
+              className='h-4 w-4 accent-[#5865f2]'
+              data-testid='notif-desktop'
+            />
+          </label>
+          {desktopEnabled && browserPermission !== 'granted' && (
+            <Button
+              onClick={requestBrowserPermission}
+              size='sm'
+              className='mt-1 rounded bg-[#5865f2] px-3 py-1 text-xs text-white hover:bg-[#4752c4]'
+            >
+              {browserPermission === 'denied' ? 'Permission Denied' : 'Allow Browser Notifications'}
+            </Button>
+          )}
+        </div>
+      </div>
 
       <div className='flex gap-3'>
         <Button

@@ -1,7 +1,9 @@
 import { Hono } from "hono";
 import { db, members, servers, users, roles, memberRoles } from "@quarrel/db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, lt, desc } from "drizzle-orm";
 import { authMiddleware, type AuthEnv } from "../middleware/auth";
+
+const MEMBERS_PAGE_SIZE = 50;
 
 export const memberRoutes = new Hono<AuthEnv>();
 
@@ -10,6 +12,11 @@ memberRoutes.use(authMiddleware);
 memberRoutes.get("/servers/:serverId/members", async (c) => {
   const serverId = c.req.param("serverId");
   const userId = c.get("userId");
+  const cursor = c.req.query("cursor");
+  const limit = Math.min(
+    parseInt(c.req.query("limit") || String(MEMBERS_PAGE_SIZE)),
+    MEMBERS_PAGE_SIZE
+  );
 
   // Select only id for membership check
   const [member] = await db
@@ -36,21 +43,33 @@ memberRoutes.get("/servers/:serverId/members", async (c) => {
     })
     .from(members)
     .innerJoin(users, eq(members.userId, users.id))
-    .where(eq(members.serverId, serverId));
+    .where(
+      cursor
+        ? and(
+            eq(members.serverId, serverId),
+            lt(members.joinedAt, new Date(cursor))
+          )
+        : eq(members.serverId, serverId)
+    )
+    .orderBy(desc(members.joinedAt))
+    .limit(limit);
 
-  // Fetch role assignments for all members in this server
-  const roleAssignments = await db
-    .select({
-      memberId: memberRoles.memberId,
-      roleId: roles.id,
-      roleName: roles.name,
-      roleColor: roles.color,
-      rolePosition: roles.position,
-      rolePermissions: roles.permissions,
-    })
-    .from(memberRoles)
-    .innerJoin(roles, eq(memberRoles.roleId, roles.id))
-    .where(eq(roles.serverId, serverId));
+  // Fetch role assignments for all members in this page
+  const memberIds = serverMembers.map((m) => m.id);
+  const roleAssignments = memberIds.length > 0
+    ? await db
+        .select({
+          memberId: memberRoles.memberId,
+          roleId: roles.id,
+          roleName: roles.name,
+          roleColor: roles.color,
+          rolePosition: roles.position,
+          rolePermissions: roles.permissions,
+        })
+        .from(memberRoles)
+        .innerJoin(roles, eq(memberRoles.roleId, roles.id))
+        .where(eq(roles.serverId, serverId))
+    : [];
 
   const rolesByMemberId = new Map<string, { id: string; name: string; color: string | null; position: number; permissions: number }[]>();
   for (const ra of roleAssignments) {
@@ -78,7 +97,12 @@ memberRoutes.get("/servers/:serverId/members", async (c) => {
     };
   });
 
-  return c.json({ members: result });
+  const nextCursor =
+    serverMembers.length === limit
+      ? serverMembers[serverMembers.length - 1].joinedAt?.toISOString()
+      : null;
+
+  return c.json({ members: result, nextCursor });
 });
 
 memberRoutes.delete("/servers/:serverId/members/:userId", async (c) => {

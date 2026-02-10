@@ -8,6 +8,7 @@ import { queryKeys } from './queryKeys';
 import { getWsUrl } from '../lib/getWsUrl';
 import { setWsSend } from '../lib/wsBridge';
 import { api } from '../lib/api';
+import { useWebSocketNotifications } from './useNotifications';
 
 export function useWebSocketEvents() {
   const token = useAuthStore((s) => s.token);
@@ -244,8 +245,17 @@ export function useWebSocketEvents() {
       case 'voice:mute':
         useVoiceStore.getState()._handleMuteUpdate(data);
         break;
+      case 'voice:screen-share-started':
+        useVoiceStore.getState()._handleScreenShareStarted(data);
+        break;
+      case 'voice:screen-share-stopped':
+        useVoiceStore.getState()._handleScreenShareStopped(data);
+        break;
     }
   }, [lastJsonMessage]);
+
+  // Trigger notifications for incoming events
+  useWebSocketNotifications(lastJsonMessage);
 
   return { sendJsonMessage, readyState };
 }

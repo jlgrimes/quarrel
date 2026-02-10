@@ -5,11 +5,12 @@ import { sendMessageSchema } from "@quarrel/shared";
 
 type WSData = {
   userId: string;
+  token: string;
   subscribedChannels: Set<string>;
   subscribedServers: Set<string>;
 };
 
-type VoiceParticipant = { userId: string; username: string; displayName: string | null; avatarUrl: string | null; isMuted: boolean; isDeafened: boolean };
+type VoiceParticipant = { userId: string; username: string; displayName: string | null; avatarUrl: string | null; isMuted: boolean; isDeafened: boolean; isScreenSharing: boolean };
 
 const connectedClients = new Map<string, Set<ServerWebSocket<WSData>>>();
 
@@ -33,13 +34,19 @@ function getClientSockets(userId: string): ReadonlySet<ServerWebSocket<WSData>> 
   return connectedClients.get(userId) || EMPTY_SOCKET_SET;
 }
 
-function addClient(userId: string, ws: ServerWebSocket<WSData>) {
+export const MAX_CONNECTIONS_PER_USER = 5;
+
+function addClient(userId: string, ws: ServerWebSocket<WSData>): boolean {
   let sockets = connectedClients.get(userId);
   if (!sockets) {
     sockets = new Set();
     connectedClients.set(userId, sockets);
   }
+  if (sockets.size >= MAX_CONNECTIONS_PER_USER) {
+    return false;
+  }
   sockets.add(ws);
+  return true;
 }
 
 function removeClient(userId: string, ws: ServerWebSocket<WSData>) {
@@ -125,6 +132,10 @@ function removeUserFromVoice(userId: string) {
 
   const participants = voiceChannels.get(channelId);
   if (participants) {
+    const entry = participants.get(userId);
+    if (entry?.isScreenSharing) {
+      broadcastToChannel(channelId, "voice:screen-share-stopped", { userId, channelId });
+    }
     participants.delete(userId);
     if (participants.size === 0) {
       voiceChannels.delete(channelId);
@@ -135,7 +146,7 @@ function removeUserFromVoice(userId: string) {
   broadcastToChannel(channelId, "voice:user-left", { userId, channelId });
 }
 
-async function authenticateWS(token: string): Promise<string | null> {
+export async function authenticateWS(token: string): Promise<string | null> {
   const [session] = await db
     .select()
     .from(sessions)
@@ -332,6 +343,7 @@ const eventHandlers: Record<string, EventHandler> = {
       avatarUrl: user.avatarUrl,
       isMuted: false,
       isDeafened: false,
+      isScreenSharing: false,
     };
 
     let channelParticipants = voiceChannels.get(channelId);
@@ -413,11 +425,98 @@ const eventHandlers: Record<string, EventHandler> = {
       isDeafened,
     });
   },
+
+  "voice:screen-share-start": (ws) => {
+    const voiceChannelId = userVoiceChannel.get(ws.data.userId);
+    if (!voiceChannelId) return;
+
+    const participants = voiceChannels.get(voiceChannelId);
+    if (!participants) return;
+
+    // Only one screen share at a time per channel
+    for (const [, p] of participants) {
+      if (p.isScreenSharing && p.userId !== ws.data.userId) {
+        ws.send(JSON.stringify({ event: "error", data: { message: "Someone is already sharing their screen" } }));
+        return;
+      }
+    }
+
+    const entry = participants.get(ws.data.userId);
+    if (!entry) return;
+
+    entry.isScreenSharing = true;
+
+    broadcastToChannel(voiceChannelId, "voice:screen-share-started", {
+      userId: ws.data.userId,
+      channelId: voiceChannelId,
+    });
+  },
+
+  "voice:screen-share-stop": (ws) => {
+    const voiceChannelId = userVoiceChannel.get(ws.data.userId);
+    if (!voiceChannelId) return;
+
+    const participants = voiceChannels.get(voiceChannelId);
+    if (!participants) return;
+
+    const entry = participants.get(ws.data.userId);
+    if (!entry) return;
+
+    entry.isScreenSharing = false;
+
+    broadcastToChannel(voiceChannelId, "voice:screen-share-stopped", {
+      userId: ws.data.userId,
+      channelId: voiceChannelId,
+    });
+  },
 };
 
 export const websocketHandler = {
   async open(ws: ServerWebSocket<WSData>) {
-    // Client must send auth message first
+    // Validate token passed from HTTP upgrade phase
+    const token = ws.data.token;
+    if (!token) {
+      ws.send(ERROR_NOT_AUTHENTICATED);
+      ws.close();
+      return;
+    }
+
+    const userId = await authenticateWS(token);
+    if (!userId) {
+      ws.send(ERROR_INVALID_TOKEN);
+      ws.close();
+      return;
+    }
+
+    ws.data.userId = userId;
+
+    if (!addClient(userId, ws)) {
+      ws.send(JSON.stringify({ event: "error", data: { message: "Too many connections" } }));
+      ws.close();
+      return;
+    }
+
+    await subscribeToUserChannels(ws, userId);
+
+    await db
+      .update(users)
+      .set({ status: "online" })
+      .where(eq(users.id, userId));
+
+    ws.send(JSON.stringify({ event: "auth:success", data: { userId } }));
+
+    const presenceMsg = JSON.stringify({
+      event: "presence:update",
+      data: { userId, status: "online" },
+    });
+    for (const serverId of ws.data.subscribedServers) {
+      const subs = serverSubscribers.get(serverId);
+      if (subs) {
+        for (const sub of subs) {
+          sub.send(presenceMsg);
+        }
+      }
+    }
   },
 
   async message(ws: ServerWebSocket<WSData>, message: string | Buffer) {
@@ -426,6 +525,12 @@ export const websocketHandler = {
 
       // Handle authentication
       if (payload.event === "auth") {
+        // If already authenticated via upgrade, skip re-auth
+        if (ws.data.userId) {
+          ws.send(JSON.stringify({ event: "auth:success", data: { userId: ws.data.userId } }));
+          return;
+        }
+
         const userId = await authenticateWS(payload.data.token);
         if (!userId) {
           ws.send(ERROR_INVALID_TOKEN);
@@ -434,7 +539,11 @@ export const websocketHandler = {
         }
 
         ws.data.userId = userId;
-        addClient(userId, ws);
+        if (!addClient(userId, ws)) {
+          ws.send(JSON.stringify({ event: "error", data: { message: "Too many connections" } }));
+          ws.close();
+          return;
+        }
         await subscribeToUserChannels(ws, userId);
 
         // Update user status to online
@@ -508,4 +617,17 @@ export const websocketHandler = {
       }
     }
   },
+};
+
+// Expose internals for testing
+export const _testing = {
+  connectedClients,
+  channelSubscribers,
+  serverSubscribers,
+  voiceChannels,
+  userVoiceChannel,
+  addClient,
+  removeClient,
+  subscribeToChannel,
+  eventHandlers,
 };

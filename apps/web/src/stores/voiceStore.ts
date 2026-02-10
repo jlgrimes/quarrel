@@ -85,6 +85,9 @@ type VoiceStore = {
   currentChannelId: string | null;
   participants: VoiceParticipant[];
   localStream: MediaStream | null;
+  screenStream: MediaStream | null;
+  screenShareUserId: string | null;
+  isScreenSharing: boolean;
   peerConnections: Map<string, PeerEntry>;
   speakingUsers: Set<string>;
   isMuted: boolean;
@@ -94,6 +97,8 @@ type VoiceStore = {
   leaveChannel: () => void;
   toggleMute: () => void;
   toggleDeafen: () => void;
+  startScreenShare: () => Promise<void>;
+  stopScreenShare: () => void;
   cleanup: () => void;
   _handleVoiceState: (data: { channelId: string; participants: VoiceParticipant[] }) => void;
   _handleUserJoined: (data: { channelId: string; participant: VoiceParticipant }) => void;
@@ -102,6 +107,8 @@ type VoiceStore = {
   _handleAnswer: (data: { fromUserId: string; sdp: RTCSessionDescriptionInit }) => void;
   _handleIceCandidate: (data: { fromUserId: string; candidate: RTCIceCandidateInit }) => void;
   _handleMuteUpdate: (data: { userId: string; isMuted: boolean; isDeafened: boolean }) => void;
+  _handleScreenShareStarted: (data: { userId: string; channelId: string }) => void;
+  _handleScreenShareStopped: (data: { userId: string; channelId: string }) => void;
 };
 
 function createPeerConnection(remoteUserId: string, isOfferer: boolean): RTCPeerConnection {
@@ -156,6 +163,9 @@ export const useVoiceStore = create<VoiceStore>((set, get) => ({
   currentChannelId: null,
   participants: [],
   localStream: null,
+  screenStream: null,
+  screenShareUserId: null,
+  isScreenSharing: false,
   peerConnections: new Map(),
   speakingUsers: new Set(),
   isMuted: false,
@@ -184,6 +194,14 @@ export const useVoiceStore = create<VoiceStore>((set, get) => ({
 
   leaveChannel: () => {
     const state = get();
+
+    // Stop screen sharing if active
+    if (state.screenStream) {
+      for (const track of state.screenStream.getTracks()) {
+        track.stop();
+      }
+    }
+
     if (state.currentChannelId) {
       wsSend('voice:leave', { channelId: state.currentChannelId });
     }
@@ -208,6 +226,9 @@ export const useVoiceStore = create<VoiceStore>((set, get) => ({
       currentChannelId: null,
       participants: [],
       localStream: null,
+      screenStream: null,
+      screenShareUserId: null,
+      isScreenSharing: false,
       peerConnections: new Map(),
       speakingUsers: new Set(),
       isMuted: false,
@@ -251,6 +272,68 @@ export const useVoiceStore = create<VoiceStore>((set, get) => ({
 
     set({ isDeafened: newDeafened, isMuted: newMuted });
     wsSend('voice:mute', { isMuted: newMuted, isDeafened: newDeafened });
+  },
+
+  startScreenShare: async () => {
+    const state = get();
+    if (!state.currentChannelId || state.isScreenSharing) return;
+
+    // Only one screen share at a time
+    if (state.screenShareUserId) return;
+
+    try {
+      const screenStream = await navigator.mediaDevices.getDisplayMedia({
+        video: true,
+        audio: true,
+      });
+
+      set({ screenStream, isScreenSharing: true });
+
+      // Add screen share tracks to all peer connections
+      const videoTrack = screenStream.getVideoTracks()[0];
+      for (const [, peer] of state.peerConnections) {
+        if (videoTrack) {
+          peer.connection.addTrack(videoTrack, screenStream);
+        }
+        // Add system audio if available
+        for (const audioTrack of screenStream.getAudioTracks()) {
+          peer.connection.addTrack(audioTrack, screenStream);
+        }
+      }
+
+      // Handle user stopping share via browser UI
+      videoTrack?.addEventListener('ended', () => {
+        get().stopScreenShare();
+      });
+
+      wsSend('voice:screen-share-start', { channelId: state.currentChannelId });
+      analytics.capture('voice:screen_share_start', { channelId: state.currentChannelId });
+    } catch {
+      // User cancelled the screen share picker
+    }
+  },
+
+  stopScreenShare: () => {
+    const state = get();
+    if (!state.screenStream) return;
+
+    // Remove screen share tracks from all peer connections
+    for (const [, peer] of state.peerConnections) {
+      const senders = peer.connection.getSenders();
+      for (const sender of senders) {
+        if (sender.track && state.screenStream.getTracks().includes(sender.track)) {
+          peer.connection.removeTrack(sender);
+        }
+      }
+    }
+
+    for (const track of state.screenStream.getTracks()) {
+      track.stop();
+    }
+
+    set({ screenStream: null, isScreenSharing: false });
+    wsSend('voice:screen-share-stop', { channelId: state.currentChannelId });
+    analytics.capture('voice:screen_share_stop', { channelId: state.currentChannelId });
   },
 
   cleanup: () => {
@@ -335,6 +418,28 @@ export const useVoiceStore = create<VoiceStore>((set, get) => ({
         p.userId === data.userId
           ? { ...p, isMuted: data.isMuted, isDeafened: data.isDeafened }
           : p
+      ),
+    });
+  },
+
+  _handleScreenShareStarted: (data) => {
+    const state = get();
+    if (data.channelId !== state.currentChannelId) return;
+    set({
+      screenShareUserId: data.userId,
+      participants: state.participants.map((p) =>
+        p.userId === data.userId ? { ...p, isScreenSharing: true } : p
+      ),
+    });
+  },
+
+  _handleScreenShareStopped: (data) => {
+    const state = get();
+    if (data.channelId !== state.currentChannelId) return;
+    set({
+      screenShareUserId: state.screenShareUserId === data.userId ? null : state.screenShareUserId,
+      participants: state.participants.map((p) =>
+        p.userId === data.userId ? { ...p, isScreenSharing: false } : p
       ),
     });
   },

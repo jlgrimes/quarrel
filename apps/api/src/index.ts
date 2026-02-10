@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
+import { secureHeaders } from "hono/secure-headers";
 import { logger } from "hono/logger";
 import { authRoutes } from "./routes/auth";
 import { serverRoutes } from "./routes/servers";
@@ -10,18 +11,29 @@ import { friendRoutes } from "./routes/friends";
 import { dmRoutes } from "./routes/dms";
 import { userRoutes } from "./routes/users";
 import { roleRoutes } from "./routes/roles";
-import { websocketHandler } from "./ws";
+import { banRoutes } from "./routes/bans";
+import { embedRoutes } from "./routes/embeds";
+import { threadRoutes } from "./routes/threads";
+import { websocketHandler, authenticateWS } from "./ws";
 import { globalRateLimit } from "./middleware/rateLimit";
 
 const app = new Hono();
 
 app.use(
   cors({
-    origin: ["http://localhost:5173", "http://localhost:3000", "https://quarrel.app", "https://www.quarrel.app"],
+    origin: [
+      "http://localhost:5173",
+      "http://localhost:3000",
+      "https://quarrel.app",
+      "https://www.quarrel.app",
+      "capacitor-electron://localhost",
+      "capacitor://localhost",
+    ],
     credentials: true,
   })
 );
 app.use(logger());
+app.use(secureHeaders());
 app.use(globalRateLimit);
 
 // Health check
@@ -37,6 +49,9 @@ app.route("/friends", friendRoutes);
 app.route("/dms", dmRoutes);
 app.route("/users", userRoutes);
 app.route("/", roleRoutes);
+app.route("/", banRoutes);
+app.route("/", embedRoutes);
+app.route("/", threadRoutes);
 
 const port = parseInt(process.env.PORT || "3001");
 
@@ -45,9 +60,16 @@ const server = Bun.serve({
   fetch(req, server) {
     const url = new URL(req.url);
     if (url.pathname === "/ws") {
+      // Require token at HTTP upgrade phase; reject immediately without one
+      const token = url.searchParams.get("token");
+      if (!token) {
+        return new Response("Authentication required", { status: 401 });
+      }
+      // Pass token to WebSocket open handler for async validation
       const upgraded = server.upgrade(req, {
         data: {
           userId: "",
+          token,
           subscribedChannels: new Set<string>(),
           subscribedServers: new Set<string>(),
         },

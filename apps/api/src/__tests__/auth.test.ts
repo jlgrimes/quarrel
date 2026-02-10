@@ -8,6 +8,7 @@ import {
   getAuthHeaders,
 } from "./helpers";
 import type { Hono } from "hono";
+import { parseCookie } from "./security-utils";
 
 let app: Hono;
 
@@ -40,7 +41,7 @@ describe("POST /auth/register", () => {
     expect(data.user.hashedPassword).toBeUndefined();
   });
 
-  test("rejects duplicate email", async () => {
+  test("rejects duplicate email with generic message", async () => {
     await createTestUser(app, "alice", "alice@example.com");
     const res = await app.request("/auth/register", {
       method: "POST",
@@ -53,10 +54,10 @@ describe("POST /auth/register", () => {
     });
     expect(res.status).toBe(409);
     const data = (await res.json()) as any;
-    expect(data.error).toContain("Email");
+    expect(data.error).toBe("Registration failed. Please try different credentials.");
   });
 
-  test("rejects duplicate username", async () => {
+  test("rejects duplicate username with generic message", async () => {
     await createTestUser(app, "alice", "alice@example.com");
     const res = await app.request("/auth/register", {
       method: "POST",
@@ -69,7 +70,7 @@ describe("POST /auth/register", () => {
     });
     expect(res.status).toBe(409);
     const data = (await res.json()) as any;
-    expect(data.error).toContain("Username");
+    expect(data.error).toBe("Registration failed. Please try different credentials.");
   });
 
   test("validates input - short password", async () => {
@@ -203,5 +204,104 @@ describe("POST /auth/logout", () => {
       headers: getAuthHeaders(token),
     });
     expect(meRes.status).toBe(401);
+  });
+});
+
+describe("security", () => {
+  test("session tokens are not UUIDs - uses crypto-secure random tokens", async () => {
+    const res = await app.request("/auth/register", {
+      method: "POST",
+      body: JSON.stringify({
+        username: "alice",
+        email: "alice@example.com",
+        password: "password123",
+      }),
+      headers: { "Content-Type": "application/json" },
+    });
+    const data = (await res.json()) as any;
+    // UUID v4 format: 8-4-4-4-12 hex chars
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    expect(data.token).not.toMatch(uuidRegex);
+    // base64url-encoded 32 bytes = 43 chars (no padding)
+    expect(data.token.length).toBeGreaterThanOrEqual(40);
+  });
+
+  test("login session tokens are also crypto-secure", async () => {
+    await createTestUser(app, "alice", "alice@example.com", "password123");
+    const res = await app.request("/auth/login", {
+      method: "POST",
+      body: JSON.stringify({
+        email: "alice@example.com",
+        password: "password123",
+      }),
+      headers: { "Content-Type": "application/json" },
+    });
+    const data = (await res.json()) as any;
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    expect(data.token).not.toMatch(uuidRegex);
+    expect(data.token.length).toBeGreaterThanOrEqual(40);
+  });
+
+  test("duplicate email and username return identical error messages (no enumeration)", async () => {
+    await createTestUser(app, "alice", "alice@example.com");
+
+    const emailDupRes = await app.request("/auth/register", {
+      method: "POST",
+      body: JSON.stringify({
+        username: "bob",
+        email: "alice@example.com",
+        password: "password123",
+      }),
+      headers: { "Content-Type": "application/json" },
+    });
+    const emailDupData = (await emailDupRes.json()) as any;
+
+    // Clear rate limit state between requests
+    await clearDatabase();
+    await createTestUser(app, "alice", "alice@example.com");
+
+    const usernameDupRes = await app.request("/auth/register", {
+      method: "POST",
+      body: JSON.stringify({
+        username: "alice",
+        email: "bob@example.com",
+        password: "password123",
+      }),
+      headers: { "Content-Type": "application/json" },
+    });
+    const usernameDupData = (await usernameDupRes.json()) as any;
+
+    // Both should return the exact same error
+    expect(emailDupData.error).toBe(usernameDupData.error);
+    // Should not leak which field caused the conflict
+    expect(emailDupData.error).not.toContain("Email");
+    expect(emailDupData.error).not.toContain("Username");
+    expect(emailDupData.error).not.toContain("email");
+    expect(emailDupData.error).not.toContain("username");
+  });
+
+  test("responses include security headers", async () => {
+    const res = await app.request("/health");
+    expect(res.status).toBe(200);
+    // secureHeaders() adds X-Content-Type-Options
+    expect(res.headers.get("X-Content-Type-Options")).toBe("nosniff");
+    // secureHeaders() adds X-Frame-Options
+    expect(res.headers.get("X-Frame-Options")).toBe("SAMEORIGIN");
+  });
+
+  test("session cookie uses SameSite=Lax", async () => {
+    const res = await app.request("/auth/register", {
+      method: "POST",
+      body: JSON.stringify({
+        username: "alice",
+        email: "alice@example.com",
+        password: "password123",
+      }),
+      headers: { "Content-Type": "application/json" },
+    });
+    expect(res.status).toBe(201);
+    const setCookieHeader = res.headers.get("Set-Cookie") || "";
+    const cookie = parseCookie(setCookieHeader);
+    expect(cookie["samesite"]).toBe("Lax");
   });
 });

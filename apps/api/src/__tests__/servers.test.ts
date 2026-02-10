@@ -247,3 +247,42 @@ describe("POST /servers/join/:inviteCode", () => {
     expect(res.status).toBe(409);
   });
 });
+
+describe("invite code security", () => {
+  test("invite codes are at least 16 characters long", async () => {
+    const { token } = await createTestUser(app);
+    const res = await app.request("/servers", {
+      method: "POST",
+      body: JSON.stringify({ name: "Test Server" }),
+      headers: getAuthHeaders(token),
+    });
+    const data = (await res.json()) as any;
+    expect(data.server.inviteCode.length).toBeGreaterThanOrEqual(16);
+  });
+
+  test("invite codes use alphanumeric characters", async () => {
+    const { token } = await createTestUser(app);
+    const res = await app.request("/servers", {
+      method: "POST",
+      body: JSON.stringify({ name: "Test Server" }),
+      headers: getAuthHeaders(token),
+    });
+    const data = (await res.json()) as any;
+    expect(data.server.inviteCode).toMatch(/^[A-Za-z0-9]+$/);
+  });
+
+  test("invite codes are unique across servers", async () => {
+    const { token } = await createTestUser(app);
+    const codes = new Set<string>();
+    for (let i = 0; i < 5; i++) {
+      const res = await app.request("/servers", {
+        method: "POST",
+        body: JSON.stringify({ name: `Server ${i}` }),
+        headers: getAuthHeaders(token),
+      });
+      const data = (await res.json()) as any;
+      codes.add(data.server.inviteCode);
+    }
+    expect(codes.size).toBe(5);
+  });
+});

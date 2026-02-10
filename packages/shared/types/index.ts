@@ -80,6 +80,10 @@ export type Reaction = {
 
 export type Conversation = {
   id: string;
+  isGroup: boolean;
+  name: string | null;
+  iconUrl: string | null;
+  ownerId: string | null;
   createdAt: string;
   members?: User[];
 };
@@ -106,6 +110,17 @@ export type Friend = {
   friend?: User;
 };
 
+export type UserSettings = {
+  id: string;
+  userId: string;
+  theme: 'dark' | 'light';
+  fontSize: 'small' | 'normal' | 'large';
+  compactMode: boolean;
+  notificationsEnabled: boolean;
+  notificationSounds: boolean;
+  allowDms: 'everyone' | 'friends' | 'none';
+};
+
 // --- WebSocket Event Types ---
 
 export type WSClientEvents =
@@ -120,7 +135,9 @@ export type WSClientEvents =
   | 'voice:offer'
   | 'voice:answer'
   | 'voice:ice-candidate'
-  | 'voice:mute';
+  | 'voice:mute'
+  | 'voice:screen-share-start'
+  | 'voice:screen-share-stop';
 
 export type WSServerEvents =
   | 'message:new'
@@ -142,7 +159,9 @@ export type WSServerEvents =
   | 'voice:offer'
   | 'voice:answer'
   | 'voice:ice-candidate'
-  | 'voice:mute';
+  | 'voice:mute'
+  | 'voice:screen-share-started'
+  | 'voice:screen-share-stopped';
 
 // --- WebSocket Payload Types ---
 
@@ -190,6 +209,7 @@ export type VoiceParticipant = {
   avatarUrl: string | null;
   isMuted: boolean;
   isDeafened: boolean;
+  isScreenSharing?: boolean;
 };
 
 export type VoiceOfferPayload = {

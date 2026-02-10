@@ -10,9 +10,14 @@
     "start": "serve dist -s -l ${PORT:-3000}",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "build:desktop": "tsc -b && vite build --mode desktop",
+    "cap:sync": "npx cap sync @capacitor-community/electron",
+    "electron:dev": "bun run build:desktop && npx cap sync @capacitor-community/electron && npx cap open @capacitor-community/electron",
+    "electron:build": "bun run build:desktop && npx cap sync @capacitor-community/electron"
   },
   "dependencies": {
+    "@capacitor/core": "^8.0.2",
     "@emoji-mart/data": "^1.2.1",
     "@emoji-mart/react": "^1.1.1",
     "@quarrel/shared": "workspace:*",
@@ -33,6 +38,8 @@
     "zustand": "^5.0.0"
   },
   "devDependencies": {
+    "@capacitor-community/electron": "^5.0.1",
+    "@capacitor/cli": "^8.0.2",
     "@playwright/test": "^1.49.0",
     "@tailwindcss/vite": "^4.0.0",
     "@testing-library/jest-dom": "^6.6.0",

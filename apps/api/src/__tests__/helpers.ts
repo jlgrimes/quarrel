@@ -80,6 +80,10 @@ const createTablesSql = `
 
   CREATE TABLE IF NOT EXISTS conversations (
     id TEXT PRIMARY KEY,
+    is_group INTEGER DEFAULT 0,
+    name TEXT,
+    icon_url TEXT,
+    owner_id TEXT REFERENCES users(id),
     created_at INTEGER
   );
 
@@ -123,6 +127,66 @@ const createTablesSql = `
     emoji TEXT NOT NULL
   );
 
+  CREATE TABLE IF NOT EXISTS bans (
+    id TEXT PRIMARY KEY,
+    server_id TEXT NOT NULL REFERENCES servers(id),
+    user_id TEXT NOT NULL REFERENCES users(id),
+    reason TEXT,
+    banned_by TEXT NOT NULL REFERENCES users(id),
+    banned_at INTEGER,
+    UNIQUE(user_id, server_id)
+  );
+  CREATE INDEX IF NOT EXISTS bans_server_idx ON bans(server_id);
+  CREATE INDEX IF NOT EXISTS bans_user_idx ON bans(user_id);
+
+  CREATE TABLE IF NOT EXISTS threads (
+    id TEXT PRIMARY KEY,
+    parent_message_id TEXT NOT NULL UNIQUE REFERENCES messages(id),
+    channel_id TEXT NOT NULL REFERENCES channels(id),
+    creator_id TEXT NOT NULL REFERENCES users(id),
+    last_message_at INTEGER,
+    archived_at INTEGER,
+    created_at INTEGER
+  );
+  CREATE INDEX IF NOT EXISTS threads_channel_idx ON threads(channel_id);
+  CREATE INDEX IF NOT EXISTS threads_channel_archived_idx ON threads(channel_id, archived_at);
+
+  CREATE TABLE IF NOT EXISTS thread_messages (
+    id TEXT PRIMARY KEY,
+    thread_id TEXT NOT NULL REFERENCES threads(id),
+    author_id TEXT NOT NULL REFERENCES users(id),
+    content TEXT NOT NULL,
+    edited_at INTEGER,
+    attachments TEXT,
+    created_at INTEGER,
+    deleted INTEGER DEFAULT 0
+  );
+  CREATE INDEX IF NOT EXISTS thread_messages_thread_created_at_idx ON thread_messages(thread_id, created_at);
+  CREATE INDEX IF NOT EXISTS thread_messages_author_idx ON thread_messages(author_id);
+
+  CREATE TABLE IF NOT EXISTS thread_members (
+    thread_id TEXT NOT NULL REFERENCES threads(id),
+    user_id TEXT NOT NULL REFERENCES users(id),
+    notify_preference TEXT DEFAULT 'all',
+    last_read_at INTEGER,
+    PRIMARY KEY (thread_id, user_id)
+  );
+  CREATE INDEX IF NOT EXISTS thread_members_user_idx ON thread_members(user_id);
+
+  CREATE TABLE IF NOT EXISTS user_settings (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL UNIQUE REFERENCES users(id),
+    theme TEXT NOT NULL DEFAULT 'dark',
+    font_size TEXT NOT NULL DEFAULT 'normal',
+    compact_mode INTEGER NOT NULL DEFAULT 0,
+    notifications_enabled INTEGER NOT NULL DEFAULT 1,
+    notification_sounds INTEGER NOT NULL DEFAULT 1,
+    allow_dms TEXT NOT NULL DEFAULT 'everyone',
+    created_at INTEGER,
+    updated_at INTEGER
+  );
+  CREATE INDEX IF NOT EXISTS user_settings_user_idx ON user_settings(user_id);
+
   CREATE TABLE IF NOT EXISTS read_state (
     id TEXT PRIMARY KEY,
     user_id TEXT NOT NULL REFERENCES users(id),
@@ -150,10 +214,15 @@ export async function setupDatabase() {
 
 export async function clearDatabase() {
   const tables = [
+    "user_settings",
     "read_state",
+    "thread_members",
+    "thread_messages",
+    "threads",
     "reactions",
     "member_roles",
     "roles",
+    "bans",
     "direct_messages",
     "conversation_members",
     "conversations",
@@ -205,9 +274,15 @@ const { friendRoutes } = await import("../routes/friends");
 const { dmRoutes } = await import("../routes/dms");
 const { userRoutes } = await import("../routes/users");
 const { roleRoutes } = await import("../routes/roles");
+const { banRoutes } = await import("../routes/bans");
+const { embedRoutes } = await import("../routes/embeds");
+const { threadRoutes } = await import("../routes/threads");
+
+const { secureHeaders } = await import("hono/secure-headers");
 
 export function createApp() {
   const app = new Hono();
+  app.use(secureHeaders());
   app.get("/health", (c) => c.json({ status: "ok" }));
   app.route("/auth", authRoutes);
   app.route("/servers", serverRoutes);
@@ -218,6 +293,9 @@ export function createApp() {
   app.route("/dms", dmRoutes);
   app.route("/users", userRoutes);
   app.route("/", roleRoutes);
+  app.route("/", banRoutes);
+  app.route("/", embedRoutes);
+  app.route("/", threadRoutes);
   return app;
 }
 
