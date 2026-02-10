@@ -62,8 +62,17 @@ describe("POST /channels/:id/ack", () => {
   });
 
   test("ack reduces unread count to 0", async () => {
-    const { token, user } = await createTestUser(app, "alice", "alice@test.com");
+    const { token } = await createTestUser(app, "alice", "alice@test.com");
     const { server, channel } = await createServerWithChannel(token);
+
+    // Ack first to establish a read state baseline
+    await app.request(`/channels/${channel.id}/ack`, {
+      method: "POST",
+      headers: getAuthHeaders(token),
+    });
+
+    // Wait to ensure message timestamps are after the ack
+    await new Promise((r) => setTimeout(r, 1100));
 
     // Send messages
     await app.request(`/channels/${channel.id}/messages`, {
@@ -165,6 +174,15 @@ describe("POST /dms/:conversationId/ack", () => {
     });
     const { conversation } = (await convRes.json()) as any;
 
+    // Alice acks first to establish a read state baseline
+    await app.request(`/dms/${conversation.id}/ack`, {
+      method: "POST",
+      headers: getAuthHeaders(aliceToken),
+    });
+
+    // Wait to ensure message timestamps are after the ack
+    await new Promise((r) => setTimeout(r, 1100));
+
     // Bob sends messages
     await app.request(`/dms/${conversation.id}/messages`, {
       method: "POST",
@@ -220,10 +238,72 @@ describe("POST /dms/:conversationId/ack", () => {
   });
 });
 
+describe("unread count without read state", () => {
+  test("channels with no read state show 0 unread (not all messages)", async () => {
+    const { token } = await createTestUser(app, "alice", "alice@test.com");
+    const { server, channel } = await createServerWithChannel(token);
+
+    // Send messages but never ack
+    await app.request(`/channels/${channel.id}/messages`, {
+      method: "POST",
+      body: JSON.stringify({ content: "Message 1" }),
+      headers: getAuthHeaders(token),
+    });
+    await app.request(`/channels/${channel.id}/messages`, {
+      method: "POST",
+      body: JSON.stringify({ content: "Message 2" }),
+      headers: getAuthHeaders(token),
+    });
+
+    // Fetch channels — should show 0 unread since there's no read state
+    const res = await app.request(`/servers/${server.id}/channels`, {
+      headers: getAuthHeaders(token),
+    });
+    const data = (await res.json()) as any;
+    const ch = data.channels.find((c: any) => c.id === channel.id);
+    expect(ch.unreadCount).toBe(0);
+  });
+
+  test("DM conversations with no read state show 0 unread", async () => {
+    const { token: aliceToken } = await createTestUser(app, "alice", "alice@test.com");
+    const { token: bobToken, user: bob } = await createTestUser(app, "bob", "bob@test.com");
+
+    const convRes = await app.request("/dms/conversations", {
+      method: "POST",
+      body: JSON.stringify({ userId: bob.id }),
+      headers: getAuthHeaders(aliceToken),
+    });
+    const { conversation } = (await convRes.json()) as any;
+
+    // Bob sends messages but Alice never acks
+    await app.request(`/dms/${conversation.id}/messages`, {
+      method: "POST",
+      body: JSON.stringify({ content: "Hey!" }),
+      headers: getAuthHeaders(bobToken),
+    });
+
+    // Alice fetches conversations — should show 0 unread since no read state
+    const res = await app.request("/dms/conversations", {
+      headers: getAuthHeaders(aliceToken),
+    });
+    const data = (await res.json()) as any;
+    const conv = data.conversations.find((c: any) => c.id === conversation.id);
+    expect(conv.unreadCount).toBe(0);
+  });
+});
+
 describe("GET /servers/:serverId/channels - unread counts", () => {
   test("channels include unreadCount and lastReadMessageId", async () => {
     const { token } = await createTestUser(app, "alice", "alice@test.com");
     const { server, channel } = await createServerWithChannel(token);
+
+    // Ack first to establish a baseline
+    await app.request(`/channels/${channel.id}/ack`, {
+      method: "POST",
+      headers: getAuthHeaders(token),
+    });
+
+    await new Promise((r) => setTimeout(r, 1100));
 
     // Send a message
     await app.request(`/channels/${channel.id}/messages`, {
@@ -241,7 +321,6 @@ describe("GET /servers/:serverId/channels - unread counts", () => {
     expect(ch).toHaveProperty("unreadCount");
     expect(ch).toHaveProperty("lastReadMessageId");
     expect(ch.unreadCount).toBe(1);
-    expect(ch.lastReadMessageId).toBeNull();
   });
 });
 
@@ -256,6 +335,14 @@ describe("GET /dms/conversations - unread counts", () => {
       headers: getAuthHeaders(aliceToken),
     });
     const { conversation } = (await convRes.json()) as any;
+
+    // Alice acks to establish a baseline
+    await app.request(`/dms/${conversation.id}/ack`, {
+      method: "POST",
+      headers: getAuthHeaders(aliceToken),
+    });
+
+    await new Promise((r) => setTimeout(r, 1100));
 
     // Bob sends a message
     await app.request(`/dms/${conversation.id}/messages`, {

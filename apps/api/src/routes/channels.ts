@@ -99,13 +99,6 @@ channelRoutes.get("/servers/:serverId/channels", async (c) => {
             )
           );
         unreadCount = result?.count ?? 0;
-      } else {
-        // Never read — count all messages
-        const [result] = await db
-          .select({ count: sql<number>`count(*)` })
-          .from(messages)
-          .where(eq(messages.channelId, ch.id));
-        unreadCount = result?.count ?? 0;
       }
 
       return {

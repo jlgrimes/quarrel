@@ -200,12 +200,6 @@ dmRoutes.get("/conversations", async (c) => {
             )
           );
         unreadCount = countResult?.count ?? 0;
-      } else {
-        const [countResult] = await db
-          .select({ count: sql<number>`count(*)` })
-          .from(directMessages)
-          .where(eq(directMessages.conversationId, conv.id));
-        unreadCount = countResult?.count ?? 0;
       }
 
       return { ...conv, members: convMembers, unreadCount };
