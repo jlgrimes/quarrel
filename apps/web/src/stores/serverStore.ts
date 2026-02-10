@@ -50,15 +50,20 @@ export const useServerStore = create<ServerStore>((set, get) => ({
   setActiveServer: (id) => set({ activeServerId: id }),
   createServer: async (name) => {
     const server = await api.createServer(name);
-    set({ servers: [...get().servers, server] });
+    const current = get().servers;
+    set({ servers: [...(Array.isArray(current) ? current : []), server] });
     return server;
   },
   joinServer: async (inviteCode) => {
     const server = await api.joinServer(inviteCode);
-    set({ servers: [...get().servers, server] });
+    const current = get().servers;
+    set({ servers: [...(Array.isArray(current) ? current : []), server] });
     return server;
   },
-  addChannel: (channel) => set({ channels: [...get().channels, channel] }),
+  addChannel: (channel) => {
+    const current = get().channels;
+    set({ channels: [...(Array.isArray(current) ? current : []), channel] });
+  },
   updateMember: (member) => {
     const members = get().members;
     const idx = members.findIndex((m) => m.userId === member.userId);

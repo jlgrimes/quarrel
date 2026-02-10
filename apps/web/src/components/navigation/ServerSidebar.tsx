@@ -81,7 +81,7 @@ export default function ServerSidebar() {
   const navigate = useNavigate();
   const { serverId } = useParams();
   const servers = useServerStore((s) => s.servers) || [];
-  const channels = useServerStore((s) => s.channels);
+  const channels = useServerStore((s) => s.channels) || [];
   const openModal = useUIStore((s) => s.openModal);
 
   const handleServerClick = (server: { id: string }) => {

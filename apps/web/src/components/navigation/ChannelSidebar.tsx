@@ -74,8 +74,8 @@ function CategorySection({
 export default function ChannelSidebar() {
   const navigate = useNavigate();
   const { serverId, channelId } = useParams();
-  const servers = useServerStore((s) => s.servers);
-  const channels = useServerStore((s) => s.channels);
+  const servers = useServerStore((s) => s.servers) || [];
+  const channels = useServerStore((s) => s.channels) || [];
   const openModal = useUIStore((s) => s.openModal);
 
   const server = servers.find((s) => s.id === serverId);

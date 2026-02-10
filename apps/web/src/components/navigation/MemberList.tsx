@@ -94,7 +94,7 @@ function MemberSection({
 }
 
 export default function MemberList() {
-  const members = useServerStore((s) => s.members);
+  const members = useServerStore((s) => s.members) || [];
 
   const online = members.filter(
     (m) => m.user && m.user.status !== 'offline'
