@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { db, members, servers, users, roles, memberRoles } from "@quarrel/db";
+import { updateNicknameSchema } from "@quarrel/shared";
 import { eq, and, lt, desc } from "drizzle-orm";
 import { authMiddleware, type AuthEnv } from "../middleware/auth";
 
@@ -136,4 +137,34 @@ memberRoutes.delete("/servers/:serverId/members/:userId", async (c) => {
     );
 
   return c.json({ success: true });
+});
+
+memberRoutes.patch("/servers/:serverId/members/me/nickname", async (c) => {
+  const serverId = c.req.param("serverId");
+  const userId = c.get("userId");
+
+  // Check membership
+  const [member] = await db
+    .select({ id: members.id })
+    .from(members)
+    .where(and(eq(members.userId, userId), eq(members.serverId, serverId)))
+    .limit(1);
+
+  if (!member) {
+    return c.json({ error: "Not a member of this server" }, 403);
+  }
+
+  const body = await c.req.json();
+  const parsed = updateNicknameSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json({ error: parsed.error.flatten() }, 400);
+  }
+
+  const [updated] = await db
+    .update(members)
+    .set({ nickname: parsed.data.nickname })
+    .where(eq(members.id, member.id))
+    .returning();
+
+  return c.json({ member: updated });
 });

@@ -14,6 +14,9 @@ import { roleRoutes } from "./routes/roles";
 import { banRoutes } from "./routes/bans";
 import { embedRoutes } from "./routes/embeds";
 import { threadRoutes } from "./routes/threads";
+import { inviteRoutes } from "./routes/invites";
+import { auditLogRoutes } from "./routes/auditLog";
+import { timeoutRoutes } from "./routes/timeouts";
 import { websocketHandler, authenticateWS } from "./ws";
 import { globalRateLimit } from "./middleware/rateLimit";
 import { errorHandler } from "./middleware/errorHandler";
@@ -55,6 +58,9 @@ app.route("/", roleRoutes);
 app.route("/", banRoutes);
 app.route("/", embedRoutes);
 app.route("/", threadRoutes);
+app.route("/", inviteRoutes);
+app.route("/", auditLogRoutes);
+app.route("/", timeoutRoutes);
 
 const port = parseInt(process.env.PORT || "3001");
 

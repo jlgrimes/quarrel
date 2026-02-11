@@ -60,6 +60,7 @@ serverRoutes.get("/", async (c) => {
     .select({
       id: servers.id,
       name: servers.name,
+      description: servers.description,
       iconUrl: servers.iconUrl,
       ownerId: servers.ownerId,
       inviteCode: servers.inviteCode,
@@ -81,6 +82,7 @@ serverRoutes.get("/:id", async (c) => {
     .select({
       id: servers.id,
       name: servers.name,
+      description: servers.description,
       iconUrl: servers.iconUrl,
       ownerId: servers.ownerId,
       inviteCode: servers.inviteCode,

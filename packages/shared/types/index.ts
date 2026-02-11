@@ -14,12 +14,16 @@ export type User = {
   avatarUrl: string | null;
   status: UserStatus;
   customStatus: string | null;
+  bio: string | null;
+  bannerUrl: string | null;
+  pronouns: string | null;
   createdAt: string;
 };
 
 export type Server = {
   id: string;
   name: string;
+  description: string | null;
   iconUrl: string | null;
   ownerId: string;
   inviteCode: string;

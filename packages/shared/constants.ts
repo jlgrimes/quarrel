@@ -21,3 +21,20 @@ export const MESSAGE_BATCH_SIZE = 50;
 
 export const MAX_AVATAR_SIZE_BYTES = 8 * 1024 * 1024; // 8 MB
 export const ALLOWED_AVATAR_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'] as const;
+
+export const AUDIT_LOG_ACTIONS = {
+  MEMBER_KICK: 'member.kick',
+  MEMBER_BAN: 'member.ban',
+  MEMBER_UNBAN: 'member.unban',
+  MEMBER_TIMEOUT: 'member.timeout',
+  MEMBER_TIMEOUT_REMOVE: 'member.timeout_remove',
+  ROLE_CREATE: 'role.create',
+  ROLE_UPDATE: 'role.update',
+  ROLE_DELETE: 'role.delete',
+  CHANNEL_CREATE: 'channel.create',
+  CHANNEL_UPDATE: 'channel.update',
+  CHANNEL_DELETE: 'channel.delete',
+  INVITE_CREATE: 'invite.create',
+  INVITE_DELETE: 'invite.delete',
+  SERVER_UPDATE: 'server.update',
+} as const;

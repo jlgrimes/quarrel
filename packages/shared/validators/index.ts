@@ -18,6 +18,7 @@ export const createServerSchema = z.object({
 export const updateServerSchema = z.object({
   name: z.string().min(1).max(100).optional(),
   iconUrl: z.string().url().optional(),
+  description: z.string().max(1000).optional(),
 });
 
 export const createChannelSchema = z.object({
@@ -46,6 +47,13 @@ export const updateProfileSchema = z.object({
   displayName: z.string().max(32).optional(),
   avatarUrl: z.string().url().optional(),
   customStatus: z.string().max(128).optional(),
+  bio: z.string().max(190).optional(),
+  bannerUrl: z.string().url().optional(),
+  pronouns: z.string().max(50).optional(),
+});
+
+export const updateNicknameSchema = z.object({
+  nickname: z.string().max(32).nullable(),
 });
 
 export const createRoleSchema = z.object({
@@ -104,6 +112,20 @@ export const changePasswordSchema = z.object({
 
 export const deleteAccountSchema = z.object({
   password: z.string().min(1),
+});
+
+export const timeoutMemberSchema = z.object({
+  duration: z.number().int().min(60).max(2419200), // 1 min to 28 days
+  reason: z.string().max(512).optional(),
+});
+
+export const bulkDeleteSchema = z.object({
+  messageIds: z.array(z.string()).min(2).max(100),
+});
+
+export const createInviteSchema = z.object({
+  maxAge: z.number().int().min(0).max(604800).optional(), // 0 = never, max 7 days in seconds
+  maxUses: z.number().int().min(0).max(100).optional(), // 0 = unlimited
 });
 
 export const searchMessagesSchema = z.object({

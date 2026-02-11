@@ -7,6 +7,7 @@ export const servers = sqliteTable("servers", {
     .$defaultFn(() => crypto.randomUUID()),
   name: text("name").notNull(),
   iconUrl: text("icon_url"),
+  description: text("description"),
   ownerId: text("owner_id")
     .notNull()
     .references(() => users.id),

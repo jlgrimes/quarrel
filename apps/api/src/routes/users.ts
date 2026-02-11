@@ -253,6 +253,9 @@ userRoutes.get("/:id", async (c) => {
       avatarUrl: users.avatarUrl,
       status: users.status,
       customStatus: users.customStatus,
+      bio: users.bio,
+      bannerUrl: users.bannerUrl,
+      pronouns: users.pronouns,
       createdAt: users.createdAt,
     })
     .from(users)

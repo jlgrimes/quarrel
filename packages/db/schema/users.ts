@@ -11,5 +11,8 @@ export const users = sqliteTable("users", {
   avatarUrl: text("avatar_url"),
   status: text("status", { enum: ["online", "offline", "idle", "dnd"] }).default("offline"),
   customStatus: text("custom_status"),
+  bio: text("bio"),
+  bannerUrl: text("banner_url"),
+  pronouns: text("pronouns"),
   createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
 });

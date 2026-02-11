@@ -18,6 +18,9 @@ const createTablesSql = `
     avatar_url TEXT,
     status TEXT DEFAULT 'offline',
     custom_status TEXT,
+    bio TEXT,
+    banner_url TEXT,
+    pronouns TEXT,
     created_at INTEGER
   );
 
@@ -31,6 +34,7 @@ const createTablesSql = `
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
     icon_url TEXT,
+    description TEXT,
     owner_id TEXT NOT NULL REFERENCES users(id),
     invite_code TEXT UNIQUE NOT NULL,
     created_at INTEGER
@@ -187,6 +191,45 @@ const createTablesSql = `
   );
   CREATE INDEX IF NOT EXISTS user_settings_user_idx ON user_settings(user_id);
 
+  CREATE TABLE IF NOT EXISTS invites (
+    id TEXT PRIMARY KEY,
+    server_id TEXT NOT NULL REFERENCES servers(id),
+    code TEXT UNIQUE NOT NULL,
+    created_by TEXT NOT NULL REFERENCES users(id),
+    expires_at INTEGER,
+    max_uses INTEGER,
+    uses INTEGER NOT NULL DEFAULT 0,
+    created_at INTEGER
+  );
+  CREATE INDEX IF NOT EXISTS invites_server_idx ON invites(server_id);
+  CREATE INDEX IF NOT EXISTS invites_code_idx ON invites(code);
+
+  CREATE TABLE IF NOT EXISTS audit_log (
+    id TEXT PRIMARY KEY,
+    server_id TEXT NOT NULL REFERENCES servers(id),
+    actor_id TEXT NOT NULL REFERENCES users(id),
+    action TEXT NOT NULL,
+    target_id TEXT,
+    target_type TEXT,
+    reason TEXT,
+    metadata TEXT,
+    created_at INTEGER
+  );
+  CREATE INDEX IF NOT EXISTS audit_log_server_created_at_idx ON audit_log(server_id, created_at);
+  CREATE INDEX IF NOT EXISTS audit_log_actor_idx ON audit_log(actor_id);
+
+  CREATE TABLE IF NOT EXISTS timeouts (
+    id TEXT PRIMARY KEY,
+    server_id TEXT NOT NULL REFERENCES servers(id),
+    user_id TEXT NOT NULL REFERENCES users(id),
+    timed_out_by TEXT NOT NULL REFERENCES users(id),
+    reason TEXT,
+    expires_at INTEGER NOT NULL,
+    created_at INTEGER
+  );
+  CREATE INDEX IF NOT EXISTS timeouts_server_user_idx ON timeouts(server_id, user_id);
+  CREATE INDEX IF NOT EXISTS timeouts_expires_at_idx ON timeouts(expires_at);
+
   CREATE TABLE IF NOT EXISTS read_state (
     id TEXT PRIMARY KEY,
     user_id TEXT NOT NULL REFERENCES users(id),
@@ -214,6 +257,9 @@ export async function setupDatabase() {
 
 export async function clearDatabase() {
   const tables = [
+    "timeouts",
+    "audit_log",
+    "invites",
     "user_settings",
     "read_state",
     "thread_members",
@@ -302,6 +348,9 @@ const { roleRoutes } = await import("../routes/roles");
 const { banRoutes } = await import("../routes/bans");
 const { embedRoutes } = await import("../routes/embeds");
 const { threadRoutes } = await import("../routes/threads");
+const { inviteRoutes } = await import("../routes/invites");
+const { auditLogRoutes } = await import("../routes/auditLog");
+const { timeoutRoutes } = await import("../routes/timeouts");
 
 const { secureHeaders } = await import("hono/secure-headers");
 const { errorHandler } = await import("../middleware/errorHandler");
@@ -323,6 +372,9 @@ export function createApp() {
   app.route("/", banRoutes);
   app.route("/", embedRoutes);
   app.route("/", threadRoutes);
+  app.route("/", inviteRoutes);
+  app.route("/", auditLogRoutes);
+  app.route("/", timeoutRoutes);
   return app;
 }
 

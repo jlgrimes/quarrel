@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { db, messages, channels, members, users, servers, reactions } from "@quarrel/db";
-import { sendMessageSchema, editMessageSchema, searchMessagesSchema, MESSAGE_BATCH_SIZE } from "@quarrel/shared";
+import { sendMessageSchema, editMessageSchema, searchMessagesSchema, bulkDeleteSchema, MESSAGE_BATCH_SIZE, PERMISSIONS } from "@quarrel/shared";
+import { roles, memberRoles } from "@quarrel/db";
 import { eq, and, lt, gt, desc, inArray, isNotNull, like, sql } from "drizzle-orm";
 import { authMiddleware, type AuthEnv } from "../middleware/auth";
 import { broadcastToChannel } from "../ws";
@@ -221,6 +222,82 @@ messageRoutes.delete("/messages/:id", async (c) => {
     .where(eq(messages.id, messageId));
 
   return c.json({ success: true });
+});
+
+// Bulk delete messages
+messageRoutes.post("/channels/:channelId/messages/bulk-delete", async (c) => {
+  const channelId = c.req.param("channelId");
+  const userId = c.get("userId");
+
+  const body = await c.req.json();
+  const parsed = bulkDeleteSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json({ error: parsed.error.flatten() }, 400);
+  }
+
+  // Get channel's server
+  const [channel] = await db
+    .select({ id: channels.id, serverId: channels.serverId })
+    .from(channels)
+    .where(eq(channels.id, channelId))
+    .limit(1);
+
+  if (!channel) {
+    return c.json({ error: "Channel not found" }, 404);
+  }
+
+  // Check permission: owner or MANAGE_MESSAGES
+  const [server] = await db
+    .select({ ownerId: servers.ownerId })
+    .from(servers)
+    .where(eq(servers.id, channel.serverId))
+    .limit(1);
+
+  let allowed = server?.ownerId === userId;
+  if (!allowed) {
+    const [member] = await db
+      .select({ id: members.id })
+      .from(members)
+      .where(and(eq(members.userId, userId), eq(members.serverId, channel.serverId)))
+      .limit(1);
+    if (member) {
+      const memberRolesList = await db
+        .select({ permissions: roles.permissions })
+        .from(memberRoles)
+        .innerJoin(roles, eq(memberRoles.roleId, roles.id))
+        .where(eq(memberRoles.memberId, member.id));
+      const combined = memberRolesList.reduce((acc, r) => acc | r.permissions, 0);
+      allowed = (combined & PERMISSIONS.ADMINISTRATOR) !== 0 || (combined & PERMISSIONS.MANAGE_MESSAGES) !== 0;
+    }
+  }
+
+  if (!allowed) {
+    return c.json({ error: "Missing permissions" }, 403);
+  }
+
+  // Verify all messages belong to this channel
+  const targetMessages = await db
+    .select({ id: messages.id })
+    .from(messages)
+    .where(
+      and(
+        eq(messages.channelId, channelId),
+        inArray(messages.id, parsed.data.messageIds)
+      )
+    );
+
+  const validIds = targetMessages.map((m) => m.id);
+  if (validIds.length === 0) {
+    return c.json({ error: "No valid messages found in this channel" }, 400);
+  }
+
+  // Soft-delete
+  await db
+    .update(messages)
+    .set({ deleted: true })
+    .where(inArray(messages.id, validIds));
+
+  return c.json({ deleted: validIds.length });
 });
 
 // Pin a message (server owner only)
@@ -714,4 +791,72 @@ messageRoutes.get("/messages/:id/reactions", async (c) => {
   const messageReactions = reactionsMap.get(messageId) ?? [];
 
   return c.json({ reactions: messageReactions });
+});
+
+// Bulk delete messages
+messageRoutes.post("/channels/:channelId/messages/bulk-delete", async (c) => {
+  const channelId = c.req.param("channelId");
+  const userId = c.get("userId");
+
+  const body = await c.req.json();
+  const parsed = bulkDeleteSchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json({ error: parsed.error.flatten() }, 400);
+  }
+
+  // Find channel and its server
+  const [channel] = await db
+    .select({ id: channels.id, serverId: channels.serverId })
+    .from(channels)
+    .where(eq(channels.id, channelId))
+    .limit(1);
+
+  if (!channel) {
+    return c.json({ error: "Channel not found" }, 404);
+  }
+
+  // Check permission: owner or MANAGE_MESSAGES
+  const [server] = await db
+    .select({ ownerId: servers.ownerId })
+    .from(servers)
+    .where(eq(servers.id, channel.serverId))
+    .limit(1);
+
+  let allowed = server?.ownerId === userId;
+  if (!allowed) {
+    const [member] = await db
+      .select({ id: members.id })
+      .from(members)
+      .where(and(eq(members.userId, userId), eq(members.serverId, channel.serverId)))
+      .limit(1);
+
+    if (member) {
+      const memberRolesList = await db
+        .select({ permissions: roles.permissions })
+        .from(memberRoles)
+        .innerJoin(roles, eq(memberRoles.roleId, roles.id))
+        .where(eq(memberRoles.memberId, member.id));
+
+      const combined = memberRolesList.reduce((acc, r) => acc | r.permissions, 0);
+      allowed = (combined & PERMISSIONS.ADMINISTRATOR) !== 0 || (combined & PERMISSIONS.MANAGE_MESSAGES) !== 0;
+    }
+  }
+
+  if (!allowed) {
+    return c.json({ error: "Forbidden" }, 403);
+  }
+
+  // Soft-delete all specified messages that belong to this channel
+  const result = await db
+    .update(messages)
+    .set({ deleted: true })
+    .where(
+      and(
+        eq(messages.channelId, channelId),
+        inArray(messages.id, parsed.data.messageIds)
+      )
+    )
+    .returning({ id: messages.id });
+
+  return c.json({ deleted: result.length });
 });
