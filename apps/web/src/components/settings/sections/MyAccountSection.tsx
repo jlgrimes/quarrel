@@ -139,6 +139,20 @@ export function MyAccountSection() {
         </Button>
       </div>
 
+      {/* Log Out */}
+      <div className="mb-8">
+        <Button
+          onClick={async () => {
+            analytics.capture('auth:logout');
+            closeModal();
+            await logout();
+          }}
+          className="rounded bg-[#4e5058] px-4 py-2 font-medium text-white hover:bg-[#6d6f78]"
+        >
+          Log Out
+        </Button>
+      </div>
+
       {/* Account Deletion */}
       <div className="rounded-lg border border-[#f23f43]/30 p-4">
         <h2 className="mb-2 text-base font-bold text-[#f23f43]">Delete Account</h2>

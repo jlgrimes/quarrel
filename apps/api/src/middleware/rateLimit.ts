@@ -1,13 +1,15 @@
 import { createMiddleware } from "hono/factory";
 import { RateLimiterMemory } from "rate-limiter-flexible";
 
+const isProduction = process.env.NODE_ENV === "production";
+
 const globalLimiter = new RateLimiterMemory({
-  points: 100,
+  points: isProduction ? 100 : 10000,
   duration: 60,
 });
 
 const authLimiter = new RateLimiterMemory({
-  points: 5,
+  points: isProduction ? 5 : 100,
   duration: 60,
 });
 

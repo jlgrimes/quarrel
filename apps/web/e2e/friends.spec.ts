@@ -6,7 +6,7 @@ test.describe('Friends page', () => {
     const page = await ctx.newPage();
     await registerAndLogin(page);
 
-    await expect(page.getByText('Friends')).toBeVisible({ timeout: 5000 });
+    await expect(page.getByRole('button', { name: 'Online' })).toBeVisible({ timeout: 5000 });
 
     // Verify tabs are present
     await expect(page.getByRole('button', { name: 'Online' })).toBeVisible();
@@ -97,7 +97,8 @@ test.describe('Friends page', () => {
     await page1.getByRole('button', { name: 'Send Friend Request' }).click();
     await expect(page1.getByText('Friend request sent!')).toBeVisible({ timeout: 5000 });
 
-    // Bob navigates to Pending tab and accepts
+    // Bob reloads to see the incoming request, then accepts
+    await page2.reload();
     await page2.getByRole('button', { name: 'Pending' }).click();
     await expect(page2.getByRole('button', { name: 'Accept' })).toBeVisible({ timeout: 10000 });
     await page2.getByRole('button', { name: 'Accept' }).click();

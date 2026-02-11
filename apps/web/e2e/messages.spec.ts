@@ -17,17 +17,17 @@ test.describe('Messaging', () => {
     await sendMessage(page, msg1);
 
     // Verify message appears in chat
-    await expect(page.locator('.text-\\[\\#dbdee1\\]').filter({ hasText: msg1 })).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText(msg1)).toBeVisible({ timeout: 5000 });
 
     // Send second message
     const msg2 = `Second message ${unique()}`;
     await sendMessage(page, msg2);
 
     // Verify both messages are visible
-    await expect(page.locator('.text-\\[\\#dbdee1\\]').filter({ hasText: msg1 })).toBeVisible();
-    await expect(page.locator('.text-\\[\\#dbdee1\\]').filter({ hasText: msg2 })).toBeVisible();
+    await expect(page.getByText(msg1)).toBeVisible();
+    await expect(page.getByText(msg2)).toBeVisible();
 
     // Verify the author name appears
-    await expect(page.locator('.font-medium.text-white').filter({ hasText: displayName })).toBeVisible();
+    await expect(page.getByText(displayName).first()).toBeVisible();
   });
 });

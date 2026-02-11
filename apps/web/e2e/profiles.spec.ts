@@ -57,7 +57,7 @@ test.describe('Profile editing', () => {
 
     // Switch to Notifications
     await page.getByRole('button', { name: 'Notifications' }).click();
-    await expect(page.getByRole('heading', { name: 'Notifications' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Notifications', exact: true })).toBeVisible();
 
     // Close via ESC
     await page.keyboard.press('Escape');

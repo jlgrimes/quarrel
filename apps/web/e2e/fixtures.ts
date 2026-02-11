@@ -40,8 +40,11 @@ export async function createServer(
 export async function sendMessage(page: Page, content: string): Promise<void> {
   const messageInput = page.locator('textarea[placeholder*="Message"]');
   await expect(messageInput).toBeVisible({ timeout: 5000 });
+  await messageInput.click();
   await messageInput.fill(content);
-  await messageInput.press('Enter');
+  await page.keyboard.press('Enter');
+  // Wait for input to clear (indicates message was sent)
+  await expect(messageInput).toHaveValue('', { timeout: 5000 });
 }
 
 export async function openSettings(page: Page): Promise<void> {

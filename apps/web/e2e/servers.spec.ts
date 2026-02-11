@@ -7,7 +7,7 @@ test.describe('Server management', () => {
     const serverName = await createServer(page);
 
     // The server name should appear in the channel sidebar header
-    await expect(page.locator('.w-60 h2').filter({ hasText: serverName })).toBeVisible({ timeout: 5000 });
+    await expect(page.getByRole('heading', { name: serverName })).toBeVisible({ timeout: 5000 });
 
     // Should see #general channel (auto-created)
     await expect(page.locator('button:has-text("general")')).toBeVisible({ timeout: 5000 });

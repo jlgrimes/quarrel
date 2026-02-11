@@ -13,7 +13,7 @@ test.describe('Server invites', () => {
     await expect(page.getByText('Share this invite code')).toBeVisible();
 
     // Verify invite code input has a value
-    const inviteInput = page.getByLabel('Invite Code').locator('input');
+    const inviteInput = page.locator('input[readonly]');
     const inviteCode = await inviteInput.inputValue();
     expect(inviteCode.length).toBeGreaterThan(0);
 
@@ -33,7 +33,7 @@ test.describe('Server invites', () => {
     // Open invite modal and get the invite code
     await page1.getByRole('button', { name: 'Invite people' }).click({ force: true });
     await expect(page1.getByRole('heading', { name: /invite people to/i })).toBeVisible({ timeout: 5000 });
-    const inviteCode = await page1.getByLabel('Invite Code').locator('input').inputValue();
+    const inviteCode = await page1.locator('input[readonly]').inputValue();
     expect(inviteCode.length).toBeGreaterThan(0);
 
     // User 2 registers and joins via invite code
@@ -53,7 +53,7 @@ test.describe('Server invites', () => {
     await expect(page2).toHaveURL(/\/channels\/[^@]/, { timeout: 10000 });
 
     // The server name should be visible in the sidebar
-    await expect(page2.locator('.w-60 h2').filter({ hasText: serverName })).toBeVisible({ timeout: 5000 });
+    await expect(page2.getByRole('heading', { name: serverName })).toBeVisible({ timeout: 5000 });
 
     await ctx1.close();
     await ctx2.close();
