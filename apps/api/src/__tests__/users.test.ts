@@ -6,6 +6,7 @@ import {
   createTestUser,
   getAuthHeaders,
   r2MockOverride,
+  analyticsMock,
 } from "./helpers";
 import type { Hono } from "hono";
 
@@ -18,6 +19,7 @@ beforeAll(async () => {
 
 beforeEach(async () => {
   await clearDatabase();
+  analyticsMock.clear();
 });
 
 describe("POST /users/me/avatar/presign", () => {
@@ -95,6 +97,34 @@ describe("POST /users/me/avatar/presign", () => {
       expect(res.status).toBe(500);
       const data = (await res.json()) as any;
       expect(data.error).toBe("Failed to generate upload URL");
+    } finally {
+      delete r2MockOverride.createPresignedUploadUrl;
+    }
+  });
+
+  test("captures $exception event when R2 presign fails", async () => {
+    r2MockOverride.createPresignedUploadUrl = async () => {
+      throw new Error("R2 unavailable");
+    };
+    try {
+      const { token, user } = await createTestUser(app, "alice", "alice@example.com");
+      await app.request("/users/me/avatar/presign", {
+        method: "POST",
+        body: JSON.stringify({
+          contentType: "image/png",
+          contentLength: 1024,
+        }),
+        headers: getAuthHeaders(token),
+      });
+
+      const exceptionEvents = analyticsMock.events.filter(
+        (e) => e.event === "$exception"
+      );
+      expect(exceptionEvents.length).toBe(1);
+      expect(exceptionEvents[0].distinctId).toBe(user.id);
+      expect(exceptionEvents[0].properties?.$exception_message).toBe("R2 unavailable");
+      expect(exceptionEvents[0].properties?.$exception_type).toBe("Error");
+      expect(exceptionEvents[0].properties?.$exception_stack_trace_raw).toBeDefined();
     } finally {
       delete r2MockOverride.createPresignedUploadUrl;
     }

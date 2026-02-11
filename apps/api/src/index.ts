@@ -16,6 +16,8 @@ import { embedRoutes } from "./routes/embeds";
 import { threadRoutes } from "./routes/threads";
 import { websocketHandler, authenticateWS } from "./ws";
 import { globalRateLimit } from "./middleware/rateLimit";
+import { errorHandler } from "./middleware/errorHandler";
+import { analytics } from "./lib/analytics";
 
 const app = new Hono();
 
@@ -35,6 +37,7 @@ app.use(
 app.use(logger());
 app.use(secureHeaders());
 app.use(globalRateLimit);
+app.onError(errorHandler);
 
 // Health check
 app.get("/health", (c) => c.json({ status: "ok" }));
@@ -81,5 +84,12 @@ const server = Bun.serve({
   },
   websocket: websocketHandler,
 });
+
+const shutdown = async () => {
+  await analytics.shutdown();
+  process.exit(0);
+};
+process.on("SIGTERM", shutdown);
+process.on("SIGINT", shutdown);
 
 console.log(`Quarrel API running on http://localhost:${server.port}`);

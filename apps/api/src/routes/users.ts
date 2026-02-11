@@ -11,6 +11,7 @@ import { eq } from "drizzle-orm";
 import { deleteCookie } from "hono/cookie";
 import { authMiddleware, type AuthEnv } from "../middleware/auth";
 import { createPresignedUploadUrl, deleteR2Object, R2_PUBLIC_URL } from "../lib/r2";
+import { captureException } from "../middleware/errorHandler";
 
 export const userRoutes = new Hono<AuthEnv>();
 
@@ -66,7 +67,9 @@ userRoutes.post("/me/avatar/presign", async (c) => {
       parsed.data.contentLength
     );
     return c.json({ presignedUrl, publicUrl });
-  } catch {
+  } catch (err) {
+    console.error("Avatar presign failed:", err);
+    captureException(err, c, { distinctId: userId });
     return c.json({ error: "Failed to generate upload URL" }, 500);
   }
 });

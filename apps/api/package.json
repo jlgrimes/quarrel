@@ -12,6 +12,7 @@
     "@quarrel/db": "workspace:*",
     "@quarrel/shared": "workspace:*",
     "hono": "^4.6.0",
+    "posthog-node": "^5.24.15",
     "rate-limiter-flexible": "^9.1.1"
   },
   "devDependencies": {

@@ -250,6 +250,24 @@ mock.module("@quarrel/db", () => ({
   ...schema,
 }));
 
+// Mock analytics for testing — capture calls are recorded in analyticsMock.events
+export const analyticsMock = {
+  events: [] as Array<{ distinctId: string; event: string; properties?: Record<string, unknown> }>,
+  clear() {
+    this.events.length = 0;
+  },
+};
+
+mock.module("../lib/analytics", () => ({
+  analytics: {
+    capture(distinctId: string, event: string, properties?: Record<string, unknown>) {
+      analyticsMock.events.push({ distinctId, event, properties });
+    },
+    async shutdown() {},
+  },
+  isEnabled: () => false,
+}));
+
 // Mock R2 client for testing — override via r2MockOverride for error tests
 export let r2MockOverride: { createPresignedUploadUrl?: Function } = {};
 
@@ -286,10 +304,12 @@ const { embedRoutes } = await import("../routes/embeds");
 const { threadRoutes } = await import("../routes/threads");
 
 const { secureHeaders } = await import("hono/secure-headers");
+const { errorHandler } = await import("../middleware/errorHandler");
 
 export function createApp() {
   const app = new Hono();
   app.use(secureHeaders());
+  app.onError(errorHandler);
   app.get("/health", (c) => c.json({ status: "ok" }));
   app.route("/auth", authRoutes);
   app.route("/servers", serverRoutes);
