@@ -18,9 +18,6 @@ jobs:
           - platform: macos-latest
             target: aarch64-apple-darwin
             bundles: dmg
-          - platform: macos-13
-            target: x86_64-apple-darwin
-            bundles: dmg
 
     runs-on: ${{ matrix.platform }}
 
@@ -34,6 +31,26 @@ jobs:
 
       - name: Install Bun
         uses: oven-sh/setup-bun@v2
+
+      - name: Import Apple certificate
+        if: startsWith(matrix.platform, 'macos')
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+        run: |
+          CERTIFICATE_PATH=$RUNNER_TEMP/certificate.p12
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+          KEYCHAIN_PASSWORD=$(openssl rand -base64 32)
+
+          echo -n "$APPLE_CERTIFICATE" | base64 --decode -o $CERTIFICATE_PATH
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+
+          security import $CERTIFICATE_PATH -P "$APPLE_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
+          security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          security list-keychain -d user -s $KEYCHAIN_PATH
 
       - name: Install web dependencies
         run: bun install
@@ -71,3 +88,7 @@ jobs:
           for file in apps/desktop/src-tauri/target/${{ matrix.target }}/release/bundle/dmg/*.dmg; do
             gh release upload "${{ inputs.tag }}" "$file" --clobber
           done
+
+      - name: Clean up keychain
+        if: startsWith(matrix.platform, 'macos') && always()
+        run: security delete-keychain $RUNNER_TEMP/app-signing.keychain-db
