@@ -127,11 +127,14 @@ export const api = {
 
   uploadAvatar: async (file: File) => {
     const { presignedUrl, publicUrl } = await api.getAvatarPresignUrl(file.type, file.size);
-    await fetch(presignedUrl, {
+    const uploadRes = await fetch(presignedUrl, {
       method: 'PUT',
       body: file,
       headers: { 'Content-Type': file.type },
     });
+    if (!uploadRes.ok) {
+      throw new Error('Failed to upload avatar');
+    }
     return api.updateProfile({ avatarUrl: publicUrl });
   },
 

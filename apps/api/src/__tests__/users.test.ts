@@ -5,6 +5,7 @@ import {
   createApp,
   createTestUser,
   getAuthHeaders,
+  r2MockOverride,
 } from "./helpers";
 import type { Hono } from "hono";
 
@@ -75,6 +76,28 @@ describe("POST /users/me/avatar/presign", () => {
       headers: { "Content-Type": "application/json" },
     });
     expect(res.status).toBe(401);
+  });
+
+  test("returns 500 with error message when R2 fails", async () => {
+    r2MockOverride.createPresignedUploadUrl = async () => {
+      throw new Error("R2 unavailable");
+    };
+    try {
+      const { token } = await createTestUser(app, "alice", "alice@example.com");
+      const res = await app.request("/users/me/avatar/presign", {
+        method: "POST",
+        body: JSON.stringify({
+          contentType: "image/png",
+          contentLength: 1024,
+        }),
+        headers: getAuthHeaders(token),
+      });
+      expect(res.status).toBe(500);
+      const data = (await res.json()) as any;
+      expect(data.error).toBe("Failed to generate upload URL");
+    } finally {
+      delete r2MockOverride.createPresignedUploadUrl;
+    }
   });
 });
 

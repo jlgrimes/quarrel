@@ -250,12 +250,19 @@ mock.module("@quarrel/db", () => ({
   ...schema,
 }));
 
-// Mock R2 client for testing
+// Mock R2 client for testing — override via r2MockOverride for error tests
+export let r2MockOverride: { createPresignedUploadUrl?: Function } = {};
+
 mock.module("../lib/r2", () => ({
-  createPresignedUploadUrl: async (key: string, contentType: string, contentLength: number) => ({
-    presignedUrl: `https://r2-mock.example.com/upload/${key}?presigned=true`,
-    publicUrl: `https://cdn.example.com/${key}`,
-  }),
+  createPresignedUploadUrl: async (key: string, contentType: string, contentLength: number) => {
+    if (r2MockOverride.createPresignedUploadUrl) {
+      return r2MockOverride.createPresignedUploadUrl(key, contentType, contentLength);
+    }
+    return {
+      presignedUrl: `https://r2-mock.example.com/upload/${key}?presigned=true`,
+      publicUrl: `https://cdn.example.com/${key}`,
+    };
+  },
   deleteR2Object: async (key: string) => {},
   R2_PUBLIC_URL: "https://cdn.example.com",
 }));

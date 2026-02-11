@@ -59,12 +59,16 @@ userRoutes.post("/me/avatar/presign", async (c) => {
   }
   const ext = parsed.data.contentType.split("/")[1];
   const key = `avatars/${userId}/${crypto.randomUUID()}.${ext}`;
-  const { presignedUrl, publicUrl } = await createPresignedUploadUrl(
-    key,
-    parsed.data.contentType,
-    parsed.data.contentLength
-  );
-  return c.json({ presignedUrl, publicUrl });
+  try {
+    const { presignedUrl, publicUrl } = await createPresignedUploadUrl(
+      key,
+      parsed.data.contentType,
+      parsed.data.contentLength
+    );
+    return c.json({ presignedUrl, publicUrl });
+  } catch {
+    return c.json({ error: "Failed to generate upload URL" }, 500);
+  }
 });
 
 userRoutes.delete("/me/avatar", async (c) => {
