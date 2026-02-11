@@ -644,9 +644,9 @@ describe("POST /dms/:conversationId/leave", () => {
   });
 
   test("owner leaving transfers ownership", async () => {
-    const { token: aliceToken } = await createTestUser(app, "alice", "alice@example.com");
+    const { token: aliceToken, user: alice } = await createTestUser(app, "alice", "alice@example.com");
     const { token: bobToken, user: bob } = await createTestUser(app, "bob", "bob@example.com");
-    const { user: carol } = await createTestUser(app, "carol", "carol@example.com");
+    const { token: carolToken, user: carol } = await createTestUser(app, "carol", "carol@example.com");
 
     const convRes = await app.request("/dms/conversations/group", {
       method: "POST",
@@ -654,6 +654,7 @@ describe("POST /dms/:conversationId/leave", () => {
       headers: getAuthHeaders(aliceToken),
     });
     const { conversation } = (await convRes.json()) as any;
+    expect(conversation.ownerId).toBe(alice.id);
 
     // Alice (owner) leaves
     const res = await app.request(`/dms/${conversation.id}/leave`, {
@@ -662,11 +663,19 @@ describe("POST /dms/:conversationId/leave", () => {
     });
     expect(res.status).toBe(200);
 
-    // Bob should now be able to update the group (as new owner)
+    // Verify ownership was transferred to one of the remaining members
+    const { db, conversations: convTable } = await import("@quarrel/db");
+    const { eq } = await import("drizzle-orm");
+    const [dbConv] = await db.select().from(convTable).where(eq(convTable.id, conversation.id)).limit(1);
+    expect(dbConv.ownerId).not.toBe(alice.id);
+    expect([bob.id, carol.id]).toContain(dbConv.ownerId);
+
+    // New owner should be able to update the group
+    const newOwnerToken = dbConv.ownerId === bob.id ? bobToken : carolToken;
     const updateRes = await app.request(`/dms/${conversation.id}`, {
       method: "PATCH",
-      body: JSON.stringify({ name: "Bob's Group" }),
-      headers: getAuthHeaders(bobToken),
+      body: JSON.stringify({ name: "New Owner's Group" }),
+      headers: getAuthHeaders(newOwnerToken),
     });
     expect(updateRes.status).toBe(200);
   });
