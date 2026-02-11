@@ -1,20 +1,4 @@
-import { test, expect } from '@playwright/test';
-
-const unique = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-
-async function registerAndLogin(page: import('@playwright/test').Page, username?: string) {
-  const id = username || unique();
-  const email = `test-${id}@example.com`;
-  const password = 'TestPass123!';
-
-  await page.goto('/register');
-  await page.getByLabel(/email/i).fill(email);
-  await page.getByLabel(/display name/i).fill(id);
-  await page.getByLabel(/password/i).fill(password);
-  await page.getByRole('button', { name: /continue/i }).click();
-  await expect(page).toHaveURL(/\/channels\/@me/, { timeout: 10000 });
-  return { email, password, username: id };
-}
+import { test, expect, unique, registerAndLogin } from './fixtures';
 
 test.describe('Friends page', () => {
   test('friends page loads with tabs', async ({ browser }) => {
@@ -59,7 +43,7 @@ test.describe('Friends page', () => {
     const bob = await registerAndLogin(page2, `bob${id}`);
 
     // Alice sends friend request to Bob by username
-    await page1.getByPlaceholder('Enter a username').fill(bob.username);
+    await page1.getByPlaceholder('Enter a username').fill(bob.displayName);
     await page1.getByRole('button', { name: 'Send Friend Request' }).click();
     await expect(page1.getByText('Friend request sent!')).toBeVisible({ timeout: 5000 });
 
@@ -88,7 +72,7 @@ test.describe('Friends page', () => {
     const page = await ctx.newPage();
     const user = await registerAndLogin(page);
 
-    await page.getByPlaceholder('Enter a username').fill(user.username);
+    await page.getByPlaceholder('Enter a username').fill(user.displayName);
     await page.getByRole('button', { name: 'Send Friend Request' }).click();
     await expect(page.getByText('Cannot friend yourself')).toBeVisible({ timeout: 5000 });
 
@@ -109,7 +93,7 @@ test.describe('Friends page', () => {
     const bob = await registerAndLogin(page2, `bob${id}`);
 
     // Alice sends request to Bob
-    await page1.getByPlaceholder('Enter a username').fill(bob.username);
+    await page1.getByPlaceholder('Enter a username').fill(bob.displayName);
     await page1.getByRole('button', { name: 'Send Friend Request' }).click();
     await expect(page1.getByText('Friend request sent!')).toBeVisible({ timeout: 5000 });
 

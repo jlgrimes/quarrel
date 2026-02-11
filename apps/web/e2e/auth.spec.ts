@@ -1,6 +1,4 @@
-import { test, expect } from '@playwright/test';
-
-const unique = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+import { test, expect, unique } from './fixtures';
 
 test.describe('Auth flow', () => {
   test('register, logout, login, and fail with wrong password', async ({ page }) => {
