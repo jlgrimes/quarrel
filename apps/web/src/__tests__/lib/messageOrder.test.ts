@@ -23,4 +23,13 @@ describe('normalizeChronological', () => {
     expect(result).toHaveLength(2);
     expect(result.find((m) => m.id === 'm1')?.content).toBe('new');
   });
+
+  it('preserves input order when createdAt timestamps are identical', () => {
+    const result = normalizeChronological([
+      { id: 'user-msg', createdAt: '2024-01-01T00:01:00.000Z' },
+      { id: 'bot-msg', createdAt: '2024-01-01T00:01:00.000Z' },
+    ]);
+
+    expect(result.map((m) => m.id)).toEqual(['user-msg', 'bot-msg']);
+  });
 });

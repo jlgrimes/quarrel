@@ -234,29 +234,29 @@ export default function ChannelSidebar() {
         <h2 className="font-semibold text-white truncate flex-1">{server.name}</h2>
         <Button
           variant="ghost"
-          size="icon-xs"
+          size="icon"
           onClick={() => openModal('inviteServer')}
           className="text-text-muted hover:text-text-normal opacity-0 group-hover:opacity-100 transition-opacity leading-none ml-auto"
           aria-label="Invite people"
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
             <path d="M14 8.5a2.5 2.5 0 1 0-5 0 2.5 2.5 0 0 0 5 0M11.5 4a4.5 4.5 0 1 1 0 9 4.5 4.5 0 0 1 0-9M17.5 12a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3m0-5a3.5 3.5 0 1 1 0 7 3.5 3.5 0 0 1 0-7M3 19c0-3.04 2.46-5.5 5.5-5.5h6c3.04 0 5.5 2.46 5.5 5.5v1h-2v-1a3.5 3.5 0 0 0-3.5-3.5h-6A3.5 3.5 0 0 0 5 19v1H3zm18 1h-2v-1c0-.35-.07-.69-.18-1H21z" />
           </svg>
         </Button>
         <Button
           variant="ghost"
-          size="icon-xs"
+          size="icon"
           onClick={() => openModal('serverSettings')}
           className="text-text-muted hover:text-text-normal opacity-0 group-hover:opacity-100 transition-opacity leading-none ml-1"
           aria-label="Server settings"
         >
-          <Settings size={16} />
+          <Settings size={18} />
         </Button>
         <Button
           variant="ghost"
-          size="icon-xs"
+          size="icon"
           onClick={() => openModal('createChannel')}
-          className="text-text-muted hover:text-text-normal opacity-0 group-hover:opacity-100 transition-opacity text-lg leading-none ml-1"
+          className="text-text-muted hover:text-text-normal opacity-0 group-hover:opacity-100 transition-opacity text-xl leading-none ml-1"
           aria-label="Create channel"
         >
           +

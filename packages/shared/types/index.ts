@@ -162,6 +162,7 @@ export type WSClientEvents =
 
 export type WSServerEvents =
   | 'message:new'
+  | 'message:stream'
   | 'message:updated'
   | 'message:deleted'
   | 'message:pinned'

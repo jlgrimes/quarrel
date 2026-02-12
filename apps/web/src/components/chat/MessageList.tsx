@@ -125,7 +125,7 @@ const MessageActions = memo(function MessageActions({
 }: {
   message: Message;
   isOwn: boolean;
-  onOpenReactionPicker: (messageId: string) => void;
+  onOpenReactionPicker: (messageId: string, anchorEl: HTMLElement) => void;
   onPin: (id: string) => void;
   onUnpin: (id: string) => void;
 }) {
@@ -140,7 +140,7 @@ const MessageActions = memo(function MessageActions({
       <Button
         variant="ghost"
         size="xs"
-        onClick={() => onOpenReactionPicker(message.id)}
+        onClick={(e) => onOpenReactionPicker(message.id, e.currentTarget)}
         className="px-2 py-1 text-text-label hover:text-white hover:bg-bg-modifier-hover text-xs rounded-none"
         title="Add Reaction"
       >
@@ -264,7 +264,11 @@ export function MessageList({ channelId, lastReadMessageId, members: membersList
   const bottomRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const shouldAutoScroll = useRef(true);
-  const [reactionPickerMessageId, setReactionPickerMessageId] = useState<string | null>(null);
+  const [reactionPickerState, setReactionPickerState] = useState<{
+    messageId: string;
+    top: number;
+    left: number;
+  } | null>(null);
   const addReaction = useAddReaction();
 
   const messages = useMemo(
@@ -319,12 +323,42 @@ export function MessageList({ channelId, lastReadMessageId, members: membersList
     analytics.capture('message:unpin', { messageId, channelId });
   }, [channelId]);
 
+  const handleOpenReactionPicker = useCallback((messageId: string, anchorEl: HTMLElement) => {
+    const rect = anchorEl.getBoundingClientRect();
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const estimatedPickerWidth = 352;
+    const estimatedPickerHeight = 360;
+    const gap = 8;
+    const margin = 12;
+
+    const spaceAbove = rect.top - margin;
+    const spaceBelow = viewportHeight - rect.bottom - margin;
+    const openBelow = spaceBelow >= estimatedPickerHeight || spaceBelow >= spaceAbove;
+
+    const desiredTop = openBelow
+      ? rect.bottom + gap
+      : rect.top - estimatedPickerHeight - gap;
+    const desiredLeft = rect.right - estimatedPickerWidth;
+
+    const top = Math.max(
+      margin,
+      Math.min(desiredTop, viewportHeight - estimatedPickerHeight - margin),
+    );
+    const left = Math.max(
+      margin,
+      Math.min(desiredLeft, viewportWidth - estimatedPickerWidth - margin),
+    );
+
+    setReactionPickerState({ messageId, top, left });
+  }, []);
+
   const handleReactionSelect = useCallback((emoji: string) => {
-    if (reactionPickerMessageId) {
-      addReaction.mutate({ messageId: reactionPickerMessageId, emoji });
-      setReactionPickerMessageId(null);
+    if (reactionPickerState?.messageId) {
+      addReaction.mutate({ messageId: reactionPickerState.messageId, emoji });
+      setReactionPickerState(null);
     }
-  }, [reactionPickerMessageId, addReaction]);
+  }, [reactionPickerState, addReaction]);
 
   return (
     <div
@@ -379,7 +413,7 @@ export function MessageList({ channelId, lastReadMessageId, members: membersList
               {msg.replyToId && <ReplyIndicator replyToId={msg.replyToId} messages={messages} />}
 
               <div className={`group relative px-4 py-0.5 hover:bg-bg-modifier-hover ${mentioned ? 'bg-brand/10 border-l-2 border-brand' : ''}`}>
-                <MessageActions message={msg} isOwn={isOwn} onOpenReactionPicker={setReactionPickerMessageId} onPin={handlePin} onUnpin={handleUnpin} />
+                <MessageActions message={msg} isOwn={isOwn} onOpenReactionPicker={handleOpenReactionPicker} onPin={handlePin} onUnpin={handleUnpin} />
 
                 {grouped ? (
                   <div className="flex items-start pl-14">
@@ -428,11 +462,17 @@ export function MessageList({ channelId, lastReadMessageId, members: membersList
 
                 <MessageReactions reactions={msgReactions} messageId={msg.id} />
 
-                {reactionPickerMessageId === msg.id && (
-                  <div className="absolute z-50 bottom-full right-4 mb-2">
+                {reactionPickerState?.messageId === msg.id && (
+                  <div
+                    className="fixed z-50"
+                    style={{
+                      top: `${reactionPickerState.top}px`,
+                      left: `${reactionPickerState.left}px`,
+                    }}
+                  >
                     <EmojiPicker
                       onSelect={handleReactionSelect}
-                      onClose={() => setReactionPickerMessageId(null)}
+                      onClose={() => setReactionPickerState(null)}
                     />
                   </div>
                 )}

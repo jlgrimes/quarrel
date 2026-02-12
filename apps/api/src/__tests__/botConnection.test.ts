@@ -8,6 +8,12 @@ mock.module("../lib/aiProviders", () => ({
     }
     return "pong";
   },
+  callAIProviderStream: async () => {
+    if (shouldFailProvider) {
+      throw new Error("OpenAI API error (429): insufficient_quota");
+    }
+    return "pong";
+  },
 }));
 
 const {

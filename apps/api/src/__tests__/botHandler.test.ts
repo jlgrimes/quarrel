@@ -16,6 +16,21 @@ mock.module("../lib/aiProviders", () => ({
     }
     return "Hello! I'm a bot response.";
   },
+  callAIProviderStream: async (
+    _provider: string,
+    _model: string,
+    _apiKey: string,
+    _messages: Array<{ role: "user" | "assistant"; content: string }>,
+    _systemPrompt?: string | null,
+    options?: { onDelta?: (delta: string) => void },
+  ) => {
+    if (mockProviderShouldThrow) {
+      throw new Error(mockProviderErrorMessage);
+    }
+    options?.onDelta?.("Hello! ");
+    options?.onDelta?.("I'm a bot response.");
+    return "Hello! I'm a bot response.";
+  },
 }));
 
 // Mock the ws module to capture broadcasts
@@ -29,7 +44,6 @@ mock.module("../ws", () => ({
 }));
 
 const { handleBotMentions, _testing } = await import("../lib/botHandler");
-const { callAIProvider } = await import("../lib/aiProviders");
 
 beforeAll(async () => {
   await setupDatabase();
@@ -140,10 +154,16 @@ describe("Bot Handler", () => {
     const typingBroadcasts = broadcasts.filter((b) => b.event === "typing:update");
     expect(typingBroadcasts.length).toBe(1);
 
-    const messageBroadcasts = broadcasts.filter((b) => b.event === "message:new");
-    expect(messageBroadcasts.length).toBe(1);
-    expect(messageBroadcasts[0].data.author.isBot).toBe(true);
-    expect(messageBroadcasts[0].data.content).toBe("Hello! I'm a bot response.");
+    const newBroadcasts = broadcasts.filter((b) => b.event === "message:new");
+    expect(newBroadcasts.length).toBe(1);
+    expect(newBroadcasts[0].data.author.isBot).toBe(true);
+
+    const streamBroadcasts = broadcasts.filter((b) => b.event === "message:stream");
+    expect(streamBroadcasts.length).toBeGreaterThan(0);
+
+    const updatedBroadcasts = broadcasts.filter((b) => b.event === "message:updated");
+    expect(updatedBroadcasts.length).toBe(1);
+    expect(updatedBroadcasts[0].data.content).toBe("Hello! I'm a bot response.");
 
     // Verify analytics events
     expect(analyticsMock.events.some((e) => e.event === "bot:mention")).toBe(true);
@@ -159,6 +179,8 @@ describe("Bot Handler", () => {
     const messageBroadcasts = broadcasts.filter((b) => b.event === "message:new");
     expect(messageBroadcasts.length).toBe(1);
     expect(messageBroadcasts[0].data.author.isBot).toBe(true);
+    const updatedBroadcasts = broadcasts.filter((b) => b.event === "message:updated");
+    expect(updatedBroadcasts.length).toBe(1);
   });
 
   test("rate limiting works", async () => {
@@ -194,12 +216,14 @@ describe("Bot Handler", () => {
     broadcasts.length = 0;
 
     await handleBotMentions("channel-1", "server-1", "Hey <@bot-1> hello?", "user-1");
-    const botMessages = broadcasts.filter((b) => b.event === "message:new");
+    const placeholder = broadcasts.filter((b) => b.event === "message:new");
+    expect(placeholder.length).toBe(1);
+    expect(placeholder[0].data.author.isBot).toBe(true);
 
-    expect(botMessages.length).toBe(1);
-    expect(botMessages[0].data.author.isBot).toBe(true);
-    expect(String(botMessages[0].data.content)).toContain("couldn't respond");
-    expect(String(botMessages[0].data.content)).toContain("API key");
+    const updates = broadcasts.filter((b) => b.event === "message:updated");
+    expect(updates.length).toBe(1);
+    expect(String(updates[0].data.content)).toContain("couldn't respond");
+    expect(String(updates[0].data.content)).toContain("API key");
   });
 
   test("provider billing error reason is forwarded to chat", async () => {
@@ -209,10 +233,9 @@ describe("Bot Handler", () => {
     broadcasts.length = 0;
 
     await handleBotMentions("channel-1", "server-1", "Hey <@bot-1> hello?", "user-1");
-    const botMessages = broadcasts.filter((b) => b.event === "message:new");
-
-    expect(botMessages.length).toBe(1);
-    expect(String(botMessages[0].data.content)).toContain("no available credits/billing");
-    expect(String(botMessages[0].data.content)).toContain("credit balance is too low");
+    const updates = broadcasts.filter((b) => b.event === "message:updated");
+    expect(updates.length).toBe(1);
+    expect(String(updates[0].data.content)).toContain("no available credits/billing");
+    expect(String(updates[0].data.content)).toContain("credit balance is too low");
   });
 });

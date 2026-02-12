@@ -10,8 +10,6 @@ export function normalizeChronological<T extends TimedMessage>(messages: T[]): T
   }
 
   return Array.from(deduped.values()).sort((a, b) => {
-    const timeDiff = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-    if (timeDiff !== 0) return timeDiff;
-    return a.id.localeCompare(b.id);
+    return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
   });
 }

@@ -721,7 +721,9 @@ messageRoutes.put("/messages/:id/reactions/:emoji", async (c) => {
     .limit(1);
 
   if (existing) {
-    return c.json({ reaction: existing });
+    const reactionsMap = await getReactionsForMessages([messageId], userId);
+    const messageReactions = reactionsMap.get(messageId) ?? [];
+    return c.json({ reaction: existing, reactions: messageReactions });
   }
 
   const [reaction] = await db
@@ -739,7 +741,7 @@ messageRoutes.put("/messages/:id/reactions/:emoji", async (c) => {
     reactions: messageReactions,
   });
 
-  return c.json({ reaction }, 201);
+  return c.json({ reaction, reactions: messageReactions }, 201);
 });
 
 // Remove reaction from a message
@@ -786,7 +788,7 @@ messageRoutes.delete("/messages/:id/reactions/:emoji", async (c) => {
     reactions: messageReactions,
   });
 
-  return c.json({ success: true });
+  return c.json({ success: true, reactions: messageReactions });
 });
 
 // Get reactions for a message

@@ -112,6 +112,27 @@ export function useWebSocketEvents() {
         });
         break;
       }
+      case 'message:stream': {
+        const { channelId, messageId, delta } = data as {
+          channelId: string;
+          messageId: string;
+          delta: string;
+        };
+        if (!delta) break;
+        queryClient.setQueryData(queryKeys.messages(channelId), (old: any) => {
+          if (!old) return old;
+          return {
+            ...old,
+            pages: old.pages.map((page: any) => ({
+              ...page,
+              messages: page.messages.map((m: Message) =>
+                m.id === messageId ? { ...m, content: `${m.content ?? ''}${delta}` } : m
+              ),
+            })),
+          };
+        });
+        break;
+      }
       case 'message:deleted': {
         const { channelId, messageId } = data as { channelId: string; messageId: string };
         queryClient.setQueryData(queryKeys.messages(channelId), (old: any) => {
@@ -216,7 +237,8 @@ export function useWebSocketEvents() {
       }
 
       // Reaction events
-      case 'reaction:update': {
+      case 'reaction:update':
+      case 'reaction:updated': {
         const { messageId: reactMsgId, channelId: reactChannelId, reactions: newReactions } = data as {
           messageId: string;
           channelId: string;

@@ -1,6 +1,6 @@
 import { db, users, messages, serverBots } from "@quarrel/db";
 import { eq, and, desc } from "drizzle-orm";
-import { callAIProvider } from "./aiProviders";
+import { callAIProviderStream } from "./aiProviders";
 import { broadcastToChannel } from "../ws";
 import { analytics } from "./analytics";
 
@@ -149,6 +149,7 @@ export async function handleBotMentions(
   for (const mentionedId of botsToRespond) {
     const botConfig = botConfigById.get(mentionedId);
     if (!botConfig) continue;
+    let streamingMessageId: string | null = null;
 
     // Rate limit check
     if (isRateLimited(channelId)) continue;
@@ -185,49 +186,6 @@ export async function handleBotMentions(
         content: m.content,
       }));
 
-      const response = await callAIProvider(
-        botConfig.provider,
-        botConfig.model,
-        botConfig.apiKey,
-        aiMessages,
-        botConfig.systemPrompt
-      );
-
-      if (!response) {
-        const [fallbackMessage] = await db
-          .insert(messages)
-          .values({
-            channelId,
-            authorId: mentionedId,
-            content: buildBotErrorMessage(botConfig.provider),
-          })
-          .returning();
-
-        const fallbackAuthor = {
-          id: mentionedId,
-          username: botConfig.username ?? "Bot",
-          displayName: botConfig.displayName ?? "Bot",
-          avatarUrl: botConfig.avatarUrl,
-          isBot: true,
-        };
-
-        broadcastToChannel(channelId, "message:new", {
-          ...fallbackMessage,
-          author: fallbackAuthor,
-        });
-        continue;
-      }
-
-      // Insert AI response as a message
-      const [newMessage] = await db
-        .insert(messages)
-        .values({
-          channelId,
-          authorId: mentionedId,
-          content: response,
-        })
-        .returning();
-
       const author = {
         id: mentionedId,
         username: botConfig.username ?? "Bot",
@@ -236,8 +194,65 @@ export async function handleBotMentions(
         isBot: true,
       };
 
+      // Insert placeholder bot message so clients can stream incremental content.
+      const [streamingMessage] = await db
+        .insert(messages)
+        .values({
+          channelId,
+          authorId: mentionedId,
+          content: "",
+        })
+        .returning();
+      streamingMessageId = streamingMessage.id;
+
       broadcastToChannel(channelId, "message:new", {
-        ...newMessage,
+        ...streamingMessage,
+        author,
+      });
+
+      let response = "";
+      response = await callAIProviderStream(
+        botConfig.provider,
+        botConfig.model,
+        botConfig.apiKey,
+        aiMessages,
+        botConfig.systemPrompt,
+        {
+          onDelta: (delta) => {
+            if (!delta) return;
+            broadcastToChannel(channelId, "message:stream", {
+              channelId,
+              messageId: streamingMessage.id,
+              delta,
+            });
+          },
+        }
+      );
+
+      if (!response) {
+        const [fallbackMessage] = await db
+          .update(messages)
+          .set({
+            content: buildBotErrorMessage(botConfig.provider),
+          })
+          .where(eq(messages.id, streamingMessage.id))
+          .returning();
+        broadcastToChannel(channelId, "message:updated", {
+          ...fallbackMessage,
+          author,
+        });
+        continue;
+      }
+
+      // Persist final message content and broadcast final canonical state.
+      const [updatedMessage] = await db
+        .update(messages)
+        .set({ content: response })
+        .where(eq(messages.id, streamingMessage.id))
+        .returning();
+
+      broadcastToChannel(channelId, "message:updated", {
+        ...updatedMessage,
         author,
       });
 
@@ -250,15 +265,6 @@ export async function handleBotMentions(
     } catch (err) {
       console.error(`Bot response error (${botConfig.provider}):`, err);
 
-      const [errorMessage] = await db
-        .insert(messages)
-        .values({
-          channelId,
-          authorId: mentionedId,
-          content: buildBotErrorMessage(botConfig.provider, err),
-        })
-        .returning();
-
       const errorAuthor = {
         id: mentionedId,
         username: botConfig.username ?? "Bot",
@@ -267,10 +273,33 @@ export async function handleBotMentions(
         isBot: true,
       };
 
-      broadcastToChannel(channelId, "message:new", {
-        ...errorMessage,
-        author: errorAuthor,
-      });
+      const errorContent = buildBotErrorMessage(botConfig.provider, err);
+      if (streamingMessageId) {
+        const [errorUpdate] = await db
+          .update(messages)
+          .set({ content: errorContent })
+          .where(eq(messages.id, streamingMessageId))
+          .returning();
+
+        broadcastToChannel(channelId, "message:updated", {
+          ...errorUpdate,
+          author: errorAuthor,
+        });
+      } else {
+        const [errorMessage] = await db
+          .insert(messages)
+          .values({
+            channelId,
+            authorId: mentionedId,
+            content: errorContent,
+          })
+          .returning();
+
+        broadcastToChannel(channelId, "message:new", {
+          ...errorMessage,
+          author: errorAuthor,
+        });
+      }
 
       analytics.capture(authorId, "bot:response_error", {
         serverId,

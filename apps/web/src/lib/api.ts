@@ -61,9 +61,15 @@ export const api = {
   deleteMessage: (messageId: string) =>
     request(`/messages/${messageId}`, { method: 'DELETE' }),
   addReaction: (messageId: string, emoji: string) =>
-    request<{ reaction: any }>(`/messages/${messageId}/reactions/${encodeURIComponent(emoji)}`, { method: 'PUT' }),
+    request<{ reaction: any; reactions: { emoji: string; count: number; me: boolean }[] }>(
+      `/messages/${messageId}/reactions/${encodeURIComponent(emoji)}`,
+      { method: 'PUT' },
+    ),
   removeReaction: (messageId: string, emoji: string) =>
-    request(`/messages/${messageId}/reactions/${encodeURIComponent(emoji)}`, { method: 'DELETE' }),
+    request<{ success: boolean; reactions: { emoji: string; count: number; me: boolean }[] }>(
+      `/messages/${messageId}/reactions/${encodeURIComponent(emoji)}`,
+      { method: 'DELETE' },
+    ),
   pinMessage: (messageId: string) =>
     request<{ message: any }>(`/messages/${messageId}/pin`, { method: 'POST' }).then(r => r.message),
   unpinMessage: (messageId: string) =>
