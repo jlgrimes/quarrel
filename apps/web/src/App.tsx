@@ -25,6 +25,7 @@ const JoinServerModal = lazy(() => import('./components/modals/JoinServerModal')
 const CreateChannelModal = lazy(() => import('./components/modals/CreateChannelModal'));
 const UserSettingsOverlay = lazy(() => import('./components/settings/UserSettingsOverlay'));
 const InviteModal = lazy(() => import('./components/modals/InviteModal'));
+const ServerSettingsModal = lazy(() => import('./components/modals/ServerSettingsModal'));
 
 function ProtectedRoute() {
   const user = useAuthStore((s) => s.user);
@@ -42,6 +43,7 @@ function ModalRenderer() {
       {modal === 'createChannel' && <CreateChannelModal />}
       {modal === 'settings' && <UserSettingsOverlay />}
       {modal === 'inviteServer' && <InviteModal />}
+      {modal === 'serverSettings' && <ServerSettingsModal />}
     </Suspense>
   );
 }
@@ -84,7 +86,7 @@ function DMAreaLayout() {
       style={{ "--sidebar-width": "15rem" } as React.CSSProperties}
     >
       <DMSidebar />
-      <div className="flex flex-1 flex-col bg-[#313338] min-w-0">
+      <div className="flex flex-1 flex-col bg-bg-primary min-w-0">
         <Outlet />
       </div>
       <MobileSidebarSync />
@@ -124,7 +126,7 @@ function ServerView() {
       style={{ "--sidebar-width": "15rem" } as React.CSSProperties}
     >
       <ChannelSidebar />
-      <div className="flex flex-1 flex-col bg-[#313338] min-w-0">
+      <div className="flex flex-1 flex-col bg-bg-primary min-w-0">
         {channelId ? (
           activeChannel?.type === 'voice' ? (
             <VoiceChannelView channelId={channelId} />
@@ -132,8 +134,8 @@ function ServerView() {
             <ChatArea channelId={channelId} serverId={serverId!} />
           )
         ) : (
-          <div className="flex flex-1 flex-col items-center justify-center text-[#949ba4]">
-            <SidebarTrigger className="mb-4 text-[#b5bac1] hover:text-white md:hidden size-8" />
+          <div className="flex flex-1 flex-col items-center justify-center text-text-muted">
+            <SidebarTrigger className="mb-4 text-text-label hover:text-white md:hidden size-8" />
             Select a channel
           </div>
         )}
@@ -157,8 +159,8 @@ export default function App() {
 
   if (loading) {
     return (
-      <div className="flex h-full items-center justify-center bg-[#313338]">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#949ba4] border-t-white" />
+      <div className="flex h-full items-center justify-center bg-bg-primary">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-text-muted border-t-white" />
       </div>
     );
   }

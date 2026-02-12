@@ -29,7 +29,7 @@ export function MessageInput({ channelId, channelName, members }: { channelId: s
   const mentionSuggestions = useMemo(() => {
     if (mentionQuery === null || !members) return [];
     const q = mentionQuery.toLowerCase();
-    const results: Array<{ userId: string; displayName: string; username?: string }> = [];
+    const results: Array<{ userId: string; displayName: string; username?: string; isBot?: boolean }> = [];
     // Always include @everyone
     if ('everyone'.startsWith(q)) {
       results.push({ userId: 'everyone', displayName: 'everyone' });
@@ -38,7 +38,7 @@ export function MessageInput({ channelId, channelName, members }: { channelId: s
       const name = m.user?.displayName ?? m.nickname ?? '';
       const username = m.user?.username ?? '';
       if (name.toLowerCase().startsWith(q) || username.toLowerCase().startsWith(q)) {
-        results.push({ userId: m.userId, displayName: name || username, username });
+        results.push({ userId: m.userId, displayName: name || username, username, isBot: (m.user as any)?.isBot });
       }
     }
     return results.slice(0, 8);
@@ -169,13 +169,13 @@ export function MessageInput({ channelId, channelName, members }: { channelId: s
   return (
     <div className="px-4 pb-2 flex-shrink-0">
       {replyMessage && (
-        <div className="flex items-center gap-2 px-3 py-2 mb-1 bg-[#2b2d31] rounded-t-lg text-sm text-[#949ba4]">
+        <div className="flex items-center gap-2 px-3 py-2 mb-1 bg-bg-secondary rounded-t-lg text-sm text-text-muted">
           <span>
             Replying to <span className="font-medium text-white">{replyMessage.author?.displayName ?? 'Unknown'}</span>
           </span>
           <button
             onClick={() => setReplyingTo(null)}
-            className="ml-auto text-[#949ba4] hover:text-white"
+            className="ml-auto text-text-muted hover:text-white"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
               <path d="M18.4 4L12 10.4L5.6 4L4 5.6L10.4 12L4 18.4L5.6 20L12 13.6L18.4 20L20 18.4L13.6 12L20 5.6L18.4 4Z" />
@@ -183,14 +183,14 @@ export function MessageInput({ channelId, channelName, members }: { channelId: s
           </button>
         </div>
       )}
-      <div className={`relative bg-[#383a40] ${replyMessage ? 'rounded-b-lg' : 'rounded-lg'}`}>
+      <div className={`relative bg-bg-modifier-hover ${replyMessage ? 'rounded-b-lg' : 'rounded-lg'}`}>
         {mentionQuery !== null && mentionSuggestions.length > 0 && (
-          <div className="absolute bottom-full left-0 right-0 mb-1 bg-[#2b2d31] border border-[#1e1f22] rounded-lg shadow-xl max-h-48 overflow-y-auto z-50">
+          <div className="absolute bottom-full left-0 right-0 mb-1 bg-bg-secondary border border-bg-tertiary rounded-lg shadow-xl max-h-48 overflow-y-auto z-50">
             {mentionSuggestions.map((s, idx) => (
               <button
                 key={s.userId}
                 className={`w-full text-left px-3 py-2 flex items-center gap-2 text-sm ${
-                  idx === mentionIndex ? 'bg-[#5865f2] text-white' : 'text-[#dbdee1] hover:bg-[#383a40]'
+                  idx === mentionIndex ? 'bg-brand text-white' : 'text-text-normal hover:bg-bg-modifier-hover'
                 }`}
                 onMouseDown={(e) => {
                   e.preventDefault();
@@ -199,8 +199,13 @@ export function MessageInput({ channelId, channelName, members }: { channelId: s
                 onMouseEnter={() => setMentionIndex(idx)}
               >
                 <span className="font-medium">{s.displayName}</span>
+                {s.isBot && (
+                  <span className="inline-flex items-center px-1 py-0.5 rounded text-[10px] font-semibold bg-brand text-white leading-none">
+                    BOT
+                  </span>
+                )}
                 {s.username && s.userId !== 'everyone' && (
-                  <span className="text-xs text-[#949ba4]">@{s.username}</span>
+                  <span className="text-xs text-text-muted">@{s.username}</span>
                 )}
               </button>
             ))}
@@ -213,11 +218,11 @@ export function MessageInput({ channelId, channelName, members }: { channelId: s
           onKeyDown={handleKeyDown}
           placeholder={`Message #${channelName}`}
           rows={1}
-          className="w-full bg-transparent text-[#dbdee1] placeholder-[#6d6f78] p-3 pr-10 resize-none outline-none max-h-[300px]"
+          className="w-full bg-transparent text-text-normal placeholder-text-muted p-3 pr-10 resize-none outline-none max-h-[300px]"
         />
         <button
           onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-          className="absolute right-2 top-2.5 text-[#b5bac1] hover:text-white transition-colors"
+          className="absolute right-2 top-2.5 text-text-label hover:text-white transition-colors"
           title="Emoji"
           type="button"
         >

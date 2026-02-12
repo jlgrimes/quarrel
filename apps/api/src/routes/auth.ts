@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { setCookie, deleteCookie } from "hono/cookie";
 import { db, users, sessions } from "@quarrel/db";
-import { loginSchema, registerSchema } from "@quarrel/shared";
+import { loginSchema, registerSchema, RESERVED_USERNAMES } from "@quarrel/shared";
 import { eq } from "drizzle-orm";
 import { authMiddleware, type AuthEnv } from "../middleware/auth";
 import { authRateLimit } from "../middleware/rateLimit";
@@ -27,6 +27,10 @@ authRoutes.post("/register", authRateLimit, async (c) => {
   }
 
   const { username, email, password } = parsed.data;
+
+  if (RESERVED_USERNAMES.includes(username.toLowerCase() as any)) {
+    return c.json({ error: "Registration failed. Please try different credentials." }, 409);
+  }
 
   const [existing] = await db
     .select({ id: users.id })

@@ -31,21 +31,21 @@ export default function CreateServerModal() {
   return (
     <Modal title="Create a server" onClose={closeModal}>
       <form onSubmit={handleSubmit}>
-        <p className="mb-4 text-center text-sm text-[#b5bac1]">
+        <p className="mb-4 text-center text-sm text-text-label">
           Give your new server a personality with a name.
         </p>
 
         {error && (
-          <div className="mb-3 rounded bg-[#f23f43]/10 p-2 text-sm text-[#f23f43]">{error}</div>
+          <div className="mb-3 rounded bg-red/10 p-2 text-sm text-red">{error}</div>
         )}
 
-        <label className="mb-4 block text-xs font-bold uppercase text-[#b5bac1]">
+        <label className="mb-4 block text-xs font-bold uppercase text-text-label">
           Server Name
           <Input
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="mt-2 block w-full rounded border-none bg-[#1e1f22] p-2 text-base font-normal text-[#dbdee1] normal-case"
+            className="mt-2 block w-full rounded border-none bg-bg-tertiary p-2 text-base font-normal text-text-normal normal-case"
             placeholder="My Awesome Server"
             autoFocus
           />
@@ -54,7 +54,7 @@ export default function CreateServerModal() {
         <Button
           type="submit"
           disabled={!name.trim() || createServer.isPending}
-          className="w-full rounded bg-[#5865f2] p-2.5 font-medium text-white hover:bg-[#4752c4] disabled:opacity-50"
+          className="w-full rounded bg-brand p-2.5 font-medium text-white hover:bg-brand-hover disabled:opacity-50"
         >
           {createServer.isPending ? 'Creating...' : 'Create'}
         </Button>

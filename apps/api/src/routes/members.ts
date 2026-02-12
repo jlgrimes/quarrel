@@ -41,6 +41,7 @@ memberRoutes.get("/servers/:serverId/members", async (c) => {
       displayName: users.displayName,
       avatarUrl: users.avatarUrl,
       status: users.status,
+      isBot: users.isBot,
     })
     .from(members)
     .innerJoin(users, eq(members.userId, users.id))
@@ -93,6 +94,7 @@ memberRoutes.get("/servers/:serverId/members", async (c) => {
         displayName: m.displayName,
         avatarUrl: m.avatarUrl,
         status: m.status,
+        isBot: m.isBot,
       },
       roles: memberRolesList,
     };

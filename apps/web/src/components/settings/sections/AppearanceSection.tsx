@@ -37,7 +37,7 @@ export function AppearanceSection() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-8">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#949ba4] border-t-white" />
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-text-muted border-t-white" />
       </div>
     );
   }
@@ -54,25 +54,25 @@ export function AppearanceSection() {
 
       {/* Theme */}
       <div className="mb-6">
-        <h2 className="mb-3 text-xs font-bold uppercase text-[#b5bac1]">Theme</h2>
+        <h2 className="mb-3 text-xs font-bold uppercase text-text-label">Theme</h2>
         <div className="flex gap-3">
           <button
             onClick={() => setTheme('dark')}
             className={`flex flex-1 flex-col items-center rounded-lg border-2 p-4 transition-colors ${
               theme === 'dark'
-                ? 'border-[#5865f2] bg-[#1e1f22]'
-                : 'border-transparent bg-[#1e1f22] hover:border-[#4e5058]'
+                ? 'border-brand bg-bg-tertiary'
+                : 'border-transparent bg-bg-tertiary hover:border-bg-neutral'
             }`}
           >
-            <div className="mb-2 h-12 w-12 rounded-lg bg-[#313338]" />
+            <div className="mb-2 h-12 w-12 rounded-lg bg-bg-primary" />
             <span className="text-sm font-medium text-white">Dark</span>
           </button>
           <button
             onClick={() => setTheme('light')}
             className={`flex flex-1 flex-col items-center rounded-lg border-2 p-4 transition-colors ${
               theme === 'light'
-                ? 'border-[#5865f2] bg-[#1e1f22]'
-                : 'border-transparent bg-[#1e1f22] hover:border-[#4e5058]'
+                ? 'border-brand bg-bg-tertiary'
+                : 'border-transparent bg-bg-tertiary hover:border-bg-neutral'
             }`}
           >
             <div className="mb-2 h-12 w-12 rounded-lg bg-white" />
@@ -83,7 +83,7 @@ export function AppearanceSection() {
 
       {/* Font Size */}
       <div className="mb-6">
-        <h2 className="mb-3 text-xs font-bold uppercase text-[#b5bac1]">Font Size</h2>
+        <h2 className="mb-3 text-xs font-bold uppercase text-text-label">Font Size</h2>
         <div className="flex gap-3">
           {(['small', 'normal', 'large'] as const).map((size) => (
             <button
@@ -91,8 +91,8 @@ export function AppearanceSection() {
               onClick={() => setFontSize(size)}
               className={`flex-1 rounded-lg border-2 px-4 py-3 text-center font-medium capitalize transition-colors ${
                 fontSize === size
-                  ? 'border-[#5865f2] bg-[#1e1f22] text-white'
-                  : 'border-transparent bg-[#1e1f22] text-[#b5bac1] hover:border-[#4e5058]'
+                  ? 'border-brand bg-bg-tertiary text-white'
+                  : 'border-transparent bg-bg-tertiary text-text-label hover:border-bg-neutral'
               }`}
             >
               {size}
@@ -103,10 +103,10 @@ export function AppearanceSection() {
 
       {/* Compact Mode */}
       <div className="mb-6">
-        <div className="flex items-center justify-between rounded-lg bg-[#1e1f22] p-4">
+        <div className="flex items-center justify-between rounded-lg bg-bg-tertiary p-4">
           <div>
             <h3 className="text-sm font-medium text-white">Compact Mode</h3>
-            <p className="text-xs text-[#949ba4]">
+            <p className="text-xs text-text-muted">
               Reduce spacing between messages for a denser layout
             </p>
           </div>
@@ -115,7 +115,7 @@ export function AppearanceSection() {
             aria-checked={compactMode}
             onClick={() => setCompactMode(!compactMode)}
             className={`relative h-6 w-11 rounded-full transition-colors ${
-              compactMode ? 'bg-[#5865f2]' : 'bg-[#4e5058]'
+              compactMode ? 'bg-brand' : 'bg-bg-neutral'
             }`}
           >
             <span
@@ -130,7 +130,7 @@ export function AppearanceSection() {
       <Button
         onClick={handleSave}
         disabled={saving}
-        className="rounded bg-[#5865f2] px-4 py-2 font-medium text-white hover:bg-[#4752c4] disabled:opacity-50"
+        className="rounded bg-brand px-4 py-2 font-medium text-white hover:bg-brand-hover disabled:opacity-50"
       >
         {saving ? 'Saving...' : 'Save Changes'}
       </Button>

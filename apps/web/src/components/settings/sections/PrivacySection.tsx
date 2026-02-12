@@ -50,7 +50,7 @@ export function PrivacySection() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-8">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#949ba4] border-t-white" />
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-text-muted border-t-white" />
       </div>
     );
   }
@@ -67,21 +67,21 @@ export function PrivacySection() {
 
       {/* DM Settings */}
       <div className="mb-6">
-        <h2 className="mb-3 text-xs font-bold uppercase text-[#b5bac1]">
+        <h2 className="mb-3 text-xs font-bold uppercase text-text-label">
           Who can send you direct messages
         </h2>
         <div className="space-y-2">
           {(['everyone', 'friends', 'none'] as const).map((option) => (
             <label
               key={option}
-              className="flex cursor-pointer items-center gap-3 rounded-lg bg-[#1e1f22] p-3"
+              className="flex cursor-pointer items-center gap-3 rounded-lg bg-bg-tertiary p-3"
             >
               <input
                 type="radio"
                 name="allowDms"
                 checked={allowDms === option}
                 onChange={() => setAllowDms(option)}
-                className="accent-[#5865f2]"
+                className="accent-brand"
               />
               <span className="text-sm capitalize text-white">
                 {option === 'none' ? 'No one' : option}
@@ -94,18 +94,18 @@ export function PrivacySection() {
       <Button
         onClick={handleSave}
         disabled={saving}
-        className="mb-8 rounded bg-[#5865f2] px-4 py-2 font-medium text-white hover:bg-[#4752c4] disabled:opacity-50"
+        className="mb-8 rounded bg-brand px-4 py-2 font-medium text-white hover:bg-brand-hover disabled:opacity-50"
       >
         {saving ? 'Saving...' : 'Save Changes'}
       </Button>
 
       {/* Blocked Users */}
       <div>
-        <h2 className="mb-3 text-xs font-bold uppercase text-[#b5bac1]">
+        <h2 className="mb-3 text-xs font-bold uppercase text-text-label">
           Blocked Users
         </h2>
         {blockedUsers.length === 0 ? (
-          <p className="text-sm text-[#949ba4]">No blocked users</p>
+          <p className="text-sm text-text-muted">No blocked users</p>
         ) : (
           <div className="space-y-2">
             {blockedUsers.map((blocked) => {
@@ -113,14 +113,14 @@ export function PrivacySection() {
               return (
                 <div
                   key={blocked.id}
-                  className="flex items-center justify-between rounded-lg bg-[#1e1f22] p-3"
+                  className="flex items-center justify-between rounded-lg bg-bg-tertiary p-3"
                 >
                   <span className="text-sm text-white">
                     {u.username || 'Unknown'}
                   </span>
                   <Button
                     onClick={() => handleUnblock(blocked.id)}
-                    className="rounded bg-[#4e5058] px-3 py-1 text-xs font-medium text-white hover:bg-[#6d6f78]"
+                    className="rounded bg-bg-neutral px-3 py-1 text-xs font-medium text-white hover:bg-bg-neutral-hover"
                   >
                     Unblock
                   </Button>

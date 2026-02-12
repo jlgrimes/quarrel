@@ -41,7 +41,7 @@ const UserAvatar = memo(function UserAvatar({ user }: { user?: { displayName: st
 
   const name = user?.displayName ?? '?';
   const charCode = name.charCodeAt(0);
-  const colors = ['#5865f2', '#57f287', '#fee75c', '#eb459e', '#ed4245', '#3ba55c'];
+  const colors = ['#0ea5a6', '#57f287', '#fee75c', '#eb459e', '#ed4245', '#3ba55c'];
   const color = colors[charCode % colors.length];
 
   return (
@@ -56,10 +56,10 @@ const UserAvatar = memo(function UserAvatar({ user }: { user?: { displayName: st
 
 const StatusDot = memo(function StatusDot({ status }: { status?: string }) {
   const colorMap: Record<string, string> = {
-    online: 'bg-[#23a559]',
-    idle: 'bg-[#f0b232]',
-    dnd: 'bg-[#f23f43]',
-    offline: 'bg-[#80848e]',
+    online: 'bg-green',
+    idle: 'bg-yellow',
+    dnd: 'bg-red',
+    offline: 'bg-status-offline',
   };
   return (
     <span className={`inline-block w-2.5 h-2.5 rounded-full ${colorMap[status ?? 'offline']}`} />
@@ -149,19 +149,19 @@ export function DMChat({
   const displayName = otherUser?.displayName || otherUser?.username || 'Direct Message';
 
   return (
-    <div className="flex flex-1 flex-col bg-[#313338]">
+    <div className="flex flex-1 flex-col bg-bg-primary">
       {/* Header */}
-      <div className="h-12 flex items-center px-4 border-b border-[#1e1f22] flex-shrink-0 shadow-sm gap-3">
+      <div className="h-12 flex items-center px-4 border-b border-bg-tertiary flex-shrink-0 shadow-sm gap-3">
         <button
           onClick={() => setMobileSidebarOpen(true)}
-          className="mr-1 text-[#b5bac1] hover:text-white md:hidden flex-shrink-0"
+          className="mr-1 text-text-label hover:text-white md:hidden flex-shrink-0"
           aria-label="Open sidebar"
         >
           <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
             <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z" />
           </svg>
         </button>
-        <span className="text-[#949ba4] text-xl">@</span>
+        <span className="text-text-muted text-xl">@</span>
         <UserAvatar user={otherUser ? { displayName: otherUser.displayName, avatarUrl: otherUser.avatarUrl } : undefined} />
         <span className="font-semibold text-white">{displayName}</span>
         <StatusDot status={otherUser?.status} />
@@ -178,7 +178,7 @@ export function DMChat({
           <div className="flex justify-center py-4">
             <button
               onClick={() => fetchPreviousPage()}
-              className="text-sm text-[#00a8fc] hover:underline"
+              className="text-sm text-text-link hover:underline"
             >
               Load more messages
             </button>
@@ -187,7 +187,7 @@ export function DMChat({
 
         {isLoading && (
           <div className="flex items-center justify-center py-8">
-            <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#949ba4] border-t-white" />
+            <div className="h-6 w-6 animate-spin rounded-full border-2 border-text-muted border-t-white" />
           </div>
         )}
 
@@ -196,11 +196,11 @@ export function DMChat({
           <div className="px-4 pt-8 pb-4">
             <UserAvatar user={{ displayName: otherUser.displayName, avatarUrl: otherUser.avatarUrl }} />
             <h2 className="mt-2 text-xl font-bold text-white">{otherUser.displayName}</h2>
-            <p className="text-sm text-[#949ba4]">{otherUser.username}</p>
-            <p className="mt-1 text-sm text-[#949ba4]">
+            <p className="text-sm text-text-muted">{otherUser.username}</p>
+            <p className="mt-1 text-sm text-text-muted">
               This is the beginning of your direct message history with <strong className="text-white">{otherUser.displayName}</strong>.
             </p>
-            <div className="mt-4 h-px bg-[#3f4147]" />
+            <div className="mt-4 h-px bg-bg-modifier-hover" />
           </div>
         )}
 
@@ -214,23 +214,23 @@ export function DMChat({
               <div key={msg.id}>
                 {showDateSep && (
                   <div className="flex items-center mx-4 my-4">
-                    <div className="flex-1 h-px bg-[#3f4147]" />
-                    <span className="px-2 text-xs text-[#949ba4] font-semibold">
+                    <div className="flex-1 h-px bg-bg-modifier-hover" />
+                    <span className="px-2 text-xs text-text-muted font-semibold">
                       {formatDateSeparator(msg.createdAt)}
                     </span>
-                    <div className="flex-1 h-px bg-[#3f4147]" />
+                    <div className="flex-1 h-px bg-bg-modifier-hover" />
                   </div>
                 )}
 
-                <div className="group relative px-4 py-0.5 hover:bg-[#2e3035]">
+                <div className="group relative px-4 py-0.5 hover:bg-bg-modifier-hover">
                   {grouped ? (
                     <div className="flex items-start pl-14">
-                      <span className="invisible group-hover:visible text-[10px] text-[#949ba4] w-0 -ml-11 mr-11 pt-0.5 flex-shrink-0 text-right">
+                      <span className="invisible group-hover:visible text-[10px] text-text-muted w-0 -ml-11 mr-11 pt-0.5 flex-shrink-0 text-right">
                         {new Date(msg.createdAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
                       </span>
-                      <div className="text-[#dbdee1] leading-relaxed break-words min-w-0">
+                      <div className="text-text-normal leading-relaxed break-words min-w-0">
                         {msg.content}
-                        {msg.editedAt && <span className="text-[10px] text-[#949ba4] ml-1">(edited)</span>}
+                        {msg.editedAt && <span className="text-[10px] text-text-muted ml-1">(edited)</span>}
                       </div>
                     </div>
                   ) : (
@@ -241,11 +241,11 @@ export function DMChat({
                           <span className="font-medium text-white hover:underline cursor-pointer">
                             {msg.author?.displayName ?? 'Unknown User'}
                           </span>
-                          <span className="text-xs text-[#949ba4]">{formatTimestamp(msg.createdAt)}</span>
+                          <span className="text-xs text-text-muted">{formatTimestamp(msg.createdAt)}</span>
                         </div>
-                        <div className="text-[#dbdee1] leading-relaxed break-words">
+                        <div className="text-text-normal leading-relaxed break-words">
                           {msg.content}
-                          {msg.editedAt && <span className="text-[10px] text-[#949ba4] ml-1">(edited)</span>}
+                          {msg.editedAt && <span className="text-[10px] text-text-muted ml-1">(edited)</span>}
                         </div>
                       </div>
                     </div>
@@ -262,7 +262,7 @@ export function DMChat({
 
       {/* Input */}
       <div className="px-4 pb-6 flex-shrink-0">
-        <div className="rounded-lg bg-[#383a40]">
+        <div className="rounded-lg bg-bg-modifier-hover">
           <textarea
             ref={textareaRef}
             value={content}
@@ -270,7 +270,7 @@ export function DMChat({
             onKeyDown={handleKeyDown}
             placeholder={`Message @${displayName}`}
             rows={1}
-            className="w-full bg-transparent text-[#dbdee1] placeholder-[#6d6f78] p-3 resize-none outline-none max-h-[300px]"
+            className="w-full bg-transparent text-text-normal placeholder-text-muted p-3 resize-none outline-none max-h-[300px]"
           />
         </div>
       </div>

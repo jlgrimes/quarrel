@@ -60,11 +60,11 @@ export function TypingIndicator({ channelId }: { channelId: string }) {
   }
 
   return (
-    <div className="h-6 px-4 text-xs text-[#949ba4] flex items-center gap-1">
+    <div className="h-6 px-4 text-xs text-text-muted flex items-center gap-1">
       <span className="inline-flex gap-0.5">
-        <span className="animate-bounce [animation-delay:0ms] w-1 h-1 bg-[#949ba4] rounded-full" />
-        <span className="animate-bounce [animation-delay:150ms] w-1 h-1 bg-[#949ba4] rounded-full" />
-        <span className="animate-bounce [animation-delay:300ms] w-1 h-1 bg-[#949ba4] rounded-full" />
+        <span className="animate-bounce [animation-delay:0ms] w-1 h-1 bg-text-muted rounded-full" />
+        <span className="animate-bounce [animation-delay:150ms] w-1 h-1 bg-text-muted rounded-full" />
+        <span className="animate-bounce [animation-delay:300ms] w-1 h-1 bg-text-muted rounded-full" />
       </span>
       <span className="font-medium text-white">{text}</span>...
     </div>

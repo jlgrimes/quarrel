@@ -9,7 +9,7 @@ type Props = {
 export default function Modal({ title, onClose, children }: Props) {
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-md w-[440px] bg-[#313338] border-none p-0 gap-0">
+      <DialogContent className="max-w-md w-[440px] bg-bg-primary border-none p-0 gap-0">
         <DialogHeader className="p-4 pb-0">
           <DialogTitle className="text-center text-xl font-bold text-white">{title}</DialogTitle>
         </DialogHeader>

@@ -22,6 +22,8 @@ export const MESSAGE_BATCH_SIZE = 50;
 export const MAX_AVATAR_SIZE_BYTES = 8 * 1024 * 1024; // 8 MB
 export const ALLOWED_AVATAR_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'] as const;
 
+export const RESERVED_USERNAMES = ["claude", "chatgpt", "gemini"] as const;
+
 export const AUDIT_LOG_ACTIONS = {
   MEMBER_KICK: 'member.kick',
   MEMBER_BAN: 'member.ban',

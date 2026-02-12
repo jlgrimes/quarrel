@@ -42,7 +42,7 @@ function getYouTubeId(url: string): string | null {
 
 function YouTubeEmbed({ videoId }: { videoId: string }) {
   return (
-    <div className="mt-2 ml-14 max-w-[400px] rounded-lg overflow-hidden border border-[#1e1f22]">
+    <div className="mt-2 ml-14 max-w-[400px] rounded-lg overflow-hidden border border-bg-tertiary">
       <iframe
         width="400"
         height="225"
@@ -70,7 +70,7 @@ function EmbedCard({ metadata }: { metadata: EmbedMetadata }) {
   })();
 
   return (
-    <div className="mt-2 ml-14 max-w-[400px] border-l-4 border-[#5865f2] bg-[#2b2d31] rounded-r-lg overflow-hidden">
+    <div className="mt-2 ml-14 max-w-[400px] border-l-4 border-brand bg-bg-secondary rounded-r-lg overflow-hidden">
       <div className="p-3">
         {(siteName || hostname) && (
           <div className="flex items-center gap-1.5 mb-1">
@@ -82,7 +82,7 @@ function EmbedCard({ metadata }: { metadata: EmbedMetadata }) {
                 onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
               />
             )}
-            <span className="text-xs text-[#949ba4]">{siteName || hostname}</span>
+            <span className="text-xs text-text-muted">{siteName || hostname}</span>
           </div>
         )}
 
@@ -91,7 +91,7 @@ function EmbedCard({ metadata }: { metadata: EmbedMetadata }) {
             href={url}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[#00a8fc] text-sm font-medium hover:underline block mb-1 line-clamp-2"
+            className="text-text-link text-sm font-medium hover:underline block mb-1 line-clamp-2"
             onClick={() => analytics.capture('embed:link_click', { url })}
           >
             {title}
@@ -99,7 +99,7 @@ function EmbedCard({ metadata }: { metadata: EmbedMetadata }) {
         )}
 
         {description && (
-          <p className="text-xs text-[#b5bac1] line-clamp-3 mb-2">{description}</p>
+          <p className="text-xs text-text-label line-clamp-3 mb-2">{description}</p>
         )}
       </div>
 

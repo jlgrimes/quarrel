@@ -45,7 +45,7 @@ const MemberRow = memo(function MemberRow({ member }: { member: MemberWithRoles 
 
   return (
     <div
-      className={`flex items-center gap-3 px-2 py-1.5 mx-2 rounded hover:bg-[#383a40] cursor-pointer ${isOffline ? 'opacity-40' : ''}`}
+      className={`flex items-center gap-3 px-2 py-1.5 mx-2 rounded hover:bg-bg-modifier-hover cursor-pointer ${isOffline ? 'opacity-40' : ''}`}
     >
       <div className="relative shrink-0">
         <Avatar className="size-8">
@@ -55,16 +55,21 @@ const MemberRow = memo(function MemberRow({ member }: { member: MemberWithRoles 
           </AvatarFallback>
         </Avatar>
         <div
-          className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-[#2b2d31] ${statusDot[user.status] || statusDot.offline}`}
+          className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-bg-secondary ${statusDot[user.status] || statusDot.offline}`}
         />
       </div>
 
       <span
-        className={`text-sm truncate ${isOffline ? 'text-[#949ba4]' : 'text-[#f2f3f5]'}`}
+        className={`text-sm truncate ${isOffline ? 'text-text-muted' : 'text-white'}`}
         style={nameColor ? { color: nameColor } : undefined}
       >
         {displayName}
       </span>
+      {user.isBot && (
+        <span className="inline-flex items-center px-1 py-0.5 rounded text-[10px] font-semibold bg-brand text-white leading-none shrink-0">
+          BOT
+        </span>
+      )}
     </div>
   );
 });
@@ -83,7 +88,7 @@ const MemberSection = memo(function MemberSection({
   return (
     <div className="mt-4">
       <h3
-        className="text-[#949ba4] text-xs uppercase font-semibold px-4 mb-1"
+        className="text-text-muted text-xs uppercase font-semibold px-4 mb-1"
         style={titleColor ? { color: titleColor } : undefined}
       >
         {title} — {members.length}
@@ -141,7 +146,7 @@ export default function MemberList({ serverId, className }: { serverId: string; 
   }, [members]);
 
   return (
-    <ScrollArea className={`w-60 bg-[#2b2d31] shrink-0 ${className ?? ''}`}>
+    <ScrollArea className={`w-60 bg-bg-secondary shrink-0 ${className ?? ''}`}>
       {roleSections.map((section) => (
         <MemberSection
           key={section.role.id}

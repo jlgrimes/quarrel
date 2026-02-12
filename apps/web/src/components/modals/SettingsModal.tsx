@@ -69,7 +69,7 @@ export default function SettingsModal() {
   return (
     <Modal title='User Settings' onClose={closeModal}>
       {error && (
-        <div className='mb-3 rounded bg-[#f23f43]/10 p-2 text-sm text-[#f23f43]'>
+        <div className='mb-3 rounded bg-red/10 p-2 text-sm text-red'>
           {error}
         </div>
       )}
@@ -84,7 +84,7 @@ export default function SettingsModal() {
               src={user?.avatarUrl ?? undefined}
               alt={user?.username}
             />
-            <AvatarFallback className='bg-[#5865f2] text-2xl font-medium text-white'>
+            <AvatarFallback className='bg-brand text-2xl font-medium text-white'>
               {(user?.displayName || user?.username || '?')[0].toUpperCase()}
             </AvatarFallback>
           </Avatar>
@@ -103,7 +103,7 @@ export default function SettingsModal() {
             <button
               onClick={() => removeAvatar.mutate()}
               disabled={removeAvatar.isPending}
-              className='text-xs text-[#f23f43] hover:underline disabled:opacity-50 text-left'
+              className='text-xs text-red hover:underline disabled:opacity-50 text-left'
             >
               {removeAvatar.isPending ? 'Removing...' : 'Remove Avatar'}
             </button>
@@ -118,58 +118,58 @@ export default function SettingsModal() {
         />
       </div>
 
-      <label className='mb-4 block text-xs font-bold uppercase text-[#b5bac1]'>
+      <label className='mb-4 block text-xs font-bold uppercase text-text-label'>
         Display Name
         <Input
           type='text'
           value={displayName}
           onChange={e => setDisplayName(e.target.value)}
-          className='mt-2 h-auto rounded border-none bg-[#1e1f22] p-2 text-base font-normal text-[#dbdee1] shadow-none normal-case'
+          className='mt-2 h-auto rounded border-none bg-bg-tertiary p-2 text-base font-normal text-text-normal shadow-none normal-case'
         />
       </label>
 
-      <label className='mb-6 block text-xs font-bold uppercase text-[#b5bac1]'>
+      <label className='mb-6 block text-xs font-bold uppercase text-text-label'>
         Custom Status
         <Input
           type='text'
           value={customStatus}
           onChange={e => setCustomStatus(e.target.value)}
-          className='mt-2 h-auto rounded border-none bg-[#1e1f22] p-2 text-base font-normal text-[#dbdee1] shadow-none normal-case'
+          className='mt-2 h-auto rounded border-none bg-bg-tertiary p-2 text-base font-normal text-text-normal shadow-none normal-case'
           placeholder="What's on your mind?"
         />
       </label>
 
       {/* Notification Settings */}
       <div className='mb-6'>
-        <h3 className='mb-3 text-xs font-bold uppercase text-[#b5bac1]'>Notifications</h3>
+        <h3 className='mb-3 text-xs font-bold uppercase text-text-label'>Notifications</h3>
         <div className='space-y-2'>
           <label className='flex items-center justify-between'>
-            <span className='text-sm text-[#dbdee1]'>Enable Notifications</span>
+            <span className='text-sm text-text-normal'>Enable Notifications</span>
             <input
               type='checkbox'
               checked={notifEnabled}
               onChange={(e) => setNotifEnabled(e.target.checked)}
-              className='h-4 w-4 accent-[#5865f2]'
+              className='h-4 w-4 accent-brand'
               data-testid='notif-enabled'
             />
           </label>
           <label className='flex items-center justify-between'>
-            <span className='text-sm text-[#dbdee1]'>Notification Sounds</span>
+            <span className='text-sm text-text-normal'>Notification Sounds</span>
             <input
               type='checkbox'
               checked={soundEnabled}
               onChange={(e) => setSoundEnabled(e.target.checked)}
-              className='h-4 w-4 accent-[#5865f2]'
+              className='h-4 w-4 accent-brand'
               data-testid='notif-sound'
             />
           </label>
           <label className='flex items-center justify-between'>
-            <span className='text-sm text-[#dbdee1]'>Desktop Notifications</span>
+            <span className='text-sm text-text-normal'>Desktop Notifications</span>
             <input
               type='checkbox'
               checked={desktopEnabled}
               onChange={(e) => setDesktopEnabled(e.target.checked)}
-              className='h-4 w-4 accent-[#5865f2]'
+              className='h-4 w-4 accent-brand'
               data-testid='notif-desktop'
             />
           </label>
@@ -177,7 +177,7 @@ export default function SettingsModal() {
             <Button
               onClick={requestBrowserPermission}
               size='sm'
-              className='mt-1 rounded bg-[#5865f2] px-3 py-1 text-xs text-white hover:bg-[#4752c4]'
+              className='mt-1 rounded bg-brand px-3 py-1 text-xs text-white hover:bg-brand-hover'
             >
               {browserPermission === 'denied' ? 'Permission Denied' : 'Allow Browser Notifications'}
             </Button>
@@ -189,13 +189,13 @@ export default function SettingsModal() {
         <Button
           onClick={handleSave}
           disabled={saving}
-          className='flex-1 rounded bg-[#5865f2] p-2.5 font-medium text-white hover:bg-[#4752c4] disabled:opacity-50'
+          className='flex-1 rounded bg-brand p-2.5 font-medium text-white hover:bg-brand-hover disabled:opacity-50'
         >
           {saving ? 'Saving...' : 'Save'}
         </Button>
         <Button
           onClick={handleLogout}
-          className='rounded bg-[#f23f43] px-4 p-2.5 font-medium text-white hover:bg-[#da373c]'
+          className='rounded bg-red px-4 p-2.5 font-medium text-white hover:bg-red-hover'
         >
           Log Out
         </Button>

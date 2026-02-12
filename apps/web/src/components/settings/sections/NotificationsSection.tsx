@@ -38,7 +38,7 @@ export function NotificationsSection() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-8">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#949ba4] border-t-white" />
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-text-muted border-t-white" />
       </div>
     );
   }
@@ -55,10 +55,10 @@ export function NotificationsSection() {
 
       {/* Enable Notifications */}
       <div className="mb-4">
-        <div className="flex items-center justify-between rounded-lg bg-[#1e1f22] p-4">
+        <div className="flex items-center justify-between rounded-lg bg-bg-tertiary p-4">
           <div>
             <h3 className="text-sm font-medium text-white">Enable Notifications</h3>
-            <p className="text-xs text-[#949ba4]">
+            <p className="text-xs text-text-muted">
               Receive notifications for new messages and events
             </p>
           </div>
@@ -67,7 +67,7 @@ export function NotificationsSection() {
             aria-checked={notificationsEnabled}
             onClick={() => setNotificationsEnabled(!notificationsEnabled)}
             className={`relative h-6 w-11 rounded-full transition-colors ${
-              notificationsEnabled ? 'bg-[#5865f2]' : 'bg-[#4e5058]'
+              notificationsEnabled ? 'bg-brand' : 'bg-bg-neutral'
             }`}
           >
             <span
@@ -81,10 +81,10 @@ export function NotificationsSection() {
 
       {/* Notification Sounds */}
       <div className="mb-6">
-        <div className="flex items-center justify-between rounded-lg bg-[#1e1f22] p-4">
+        <div className="flex items-center justify-between rounded-lg bg-bg-tertiary p-4">
           <div>
             <h3 className="text-sm font-medium text-white">Notification Sounds</h3>
-            <p className="text-xs text-[#949ba4]">
+            <p className="text-xs text-text-muted">
               Play a sound when a notification arrives
             </p>
           </div>
@@ -93,7 +93,7 @@ export function NotificationsSection() {
             aria-checked={notificationSounds}
             onClick={() => setNotificationSounds(!notificationSounds)}
             className={`relative h-6 w-11 rounded-full transition-colors ${
-              notificationSounds ? 'bg-[#5865f2]' : 'bg-[#4e5058]'
+              notificationSounds ? 'bg-brand' : 'bg-bg-neutral'
             }`}
           >
             <span
@@ -108,7 +108,7 @@ export function NotificationsSection() {
       <Button
         onClick={handleSave}
         disabled={saving}
-        className="rounded bg-[#5865f2] px-4 py-2 font-medium text-white hover:bg-[#4752c4] disabled:opacity-50"
+        className="rounded bg-brand px-4 py-2 font-medium text-white hover:bg-brand-hover disabled:opacity-50"
       >
         {saving ? 'Saving...' : 'Save Changes'}
       </Button>

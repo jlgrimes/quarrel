@@ -76,11 +76,11 @@ export function MyAccountSection() {
       <h1 className="mb-5 text-xl font-bold text-white">My Account</h1>
 
       {/* Account info */}
-      <div className="mb-8 rounded-lg bg-[#1e1f22] p-4">
+      <div className="mb-8 rounded-lg bg-bg-tertiary p-4">
         <div className="flex items-center gap-4">
           <div className="flex flex-col">
             <span className="text-sm font-medium text-white">{user?.username}</span>
-            <span className="text-sm text-[#949ba4]">{user?.email}</span>
+            <span className="text-sm text-text-muted">{user?.email}</span>
           </div>
         </div>
       </div>
@@ -90,7 +90,7 @@ export function MyAccountSection() {
         <h2 className="mb-4 text-base font-bold text-white">Change Password</h2>
 
         {passwordError && (
-          <div className="mb-3 rounded bg-[#f23f43]/10 p-2 text-sm text-[#f23f43]">
+          <div className="mb-3 rounded bg-red/10 p-2 text-sm text-red">
             {passwordError}
           </div>
         )}
@@ -100,40 +100,40 @@ export function MyAccountSection() {
           </div>
         )}
 
-        <label className="mb-3 block text-xs font-bold uppercase text-[#b5bac1]">
+        <label className="mb-3 block text-xs font-bold uppercase text-text-label">
           Current Password
           <Input
             type="password"
             value={currentPassword}
             onChange={(e) => setCurrentPassword(e.target.value)}
-            className="mt-2 h-auto rounded border-none bg-[#1e1f22] p-2 text-base font-normal text-[#dbdee1] shadow-none normal-case"
+            className="mt-2 h-auto rounded border-none bg-bg-tertiary p-2 text-base font-normal text-text-normal shadow-none normal-case"
           />
         </label>
 
-        <label className="mb-3 block text-xs font-bold uppercase text-[#b5bac1]">
+        <label className="mb-3 block text-xs font-bold uppercase text-text-label">
           New Password
           <Input
             type="password"
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
-            className="mt-2 h-auto rounded border-none bg-[#1e1f22] p-2 text-base font-normal text-[#dbdee1] shadow-none normal-case"
+            className="mt-2 h-auto rounded border-none bg-bg-tertiary p-2 text-base font-normal text-text-normal shadow-none normal-case"
           />
         </label>
 
-        <label className="mb-4 block text-xs font-bold uppercase text-[#b5bac1]">
+        <label className="mb-4 block text-xs font-bold uppercase text-text-label">
           Confirm New Password
           <Input
             type="password"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
-            className="mt-2 h-auto rounded border-none bg-[#1e1f22] p-2 text-base font-normal text-[#dbdee1] shadow-none normal-case"
+            className="mt-2 h-auto rounded border-none bg-bg-tertiary p-2 text-base font-normal text-text-normal shadow-none normal-case"
           />
         </label>
 
         <Button
           onClick={handleChangePassword}
           disabled={changingPassword || !currentPassword || !newPassword || !confirmPassword}
-          className="rounded bg-[#5865f2] px-4 py-2 font-medium text-white hover:bg-[#4752c4] disabled:opacity-50"
+          className="rounded bg-brand px-4 py-2 font-medium text-white hover:bg-brand-hover disabled:opacity-50"
         >
           {changingPassword ? 'Changing...' : 'Change Password'}
         </Button>
@@ -147,41 +147,41 @@ export function MyAccountSection() {
             closeModal();
             await logout();
           }}
-          className="rounded bg-[#4e5058] px-4 py-2 font-medium text-white hover:bg-[#6d6f78]"
+          className="rounded bg-bg-neutral px-4 py-2 font-medium text-white hover:bg-bg-neutral-hover"
         >
           Log Out
         </Button>
       </div>
 
       {/* Account Deletion */}
-      <div className="rounded-lg border border-[#f23f43]/30 p-4">
-        <h2 className="mb-2 text-base font-bold text-[#f23f43]">Delete Account</h2>
-        <p className="mb-4 text-sm text-[#949ba4]">
+      <div className="rounded-lg border border-red/30 p-4">
+        <h2 className="mb-2 text-base font-bold text-red">Delete Account</h2>
+        <p className="mb-4 text-sm text-text-muted">
           This action is irreversible. All your data will be permanently deleted.
         </p>
 
         {!showDeleteConfirm ? (
           <Button
             onClick={() => setShowDeleteConfirm(true)}
-            className="rounded bg-[#f23f43] px-4 py-2 font-medium text-white hover:bg-[#da373c]"
+            className="rounded bg-red px-4 py-2 font-medium text-white hover:bg-red-hover"
           >
             Delete Account
           </Button>
         ) : (
           <div>
             {deleteError && (
-              <div className="mb-3 rounded bg-[#f23f43]/10 p-2 text-sm text-[#f23f43]">
+              <div className="mb-3 rounded bg-red/10 p-2 text-sm text-red">
                 {deleteError}
               </div>
             )}
 
-            <label className="mb-4 block text-xs font-bold uppercase text-[#b5bac1]">
+            <label className="mb-4 block text-xs font-bold uppercase text-text-label">
               Enter your password to confirm
               <Input
                 type="password"
                 value={deletePassword}
                 onChange={(e) => setDeletePassword(e.target.value)}
-                className="mt-2 h-auto rounded border-none bg-[#1e1f22] p-2 text-base font-normal text-[#dbdee1] shadow-none normal-case"
+                className="mt-2 h-auto rounded border-none bg-bg-tertiary p-2 text-base font-normal text-text-normal shadow-none normal-case"
               />
             </label>
 
@@ -189,7 +189,7 @@ export function MyAccountSection() {
               <Button
                 onClick={handleDeleteAccount}
                 disabled={deleting || !deletePassword}
-                className="rounded bg-[#f23f43] px-4 py-2 font-medium text-white hover:bg-[#da373c] disabled:opacity-50"
+                className="rounded bg-red px-4 py-2 font-medium text-white hover:bg-red-hover disabled:opacity-50"
               >
                 {deleting ? 'Deleting...' : 'Confirm Delete'}
               </Button>
@@ -199,7 +199,7 @@ export function MyAccountSection() {
                   setDeletePassword('');
                   setDeleteError('');
                 }}
-                className="rounded bg-[#4e5058] px-4 py-2 font-medium text-white hover:bg-[#6d6f78]"
+                className="rounded bg-bg-neutral px-4 py-2 font-medium text-white hover:bg-bg-neutral-hover"
               >
                 Cancel
               </Button>

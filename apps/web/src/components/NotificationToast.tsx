@@ -17,18 +17,18 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: string)
     <div
       role="alert"
       onClick={handleClick}
-      className="flex items-start gap-3 rounded-lg bg-[#2b2d31] p-3 shadow-lg border border-[#1e1f22] cursor-pointer hover:bg-[#32353b] transition-colors animate-in slide-in-from-right-full duration-300"
+      className="flex items-start gap-3 rounded-lg bg-bg-secondary p-3 shadow-lg border border-bg-tertiary cursor-pointer hover:bg-bg-modifier-hover transition-colors animate-in slide-in-from-right-full duration-300"
     >
       <div className="flex-1 min-w-0">
         <p className="text-sm font-semibold text-white truncate">{toast.title}</p>
-        <p className="text-xs text-[#b5bac1] truncate">{toast.body}</p>
+        <p className="text-xs text-text-label truncate">{toast.body}</p>
       </div>
       <button
         onClick={(e) => {
           e.stopPropagation();
           onDismiss(toast.id);
         }}
-        className="shrink-0 text-[#949ba4] hover:text-white transition-colors"
+        className="shrink-0 text-text-muted hover:text-white transition-colors"
         aria-label="Dismiss notification"
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">

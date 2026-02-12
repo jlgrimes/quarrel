@@ -71,21 +71,21 @@ export default function FriendsList() {
   return (
     <div className="flex flex-1 flex-col">
       {/* Header with tabs */}
-      <div className="flex h-12 items-center gap-2 md:gap-4 border-b border-[#1f2023] px-4 overflow-x-auto">
+      <div className="flex h-12 items-center gap-2 md:gap-4 border-b border-bg-tertiary px-4 overflow-x-auto">
         <button
           onClick={() => useUIStore.getState().setMobileSidebarOpen(true)}
-          className="mr-1 text-[#b5bac1] hover:text-white md:hidden flex-shrink-0"
+          className="mr-1 text-text-label hover:text-white md:hidden flex-shrink-0"
           aria-label="Open sidebar"
         >
           <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
             <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z" />
           </svg>
         </button>
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="#949ba4" className="hidden md:block flex-shrink-0">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" className="hidden md:block flex-shrink-0 text-text-muted">
           <path d="M14 8.00598C14 10.211 12.206 12.006 10 12.006C7.795 12.006 6 10.211 6 8.00598C6 5.80098 7.795 4.00598 10 4.00598C12.206 4.00598 14 5.80098 14 8.00598ZM2 19.006C2 15.473 5.29 13.006 10 13.006C14.711 13.006 18 15.473 18 19.006V20.006H2V19.006Z" />
         </svg>
         <span className="font-semibold text-white shrink-0">Friends</span>
-        <div className="h-6 w-px bg-[#3f4147] shrink-0" />
+        <div className="h-6 w-px bg-bg-modifier-hover shrink-0" />
         {tabs.map((t) => (
           <Button
             key={t.value}
@@ -94,8 +94,8 @@ export default function FriendsList() {
             onClick={() => setTab(t.value)}
             className={`rounded px-2 py-1 text-sm font-medium transition-colors ${
               tab === t.value
-                ? 'bg-[#404249] text-white hover:bg-[#404249]'
-                : 'text-[#b5bac1] hover:bg-[#383a40] hover:text-[#dbdee1]'
+                ? 'bg-bg-modifier-active text-white hover:bg-bg-modifier-active'
+                : 'text-text-label hover:bg-bg-modifier-hover hover:text-text-normal'
             }`}
           >
             {t.label}
@@ -104,9 +104,9 @@ export default function FriendsList() {
       </div>
 
       {/* Add friend input */}
-      <div className="border-b border-[#1f2023] p-4">
+      <div className="border-b border-bg-tertiary p-4">
         <h2 className="mb-2 text-sm font-bold uppercase text-white">Add Friend</h2>
-        <div className="flex items-center gap-2 rounded-lg bg-[#1e1f22] p-2">
+        <div className="flex items-center gap-2 rounded-lg bg-bg-tertiary p-2">
           <Input
             type="text"
             value={addInput}
@@ -115,50 +115,50 @@ export default function FriendsList() {
               setAddStatus('');
             }}
             placeholder="Enter a username"
-            className="flex-1 border-none bg-transparent text-[#dbdee1] placeholder-[#949ba4] shadow-none h-auto p-0"
+            className="flex-1 border-none bg-transparent text-text-normal placeholder-text-muted shadow-none h-auto p-0"
             onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
           />
           <Button
             onClick={handleAdd}
             disabled={!addInput.trim()}
-            className="rounded bg-[#5865f2] px-2 md:px-4 py-1.5 text-sm font-medium text-white hover:bg-[#4752c4] disabled:opacity-50 whitespace-nowrap"
+            className="rounded bg-brand px-2 md:px-4 py-1.5 text-sm font-medium text-white hover:bg-brand-hover disabled:opacity-50 whitespace-nowrap"
           >
             <span className="hidden md:inline">Send Friend Request</span>
             <span className="md:hidden">Send</span>
           </Button>
         </div>
-        {addStatus && <p className="mt-1 text-sm text-[#949ba4]">{addStatus}</p>}
+        {addStatus && <p className="mt-1 text-sm text-text-muted">{addStatus}</p>}
       </div>
 
       {/* Friends list */}
       <ScrollArea className="flex-1 p-4">
-        <h3 className="mb-2 text-xs font-semibold uppercase text-[#949ba4]">
+        <h3 className="mb-2 text-xs font-semibold uppercase text-text-muted">
           {tab} — {filtered.length}
         </h3>
         {filtered.map((friend) => {
           const user = friend.friend || friend.user;
           return (
-            <div key={friend.id} className="flex items-center gap-3 rounded-lg px-2 py-2 hover:bg-[#383a40]">
+            <div key={friend.id} className="flex items-center gap-3 rounded-lg px-2 py-2 hover:bg-bg-modifier-hover">
               <div className="relative">
                 <Avatar className="h-8 w-8">
                   <AvatarImage src={user?.avatarUrl ?? undefined} alt={user?.username} />
-                  <AvatarFallback className="bg-[#5865f2] text-xs font-medium text-white">
+                  <AvatarFallback className="bg-brand text-xs font-medium text-white">
                     {(user?.displayName || user?.username || '?')[0].toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
                 {user?.status && (
                   <div
-                    className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-[#313338] ${
-                      user.status === 'online' ? 'bg-[#23a559]' :
-                      user.status === 'idle' ? 'bg-[#f0b232]' :
-                      user.status === 'dnd' ? 'bg-[#f23f43]' : 'bg-[#80848e]'
+                    className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-bg-primary ${
+                      user.status === 'online' ? 'bg-green' :
+                      user.status === 'idle' ? 'bg-yellow' :
+                      user.status === 'dnd' ? 'bg-red' : 'bg-status-offline'
                     }`}
                   />
                 )}
               </div>
               <div className="flex-1">
                 <div className="text-sm font-medium text-white">{user?.displayName || user?.username}</div>
-                <div className="text-xs text-[#949ba4]">{user?.customStatus || user?.status}</div>
+                <div className="text-xs text-text-muted">{user?.customStatus || user?.status}</div>
               </div>
               {friend.status === 'accepted' && (
                 <Button
@@ -168,7 +168,7 @@ export default function FriendsList() {
                     const otherUserId = friend.userId === currentUser?.id ? friend.friendId : friend.userId;
                     handleMessage(otherUserId);
                   }}
-                  className="rounded p-1.5 text-[#949ba4] hover:text-white"
+                  className="rounded p-1.5 text-text-muted hover:text-white"
                   title="Message"
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
@@ -180,7 +180,7 @@ export default function FriendsList() {
                 <Button
                   onClick={() => handleAccept(friend.id)}
                   size="sm"
-                  className="rounded bg-[#23a559] px-3 py-1 text-sm text-white hover:bg-[#1a7d42]"
+                  className="rounded bg-green px-3 py-1 text-sm text-white hover:bg-green-dark-hover"
                 >
                   Accept
                 </Button>
@@ -189,7 +189,7 @@ export default function FriendsList() {
                 variant="ghost"
                 size="icon"
                 onClick={() => handleRemove(friend.id)}
-                className="rounded p-1.5 text-[#949ba4] hover:text-[#f23f43]"
+                className="rounded p-1.5 text-text-muted hover:text-red"
                 title="Remove"
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
@@ -200,7 +200,7 @@ export default function FriendsList() {
           );
         })}
         {filtered.length === 0 && (
-          <div className="mt-8 text-center text-[#949ba4]">
+          <div className="mt-8 text-center text-text-muted">
             {tab === 'online' && "No friends online right now."}
             {tab === 'all' && "You don't have any friends yet."}
             {tab === 'pending' && "No pending friend requests."}

@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { analytics } from '../lib/analytics';
 
-type ModalType = 'createServer' | 'joinServer' | 'settings' | 'createChannel' | 'inviteServer' | null;
+type ModalType = 'createServer' | 'joinServer' | 'settings' | 'createChannel' | 'inviteServer' | 'serverSettings' | null;
 
 type UIStore = {
   activeChannelId: string | null;

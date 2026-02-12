@@ -55,7 +55,7 @@ export function ProfileSection() {
       <h1 className="mb-5 text-xl font-bold text-white">Profile</h1>
 
       {error && (
-        <div className="mb-3 rounded bg-[#f23f43]/10 p-2 text-sm text-[#f23f43]">
+        <div className="mb-3 rounded bg-red/10 p-2 text-sm text-red">
           {error}
         </div>
       )}
@@ -73,7 +73,7 @@ export function ProfileSection() {
         >
           <Avatar className="h-20 w-20">
             <AvatarImage src={user?.avatarUrl ?? undefined} alt={user?.username} />
-            <AvatarFallback className="bg-[#5865f2] text-2xl font-medium text-white">
+            <AvatarFallback className="bg-brand text-2xl font-medium text-white">
               {(user?.displayName || user?.username || '?')[0].toUpperCase()}
             </AvatarFallback>
           </Avatar>
@@ -92,7 +92,7 @@ export function ProfileSection() {
             <button
               onClick={() => removeAvatar.mutate()}
               disabled={removeAvatar.isPending}
-              className="text-xs text-[#f23f43] hover:underline disabled:opacity-50 text-left"
+              className="text-xs text-red hover:underline disabled:opacity-50 text-left"
             >
               {removeAvatar.isPending ? 'Removing...' : 'Remove Avatar'}
             </button>
@@ -108,24 +108,24 @@ export function ProfileSection() {
       </div>
 
       {/* Display Name */}
-      <label className="mb-4 block text-xs font-bold uppercase text-[#b5bac1]">
+      <label className="mb-4 block text-xs font-bold uppercase text-text-label">
         Display Name
         <Input
           type="text"
           value={displayName}
           onChange={(e) => setDisplayName(e.target.value)}
-          className="mt-2 h-auto rounded border-none bg-[#1e1f22] p-2 text-base font-normal text-[#dbdee1] shadow-none normal-case"
+          className="mt-2 h-auto rounded border-none bg-bg-tertiary p-2 text-base font-normal text-text-normal shadow-none normal-case"
         />
       </label>
 
       {/* Custom Status */}
-      <label className="mb-6 block text-xs font-bold uppercase text-[#b5bac1]">
+      <label className="mb-6 block text-xs font-bold uppercase text-text-label">
         Custom Status
         <Input
           type="text"
           value={customStatus}
           onChange={(e) => setCustomStatus(e.target.value)}
-          className="mt-2 h-auto rounded border-none bg-[#1e1f22] p-2 text-base font-normal text-[#dbdee1] shadow-none normal-case"
+          className="mt-2 h-auto rounded border-none bg-bg-tertiary p-2 text-base font-normal text-text-normal shadow-none normal-case"
           placeholder="What's on your mind?"
         />
       </label>
@@ -133,7 +133,7 @@ export function ProfileSection() {
       <Button
         onClick={handleSave}
         disabled={saving}
-        className="rounded bg-[#5865f2] px-4 py-2 font-medium text-white hover:bg-[#4752c4] disabled:opacity-50"
+        className="rounded bg-brand px-4 py-2 font-medium text-white hover:bg-brand-hover disabled:opacity-50"
       >
         {saving ? 'Saving...' : 'Save Changes'}
       </Button>

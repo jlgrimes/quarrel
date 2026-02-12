@@ -21,6 +21,8 @@ import { websocketHandler, authenticateWS } from "./ws";
 import { globalRateLimit } from "./middleware/rateLimit";
 import { errorHandler } from "./middleware/errorHandler";
 import { analytics } from "./lib/analytics";
+import { seedBots } from "./lib/seedBots";
+import { botRoutes } from "./routes/bots";
 
 const app = new Hono();
 
@@ -61,6 +63,7 @@ app.route("/", threadRoutes);
 app.route("/", inviteRoutes);
 app.route("/", auditLogRoutes);
 app.route("/", timeoutRoutes);
+app.route("/", botRoutes);
 
 const port = parseInt(process.env.PORT || "3001");
 
@@ -97,5 +100,7 @@ const shutdown = async () => {
 };
 process.on("SIGTERM", shutdown);
 process.on("SIGINT", shutdown);
+
+seedBots().catch((err) => console.error("Failed to seed bots:", err));
 
 console.log(`Quarrel API running on http://localhost:${server.port}`);

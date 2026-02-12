@@ -10,7 +10,7 @@ export default function DMPage() {
 
   if (!conversationId) {
     return (
-      <div className="flex flex-1 flex-col items-center justify-center text-[#949ba4]">
+      <div className="flex flex-1 flex-col items-center justify-center text-text-muted">
         <svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor" className="mb-4 opacity-30">
           <path d="M14 8.00598C14 10.211 12.206 12.006 10 12.006C7.795 12.006 6 10.211 6 8.00598C6 5.80098 7.795 4.00598 10 4.00598C12.206 4.00598 14 5.80098 14 8.00598ZM2 19.006C2 15.473 5.29 13.006 10 13.006C14.711 13.006 18 15.473 18 19.006V20.006H2V19.006Z" />
         </svg>

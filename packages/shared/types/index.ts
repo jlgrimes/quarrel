@@ -17,6 +17,7 @@ export type User = {
   bio: string | null;
   bannerUrl: string | null;
   pronouns: string | null;
+  isBot?: boolean;
   createdAt: string;
 };
 
@@ -123,6 +124,22 @@ export type UserSettings = {
   notificationsEnabled: boolean;
   notificationSounds: boolean;
   allowDms: 'everyone' | 'friends' | 'none';
+};
+
+// --- AI Bot Types ---
+
+export type AIProvider = "anthropic" | "openai" | "google";
+
+export type ServerBot = {
+  id: string;
+  serverId: string;
+  botUserId: string;
+  provider: AIProvider;
+  model: string;
+  enabled: boolean;
+  systemPrompt: string | null;
+  createdAt: string;
+  botUser?: User;
 };
 
 // --- WebSocket Event Types ---

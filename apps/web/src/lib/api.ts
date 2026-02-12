@@ -168,6 +168,16 @@ export const api = {
       body: JSON.stringify({ password }),
     }),
 
+  // Bots
+  getBots: (serverId: string) =>
+    request<{ bots: any[] }>(`/servers/${serverId}/bots`).then(r => r.bots),
+  addBot: (serverId: string, data: { provider: string; model: string; apiKey: string; systemPrompt?: string }) =>
+    request<{ bot: any }>(`/servers/${serverId}/bots`, { method: 'POST', body: JSON.stringify(data) }).then(r => r.bot),
+  updateBot: (serverId: string, botId: string, data: { model?: string; apiKey?: string; enabled?: boolean; systemPrompt?: string | null }) =>
+    request<{ bot: any }>(`/servers/${serverId}/bots/${botId}`, { method: 'PATCH', body: JSON.stringify(data) }).then(r => r.bot),
+  removeBot: (serverId: string, botId: string) =>
+    request(`/servers/${serverId}/bots/${botId}`, { method: 'DELETE' }),
+
   // Embeds
   getUrlMetadata: (url: string) =>
     request<{ metadata: { url: string; title: string | null; description: string | null; image: string | null; siteName: string | null; type: string | null; favicon: string | null } }>('/embeds/metadata', {

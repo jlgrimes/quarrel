@@ -5,6 +5,7 @@ import { roles, memberRoles } from "@quarrel/db";
 import { eq, and, lt, gt, desc, inArray, isNotNull, like, sql } from "drizzle-orm";
 import { authMiddleware, type AuthEnv } from "../middleware/auth";
 import { broadcastToChannel } from "../ws";
+import { handleBotMentions } from "../lib/botHandler";
 
 export const messageRoutes = new Hono<AuthEnv>();
 
@@ -55,10 +56,13 @@ messageRoutes.post("/channels/:channelId/messages", async (c) => {
     username: user.username,
     displayName: user.displayName,
     avatarUrl: user.avatarUrl,
+    isBot: user.isBot ?? false,
   };
 
   const fullMessage = { ...message, author };
   broadcastToChannel(channelId, "message:new", fullMessage);
+
+  handleBotMentions(channelId, channelMember.serverId, parsed.data.content, userId).catch(console.error);
 
   return c.json({ message: fullMessage }, 201);
 });
@@ -114,6 +118,7 @@ messageRoutes.get("/channels/:channelId/messages", async (c) => {
             username: users.username,
             displayName: users.displayName,
             avatarUrl: users.avatarUrl,
+            isBot: users.isBot,
           })
           .from(users)
           .where(
@@ -438,6 +443,7 @@ messageRoutes.get("/channels/:channelId/pins", async (c) => {
             username: users.username,
             displayName: users.displayName,
             avatarUrl: users.avatarUrl,
+            isBot: users.isBot,
           })
           .from(users)
           .where(
@@ -576,6 +582,7 @@ messageRoutes.get("/search", async (c) => {
             username: users.username,
             displayName: users.displayName,
             avatarUrl: users.avatarUrl,
+            isBot: users.isBot,
           })
           .from(users)
           .where(

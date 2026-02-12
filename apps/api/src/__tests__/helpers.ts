@@ -21,6 +21,7 @@ const createTablesSql = `
     bio TEXT,
     banner_url TEXT,
     pronouns TEXT,
+    is_bot INTEGER DEFAULT 0,
     created_at INTEGER
   );
 
@@ -130,6 +131,20 @@ const createTablesSql = `
     user_id TEXT NOT NULL REFERENCES users(id),
     emoji TEXT NOT NULL
   );
+
+  CREATE TABLE IF NOT EXISTS server_bots (
+    id TEXT PRIMARY KEY,
+    server_id TEXT NOT NULL REFERENCES servers(id),
+    bot_user_id TEXT NOT NULL REFERENCES users(id),
+    provider TEXT NOT NULL,
+    model TEXT NOT NULL,
+    api_key TEXT NOT NULL,
+    enabled INTEGER DEFAULT 1,
+    system_prompt TEXT,
+    created_at INTEGER,
+    UNIQUE(server_id, bot_user_id)
+  );
+  CREATE INDEX IF NOT EXISTS server_bots_server_idx ON server_bots(server_id);
 
   CREATE TABLE IF NOT EXISTS bans (
     id TEXT PRIMARY KEY,
@@ -268,6 +283,7 @@ export async function clearDatabase() {
     "reactions",
     "member_roles",
     "roles",
+    "server_bots",
     "bans",
     "direct_messages",
     "conversation_members",
@@ -351,6 +367,7 @@ const { threadRoutes } = await import("../routes/threads");
 const { inviteRoutes } = await import("../routes/invites");
 const { auditLogRoutes } = await import("../routes/auditLog");
 const { timeoutRoutes } = await import("../routes/timeouts");
+const { botRoutes } = await import("../routes/bots");
 
 const { secureHeaders } = await import("hono/secure-headers");
 const { errorHandler } = await import("../middleware/errorHandler");
@@ -375,6 +392,7 @@ export function createApp() {
   app.route("/", inviteRoutes);
   app.route("/", auditLogRoutes);
   app.route("/", timeoutRoutes);
+  app.route("/", botRoutes);
   return app;
 }
 

@@ -43,13 +43,13 @@ export function VoiceAudioSection() {
 
       {/* Input Device */}
       <div className="mb-6">
-        <label className="mb-2 block text-xs font-bold uppercase text-[#b5bac1]">
+        <label className="mb-2 block text-xs font-bold uppercase text-text-label">
           Input Device
         </label>
         <select
           value={selectedInput}
           onChange={(e) => handleInputChange(e.target.value)}
-          className="w-full rounded bg-[#1e1f22] p-2 text-sm text-[#dbdee1] outline-none"
+          className="w-full rounded bg-bg-tertiary p-2 text-sm text-text-normal outline-none"
         >
           <option value="">Default</option>
           {inputDevices.map((d) => (
@@ -62,7 +62,7 @@ export function VoiceAudioSection() {
 
       {/* Input Volume */}
       <div className="mb-6">
-        <label className="mb-2 block text-xs font-bold uppercase text-[#b5bac1]">
+        <label className="mb-2 block text-xs font-bold uppercase text-text-label">
           Input Volume
         </label>
         <div className="flex items-center gap-3">
@@ -72,21 +72,21 @@ export function VoiceAudioSection() {
             max="200"
             value={inputVolume}
             onChange={(e) => setInputVolume(Number(e.target.value))}
-            className="flex-1 accent-[#5865f2]"
+            className="flex-1 accent-brand"
           />
-          <span className="w-10 text-right text-sm text-[#b5bac1]">{inputVolume}%</span>
+          <span className="w-10 text-right text-sm text-text-label">{inputVolume}%</span>
         </div>
       </div>
 
       {/* Output Device */}
       <div className="mb-6">
-        <label className="mb-2 block text-xs font-bold uppercase text-[#b5bac1]">
+        <label className="mb-2 block text-xs font-bold uppercase text-text-label">
           Output Device
         </label>
         <select
           value={selectedOutput}
           onChange={(e) => handleOutputChange(e.target.value)}
-          className="w-full rounded bg-[#1e1f22] p-2 text-sm text-[#dbdee1] outline-none"
+          className="w-full rounded bg-bg-tertiary p-2 text-sm text-text-normal outline-none"
         >
           <option value="">Default</option>
           {outputDevices.map((d) => (
@@ -99,7 +99,7 @@ export function VoiceAudioSection() {
 
       {/* Output Volume */}
       <div className="mb-6">
-        <label className="mb-2 block text-xs font-bold uppercase text-[#b5bac1]">
+        <label className="mb-2 block text-xs font-bold uppercase text-text-label">
           Output Volume
         </label>
         <div className="flex items-center gap-3">
@@ -109,9 +109,9 @@ export function VoiceAudioSection() {
             max="200"
             value={outputVolume}
             onChange={(e) => setOutputVolume(Number(e.target.value))}
-            className="flex-1 accent-[#5865f2]"
+            className="flex-1 accent-brand"
           />
-          <span className="w-10 text-right text-sm text-[#b5bac1]">{outputVolume}%</span>
+          <span className="w-10 text-right text-sm text-text-label">{outputVolume}%</span>
         </div>
       </div>
     </div>

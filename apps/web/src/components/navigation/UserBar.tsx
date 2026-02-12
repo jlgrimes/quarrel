@@ -23,7 +23,7 @@ export default function UserBar() {
     .toUpperCase();
 
   return (
-    <div className="h-[52px] bg-[#232428] flex items-center px-2 gap-2 shrink-0">
+    <div className="h-[52px] bg-bg-tertiary flex items-center px-2 gap-2 shrink-0">
       <div className="relative">
         <Avatar className="size-8">
           <AvatarImage src={user.avatarUrl ?? undefined} alt={user.username} />
@@ -32,7 +32,7 @@ export default function UserBar() {
           </AvatarFallback>
         </Avatar>
         <div
-          className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-[3px] border-[#232428] ${statusColors[user.status] || statusColors.offline}`}
+          className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-[3px] border-bg-tertiary ${statusColors[user.status] || statusColors.offline}`}
         />
       </div>
 
@@ -40,7 +40,7 @@ export default function UserBar() {
         <div className="text-sm font-semibold text-white truncate">
           {user.displayName || user.username}
         </div>
-        <div className="text-[11px] text-[#949ba4] truncate">
+        <div className="text-[11px] text-text-muted truncate">
           {user.customStatus || user.username}
         </div>
       </div>
@@ -51,13 +51,13 @@ export default function UserBar() {
             href="https://github.com/jlgrimes/quarrel/issues"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center justify-center size-8 rounded text-[#b5bac1] hover:text-[#dbdee1] hover:bg-[#383a40]"
+            className="inline-flex items-center justify-center size-8 rounded text-text-label hover:text-text-normal hover:bg-bg-modifier-hover"
             aria-label="Report a bug"
           >
             <Bug size={18} />
           </a>
         </TooltipTrigger>
-        <TooltipContent side="top" className="bg-[#111214] text-white text-sm font-semibold border-none">
+        <TooltipContent side="top" className="bg-bg-floating text-white text-sm font-semibold border-none">
           Report a bug
         </TooltipContent>
       </Tooltip>
@@ -67,13 +67,13 @@ export default function UserBar() {
             variant="ghost"
             size="icon-sm"
             onClick={() => openModal('settings')}
-            className="text-[#b5bac1] hover:text-[#dbdee1] hover:bg-[#383a40]"
+            className="text-text-label hover:text-text-normal hover:bg-bg-modifier-hover"
             aria-label="User settings"
           >
             <Settings size={18} />
           </Button>
         </TooltipTrigger>
-        <TooltipContent side="top" className="bg-[#111214] text-white text-sm font-semibold border-none">
+        <TooltipContent side="top" className="bg-bg-floating text-white text-sm font-semibold border-none">
           Settings
         </TooltipContent>
       </Tooltip>

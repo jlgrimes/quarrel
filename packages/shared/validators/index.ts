@@ -128,6 +128,20 @@ export const createInviteSchema = z.object({
   maxUses: z.number().int().min(0).max(100).optional(), // 0 = unlimited
 });
 
+export const addBotSchema = z.object({
+  provider: z.enum(['anthropic', 'openai', 'google']),
+  model: z.string().min(1).max(200),
+  apiKey: z.string().min(1),
+  systemPrompt: z.string().max(2000).optional(),
+});
+
+export const updateBotSchema = z.object({
+  model: z.string().min(1).max(200).optional(),
+  apiKey: z.string().min(1).optional(),
+  enabled: z.boolean().optional(),
+  systemPrompt: z.string().max(2000).nullable().optional(),
+});
+
 export const searchMessagesSchema = z.object({
   q: z.string().min(1).max(100),
   serverId: z.string().optional(),

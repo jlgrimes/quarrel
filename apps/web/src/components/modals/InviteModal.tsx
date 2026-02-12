@@ -21,22 +21,22 @@ export default function InviteModal() {
 
   return (
     <Modal title={`Invite people to ${server?.name ?? 'server'}`} onClose={closeModal}>
-      <p className="mb-4 text-center text-sm text-[#b5bac1]">
+      <p className="mb-4 text-center text-sm text-text-label">
         Share this invite code with others to grant access to this server.
       </p>
 
-      <label className="mb-4 block text-xs font-bold uppercase text-[#b5bac1]">
+      <label className="mb-4 block text-xs font-bold uppercase text-text-label">
         Invite Code
         <div className="mt-2 flex gap-2">
           <input
             type="text"
             value={inviteCode}
             readOnly
-            className="block w-full rounded bg-[#1e1f22] p-2 text-base font-normal text-[#dbdee1] outline-none normal-case"
+            className="block w-full rounded bg-bg-tertiary p-2 text-base font-normal text-text-normal outline-none normal-case"
           />
           <button
             onClick={handleCopy}
-            className="shrink-0 rounded bg-[#5865f2] px-4 py-2 font-medium text-white hover:bg-[#4752c4]"
+            className="shrink-0 rounded bg-brand px-4 py-2 font-medium text-white hover:bg-brand-hover"
           >
             {copied ? 'Copied!' : 'Copy'}
           </button>

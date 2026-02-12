@@ -24,16 +24,16 @@ export function VoiceConnectionBar() {
   const someoneElseSharing = screenShareUserId !== null && !isScreenSharing;
 
   return (
-    <div className="bg-[#232428] px-3 py-2">
+    <div className="bg-bg-tertiary px-3 py-2">
       {/* Connection info */}
       <div className="flex items-center justify-between mb-2">
         <div className="min-w-0 flex-1">
-          <div className="text-xs font-semibold text-[#23a559]">Voice Connected</div>
-          <div className="text-[11px] text-[#949ba4] truncate">{channelName}</div>
+          <div className="text-xs font-semibold text-green">Voice Connected</div>
+          <div className="text-[11px] text-text-muted truncate">{channelName}</div>
         </div>
         <button
           onClick={leaveChannel}
-          className="text-[#949ba4] hover:text-[#ed4245] p-1 ml-2 shrink-0"
+          className="text-text-muted hover:text-red p-1 ml-2 shrink-0"
           title="Disconnect"
         >
           <PhoneOff size={20} />
@@ -46,8 +46,8 @@ export function VoiceConnectionBar() {
           onClick={toggleMute}
           className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded text-xs font-medium transition-colors ${
             isMuted
-              ? 'bg-[#ed4245]/20 text-[#ed4245]'
-              : 'bg-[#383a40] text-[#dbdee1] hover:bg-[#404249]'
+              ? 'bg-red/20 text-red'
+              : 'bg-bg-modifier-hover text-text-normal hover:bg-bg-modifier-active'
           }`}
           title={isMuted ? 'Unmute' : 'Mute'}
         >
@@ -58,8 +58,8 @@ export function VoiceConnectionBar() {
           onClick={toggleDeafen}
           className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded text-xs font-medium transition-colors ${
             isDeafened
-              ? 'bg-[#ed4245]/20 text-[#ed4245]'
-              : 'bg-[#383a40] text-[#dbdee1] hover:bg-[#404249]'
+              ? 'bg-red/20 text-red'
+              : 'bg-bg-modifier-hover text-text-normal hover:bg-bg-modifier-active'
           }`}
           title={isDeafened ? 'Undeafen' : 'Deafen'}
         >
@@ -71,10 +71,10 @@ export function VoiceConnectionBar() {
           disabled={someoneElseSharing}
           className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded text-xs font-medium transition-colors ${
             isScreenSharing
-              ? 'bg-[#5865f2]/20 text-[#5865f2]'
+              ? 'bg-brand/20 text-brand'
               : someoneElseSharing
-                ? 'bg-[#383a40] text-[#949ba4] opacity-50 cursor-not-allowed'
-                : 'bg-[#383a40] text-[#dbdee1] hover:bg-[#404249]'
+                ? 'bg-bg-modifier-hover text-text-muted opacity-50 cursor-not-allowed'
+                : 'bg-bg-modifier-hover text-text-normal hover:bg-bg-modifier-active'
           }`}
           title={isScreenSharing ? 'Stop Sharing' : someoneElseSharing ? 'Someone is sharing' : 'Share Screen'}
           data-testid="screen-share-toggle"

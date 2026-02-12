@@ -15,3 +15,4 @@ export * from "./userSettings";
 export * from "./invites";
 export * from "./auditLog";
 export * from "./timeouts";
+export * from "./serverBots";

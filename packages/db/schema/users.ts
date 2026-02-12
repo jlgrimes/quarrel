@@ -14,5 +14,6 @@ export const users = sqliteTable("users", {
   bio: text("bio"),
   bannerUrl: text("banner_url"),
   pronouns: text("pronouns"),
+  isBot: integer("is_bot", { mode: "boolean" }).default(false),
   createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
 });

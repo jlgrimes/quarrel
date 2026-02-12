@@ -2,6 +2,7 @@ import type { ServerWebSocket } from "bun";
 import { db, sessions, members, channels, users, messages } from "@quarrel/db";
 import { eq, and, inArray } from "drizzle-orm";
 import { sendMessageSchema } from "@quarrel/shared";
+import { handleBotMentions } from "./lib/botHandler";
 
 type WSData = {
   userId: string;
@@ -248,6 +249,7 @@ const eventHandlers: Record<string, EventHandler> = {
         username: users.username,
         displayName: users.displayName,
         avatarUrl: users.avatarUrl,
+        isBot: users.isBot,
       })
       .from(users)
       .where(eq(users.id, ws.data.userId))
@@ -257,6 +259,8 @@ const eventHandlers: Record<string, EventHandler> = {
       ...newMessage,
       author,
     });
+
+    handleBotMentions(channelId, channel.serverId, content, ws.data.userId).catch(console.error);
   },
 
   "typing:start": async (ws, data) => {

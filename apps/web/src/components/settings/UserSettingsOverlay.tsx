@@ -48,11 +48,11 @@ export default function UserSettingsOverlay() {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex bg-[#313338]" data-testid="settings-overlay">
+    <div className="fixed inset-0 z-50 flex bg-bg-primary" data-testid="settings-overlay">
       {/* Left sidebar */}
-      <div className="flex w-[218px] shrink-0 flex-col bg-[#2b2d31] overflow-y-auto">
+      <div className="flex w-[218px] shrink-0 flex-col bg-bg-secondary overflow-y-auto">
         <div className="flex flex-1 flex-col justify-start p-2 pt-16">
-          <h2 className="mb-1 px-2.5 text-xs font-bold uppercase text-[#949ba4]">
+          <h2 className="mb-1 px-2.5 text-xs font-bold uppercase text-text-muted">
             User Settings
           </h2>
           {SECTIONS.map((section) => (
@@ -61,8 +61,8 @@ export default function UserSettingsOverlay() {
               onClick={() => handleSectionChange(section.id)}
               className={`mb-0.5 w-full rounded px-2.5 py-1.5 text-left text-sm font-medium transition-colors ${
                 activeSection === section.id
-                  ? 'bg-[#404249] text-white'
-                  : 'text-[#b5bac1] hover:bg-[#35373c] hover:text-[#dbdee1]'
+                  ? 'bg-bg-modifier-active text-white'
+                  : 'text-text-label hover:bg-bg-modifier-hover hover:text-text-normal'
               }`}
             >
               {section.label}
@@ -87,7 +87,7 @@ export default function UserSettingsOverlay() {
       <div className="flex shrink-0 flex-col items-center pt-16 pr-5">
         <button
           onClick={handleClose}
-          className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-[#b5bac1] text-[#b5bac1] transition-colors hover:border-white hover:text-white"
+          className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-text-label text-text-label transition-colors hover:border-white hover:text-white"
           aria-label="Close settings"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -95,7 +95,7 @@ export default function UserSettingsOverlay() {
             <line x1="6" y1="6" x2="18" y2="18" />
           </svg>
         </button>
-        <span className="mt-1 text-xs text-[#949ba4]">ESC</span>
+        <span className="mt-1 text-xs text-text-muted">ESC</span>
       </div>
     </div>
   );

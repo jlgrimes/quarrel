@@ -60,7 +60,7 @@ const ServerIcon = memo(function ServerIcon({
             )}
           </button>
         </TooltipTrigger>
-        <TooltipContent side="right" className="bg-[#111214] text-white text-sm font-semibold border-none">
+        <TooltipContent side="right" className="bg-bg-floating text-white text-sm font-semibold border-none">
           {server.name}
         </TooltipContent>
       </Tooltip>
@@ -102,22 +102,22 @@ export default function ServerSidebar() {
   }, [navigate]);
 
   return (
-    <div className={`w-[72px] bg-[#1e1f22] flex flex-col items-center py-3 overflow-y-auto shrink-0 ${mobileSidebarOpen ? 'max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:z-50' : 'max-md:hidden'}`}>
+    <div className={`w-[72px] bg-bg-tertiary flex flex-col items-center py-3 overflow-y-auto shrink-0 ${mobileSidebarOpen ? 'max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:z-50' : 'max-md:hidden'}`}>
       <div className="relative flex items-center justify-center mb-2 group">
         <Button
           variant="ghost"
           onClick={() => navigate('/channels/@me')}
           className={`w-12 h-12 p-0 transition-all duration-200 font-bold text-xl ${
             !serverId
-              ? 'bg-indigo-500 rounded-[16px] text-white hover:bg-indigo-500'
-              : 'bg-[#313338] rounded-[24px] text-[#dcddde] hover:bg-indigo-500 hover:text-white hover:rounded-[16px]'
+              ? 'bg-brand rounded-[16px] text-white hover:bg-brand'
+              : 'bg-bg-primary rounded-[24px] text-text-normal hover:bg-brand hover:text-white hover:rounded-[16px]'
           }`}
         >
           Q
         </Button>
       </div>
 
-      <div className="w-8 h-[2px] bg-[#35363c] rounded-full mb-2" />
+      <div className="w-8 h-[2px] bg-bg-modifier-hover rounded-full mb-2" />
 
       {servers.map((server) => (
         <ServerWithUnread
@@ -132,7 +132,7 @@ export default function ServerSidebar() {
         <Button
           variant="ghost"
           onClick={() => openModal('createServer')}
-          className="w-12 h-12 p-0 rounded-[24px] bg-[#313338] text-green-500 hover:bg-green-500 hover:text-white hover:rounded-[16px] transition-all duration-200 text-2xl font-light"
+          className="w-12 h-12 p-0 rounded-[24px] bg-bg-primary text-green-500 hover:bg-green-500 hover:text-white hover:rounded-[16px] transition-all duration-200 text-2xl font-light"
         >
           +
         </Button>
@@ -142,7 +142,7 @@ export default function ServerSidebar() {
         <Button
           variant="ghost"
           onClick={() => openModal('joinServer')}
-          className="w-12 h-12 p-0 rounded-[24px] bg-[#313338] text-green-500 hover:bg-green-500 hover:text-white hover:rounded-[16px] transition-all duration-200 text-sm font-semibold"
+          className="w-12 h-12 p-0 rounded-[24px] bg-bg-primary text-green-500 hover:bg-green-500 hover:text-white hover:rounded-[16px] transition-all duration-200 text-sm font-semibold"
         >
           Join
         </Button>

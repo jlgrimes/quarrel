@@ -52,10 +52,10 @@ export default function CreateChannelModal() {
     <Modal title="Create Channel" onClose={closeModal}>
       <form onSubmit={handleSubmit}>
         {error && (
-          <div className="mb-3 rounded bg-[#f23f43]/10 p-2 text-sm text-[#f23f43]">{error}</div>
+          <div className="mb-3 rounded bg-red/10 p-2 text-sm text-red">{error}</div>
         )}
 
-        <label className="mb-1 block text-xs font-bold uppercase text-[#b5bac1]">
+        <label className="mb-1 block text-xs font-bold uppercase text-text-label">
           Channel Type
         </label>
         <div className="mb-4 space-y-2">
@@ -67,8 +67,8 @@ export default function CreateChannelModal() {
               onClick={() => setType(t.value)}
               className={`flex w-full items-center justify-start gap-3 rounded p-2.5 h-auto ${
                 type === t.value
-                  ? 'bg-[#404249] text-white hover:bg-[#404249]'
-                  : 'bg-[#1e1f22] text-[#949ba4] hover:bg-[#383a40] hover:text-[#dbdee1]'
+                  ? 'bg-bg-modifier-active text-white hover:bg-bg-modifier-active'
+                  : 'bg-bg-tertiary text-text-muted hover:bg-bg-modifier-hover hover:text-text-normal'
               }`}
             >
               <span className="text-lg">{t.icon}</span>
@@ -78,12 +78,12 @@ export default function CreateChannelModal() {
         </div>
 
         {type !== 'category' && categories.length > 0 && (
-          <label className="mb-4 block text-xs font-bold uppercase text-[#b5bac1]">
+          <label className="mb-4 block text-xs font-bold uppercase text-text-label">
             Category
             <select
               value={categoryId}
               onChange={(e) => setCategoryId(e.target.value)}
-              className="mt-2 block w-full rounded bg-[#1e1f22] p-2 text-sm font-normal text-[#dbdee1] normal-case border-none outline-none"
+              className="mt-2 block w-full rounded bg-bg-tertiary p-2 text-sm font-normal text-text-normal normal-case border-none outline-none"
             >
               <option value="">No Category</option>
               {categories.map((cat) => (
@@ -95,15 +95,15 @@ export default function CreateChannelModal() {
           </label>
         )}
 
-        <label className="mb-4 block text-xs font-bold uppercase text-[#b5bac1]">
+        <label className="mb-4 block text-xs font-bold uppercase text-text-label">
           {type === 'category' ? 'Category Name' : 'Channel Name'}
-          <div className="mt-2 flex items-center rounded bg-[#1e1f22] p-2">
-            <span className="mr-1 text-[#949ba4]">{nameIcon}</span>
+          <div className="mt-2 flex items-center rounded bg-bg-tertiary p-2">
+            <span className="mr-1 text-text-muted">{nameIcon}</span>
             <Input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value.toLowerCase().replace(/\s+/g, '-'))}
-              className="flex-1 border-none bg-transparent p-0 h-auto text-base font-normal text-[#dbdee1] normal-case shadow-none"
+              className="flex-1 border-none bg-transparent p-0 h-auto text-base font-normal text-text-normal normal-case shadow-none"
               placeholder={type === 'category' ? 'new-category' : 'new-channel'}
               autoFocus
             />
@@ -113,7 +113,7 @@ export default function CreateChannelModal() {
         <Button
           type="submit"
           disabled={!name.trim() || createChannel.isPending}
-          className="w-full rounded bg-[#5865f2] p-2.5 font-medium text-white hover:bg-[#4752c4] disabled:opacity-50"
+          className="w-full rounded bg-brand p-2.5 font-medium text-white hover:bg-brand-hover disabled:opacity-50"
         >
           {createChannel.isPending ? 'Creating...' : type === 'category' ? 'Create Category' : 'Create Channel'}
         </Button>

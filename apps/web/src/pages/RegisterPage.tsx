@@ -34,41 +34,41 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="flex h-full items-center justify-center bg-[#313338] px-4">
-      <form onSubmit={handleSubmit} noValidate className="w-full max-w-[480px] rounded-md bg-[#2b2d31] p-6 md:p-8">
+    <div className="flex h-full items-center justify-center bg-bg-primary px-4">
+      <form onSubmit={handleSubmit} noValidate className="w-full max-w-[480px] rounded-md bg-bg-secondary p-6 md:p-8">
         <h1 className="mb-5 text-center text-2xl font-semibold text-white">Create an account</h1>
 
-        {error && <div className="mb-4 rounded bg-[#f23f43]/10 p-3 text-sm text-[#f23f43]">{error}</div>}
+        {error && <div className="mb-4 rounded bg-red/10 p-3 text-sm text-red">{error}</div>}
 
-        <label className="mb-2 block text-xs font-bold uppercase text-[#b5bac1]">
+        <label className="mb-2 block text-xs font-bold uppercase text-text-label">
           Email
           <Input
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="mt-2 h-auto rounded border-[#3f4147] bg-[#1e1f22] p-2.5 text-base font-normal text-[#dbdee1] shadow-none normal-case focus-visible:border-[#5865f2] focus-visible:ring-0"
+            className="mt-2 h-auto rounded border-bg-modifier-hover bg-bg-tertiary p-2.5 text-base font-normal text-text-normal shadow-none normal-case focus-visible:border-brand focus-visible:ring-0"
             required
           />
         </label>
 
-        <label className="mb-2 block text-xs font-bold uppercase text-[#b5bac1]">
+        <label className="mb-2 block text-xs font-bold uppercase text-text-label">
           Display Name
           <Input
             type="text"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            className="mt-2 h-auto rounded border-[#3f4147] bg-[#1e1f22] p-2.5 text-base font-normal text-[#dbdee1] shadow-none normal-case focus-visible:border-[#5865f2] focus-visible:ring-0"
+            className="mt-2 h-auto rounded border-bg-modifier-hover bg-bg-tertiary p-2.5 text-base font-normal text-text-normal shadow-none normal-case focus-visible:border-brand focus-visible:ring-0"
             required
           />
         </label>
 
-        <label className="mb-5 block text-xs font-bold uppercase text-[#b5bac1]">
+        <label className="mb-5 block text-xs font-bold uppercase text-text-label">
           Password
           <Input
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="mt-2 h-auto rounded border-[#3f4147] bg-[#1e1f22] p-2.5 text-base font-normal text-[#dbdee1] shadow-none normal-case focus-visible:border-[#5865f2] focus-visible:ring-0"
+            className="mt-2 h-auto rounded border-bg-modifier-hover bg-bg-tertiary p-2.5 text-base font-normal text-text-normal shadow-none normal-case focus-visible:border-brand focus-visible:ring-0"
             required
           />
         </label>
@@ -76,26 +76,26 @@ export default function RegisterPage() {
         <Button
           type="submit"
           disabled={loading}
-          className="w-full rounded bg-[#5865f2] p-2.5 font-medium text-white hover:bg-[#4752c4] disabled:opacity-50"
+          className="w-full rounded bg-brand p-2.5 font-medium text-white hover:bg-brand-hover disabled:opacity-50"
         >
           {loading ? 'Creating...' : 'Continue'}
         </Button>
 
-        <p className="mt-3 text-sm text-[#949ba4]">
+        <p className="mt-3 text-sm text-text-muted">
           Already have an account?{' '}
-          <Link to="/login" className="text-[#00a8fc] hover:underline">
+          <Link to="/login" className="text-text-link hover:underline">
             Log In
           </Link>
         </p>
       </form>
 
-      <p className="absolute bottom-4 text-center text-xs text-[#949ba4] max-w-md px-4">
+      <p className="absolute bottom-4 text-center text-xs text-text-muted max-w-md px-4">
         Quarrel is an independent, open-source project and is not affiliated with or endorsed by Discord Inc.{' '}
         <a
           href="https://github.com/jlgrimes/quarrel"
           target="_blank"
           rel="noopener noreferrer"
-          className="text-[#00a8fc] hover:underline"
+          className="text-text-link hover:underline"
         >
           View source on GitHub
         </a>

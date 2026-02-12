@@ -8,7 +8,7 @@ import { useVoiceStore } from '../../stores/voiceStore';
 import { analytics } from '../../lib/analytics';
 import type { Channel } from '@quarrel/shared';
 import { Button } from '@/components/ui/button';
-import { Volume2, Hash } from 'lucide-react';
+import { Volume2, Hash, Settings } from 'lucide-react';
 import {
   Collapsible,
   CollapsibleContent,
@@ -42,14 +42,14 @@ function VoiceParticipants({ channelId }: { channelId: string }) {
   return (
     <div className="ml-8 mt-0.5 mb-1">
       {participants.map((p) => (
-        <div key={p.userId} className="flex items-center gap-2 py-0.5 px-2 text-xs text-[#949ba4]">
-          <div className={`w-5 h-5 rounded-full bg-[#5865f2] flex items-center justify-center text-white text-[10px] font-semibold shrink-0 ${
-            speakingUsers.has(p.userId) ? 'ring-2 ring-[#23a559]' : ''
+        <div key={p.userId} className="flex items-center gap-2 py-0.5 px-2 text-xs text-text-muted">
+          <div className={`w-5 h-5 rounded-full bg-brand flex items-center justify-center text-white text-[10px] font-semibold shrink-0 ${
+            speakingUsers.has(p.userId) ? 'ring-2 ring-green' : ''
           }`}>
             {(p.displayName || p.username).charAt(0).toUpperCase()}
           </div>
           <span className="truncate">{p.displayName || p.username}</span>
-          {p.isMuted && <span className="text-[#ed4245] text-[10px] shrink-0">&#x1F507;</span>}
+          {p.isMuted && <span className="text-red text-[10px] shrink-0">&#x1F507;</span>}
         </div>
       ))}
     </div>
@@ -93,7 +93,7 @@ const CategorySection = memo(function CategorySection({
       <SidebarGroup className="px-1 py-0 mt-4">
         <SidebarGroupLabel
           asChild
-          className="text-[#949ba4] text-xs uppercase font-bold tracking-wide px-1"
+          className="text-text-muted text-xs uppercase font-bold tracking-wide px-1"
         >
           <CollapsibleTrigger className="flex items-center gap-0.5">
             <span className="text-[10px] transition-transform group-data-[state=closed]/collapsible:-rotate-90">
@@ -104,7 +104,7 @@ const CategorySection = memo(function CategorySection({
         </SidebarGroupLabel>
         <SidebarGroupAction
           onClick={onAddChannel}
-          className="text-[#949ba4] hover:text-[#dbdee1]"
+          className="text-text-muted hover:text-text-normal"
           aria-label="Create channel"
         >
           +
@@ -148,7 +148,7 @@ const ChannelItem = memo(function ChannelItem({
           !isActive && hasUnread
             ? 'text-white font-bold'
             : !isActive
-              ? 'text-[#949ba4] hover:text-[#dbdee1]'
+              ? 'text-text-muted hover:text-text-normal'
               : ''
         }
       >
@@ -158,7 +158,7 @@ const ChannelItem = memo(function ChannelItem({
         <span className="truncate">{channel.name}</span>
       </SidebarMenuButton>
       {!isActive && hasUnread && (
-        <SidebarMenuBadge className="bg-[#f23f43] text-white text-[10px] font-bold px-1.5 min-w-[18px] h-4 rounded-full flex items-center justify-center">
+        <SidebarMenuBadge className="bg-red text-white text-[10px] font-bold px-1.5 min-w-[18px] h-4 rounded-full flex items-center justify-center">
           {(channel.unreadCount ?? 0) > 99 ? '99+' : channel.unreadCount}
         </SidebarMenuBadge>
       )}
@@ -230,13 +230,13 @@ export default function ChannelSidebar() {
 
   return (
     <Sidebar side="left" collapsible="offcanvas">
-      <SidebarHeader className="h-12 flex-row items-center px-4 border-b border-[#1e1f22] py-0 group">
+      <SidebarHeader className="h-12 flex-row items-center px-4 border-b border-bg-tertiary py-0 group">
         <h2 className="font-semibold text-white truncate flex-1">{server.name}</h2>
         <Button
           variant="ghost"
           size="icon-xs"
           onClick={() => openModal('inviteServer')}
-          className="text-[#949ba4] hover:text-[#dbdee1] opacity-0 group-hover:opacity-100 transition-opacity leading-none ml-auto"
+          className="text-text-muted hover:text-text-normal opacity-0 group-hover:opacity-100 transition-opacity leading-none ml-auto"
           aria-label="Invite people"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
@@ -246,8 +246,17 @@ export default function ChannelSidebar() {
         <Button
           variant="ghost"
           size="icon-xs"
+          onClick={() => openModal('serverSettings')}
+          className="text-text-muted hover:text-text-normal opacity-0 group-hover:opacity-100 transition-opacity leading-none ml-1"
+          aria-label="Server settings"
+        >
+          <Settings size={16} />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon-xs"
           onClick={() => openModal('createChannel')}
-          className="text-[#949ba4] hover:text-[#dbdee1] opacity-0 group-hover:opacity-100 transition-opacity text-lg leading-none ml-1"
+          className="text-text-muted hover:text-text-normal opacity-0 group-hover:opacity-100 transition-opacity text-lg leading-none ml-1"
           aria-label="Create channel"
         >
           +
