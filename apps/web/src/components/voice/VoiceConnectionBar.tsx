@@ -2,6 +2,7 @@ import { useParams } from 'react-router-dom';
 import { useVoiceStore } from '../../stores/voiceStore';
 import { useChannels } from '../../hooks/useChannels';
 import { PhoneOff, Mic, MicOff, Headphones, HeadphoneOff, MonitorUp, MonitorOff } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 export function VoiceConnectionBar() {
   const { serverId } = useParams();
@@ -31,18 +32,20 @@ export function VoiceConnectionBar() {
           <div className="text-xs font-semibold text-green">Voice Connected</div>
           <div className="text-[11px] text-text-muted truncate">{channelName}</div>
         </div>
-        <button
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={leaveChannel}
-          className="text-text-muted hover:text-red p-1 ml-2 shrink-0"
+          className="text-text-muted hover:text-red ml-2 shrink-0 hover:bg-transparent"
           title="Disconnect"
         >
           <PhoneOff size={20} />
-        </button>
+        </Button>
       </div>
 
       {/* Controls */}
       <div className="flex gap-1">
-        <button
+        <Button
           onClick={toggleMute}
           className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded text-xs font-medium transition-colors ${
             isMuted
@@ -53,8 +56,8 @@ export function VoiceConnectionBar() {
         >
           {isMuted ? <MicOff size={14} /> : <Mic size={14} />}
           {isMuted ? 'Unmute' : 'Mute'}
-        </button>
-        <button
+        </Button>
+        <Button
           onClick={toggleDeafen}
           className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded text-xs font-medium transition-colors ${
             isDeafened
@@ -65,8 +68,8 @@ export function VoiceConnectionBar() {
         >
           {isDeafened ? <HeadphoneOff size={14} /> : <Headphones size={14} />}
           {isDeafened ? 'Undeafen' : 'Deafen'}
-        </button>
-        <button
+        </Button>
+        <Button
           onClick={isScreenSharing ? stopScreenShare : startScreenShare}
           disabled={someoneElseSharing}
           className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded text-xs font-medium transition-colors ${
@@ -81,7 +84,7 @@ export function VoiceConnectionBar() {
         >
           {isScreenSharing ? <MonitorOff size={14} /> : <MonitorUp size={14} />}
           {isScreenSharing ? 'Stop' : 'Share'}
-        </button>
+        </Button>
       </div>
     </div>
   );

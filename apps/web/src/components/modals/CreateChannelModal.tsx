@@ -6,6 +6,7 @@ import { useUIStore } from '../../stores/uiStore';
 import { analytics } from '../../lib/analytics';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import Modal from './Modal';
 
 export default function CreateChannelModal() {
@@ -80,18 +81,19 @@ export default function CreateChannelModal() {
         {type !== 'category' && categories.length > 0 && (
           <label className="mb-4 block text-xs font-bold uppercase text-text-label">
             Category
-            <select
-              value={categoryId}
-              onChange={(e) => setCategoryId(e.target.value)}
-              className="mt-2 block w-full rounded bg-bg-tertiary p-2 text-sm font-normal text-text-normal normal-case border-none outline-none"
-            >
-              <option value="">No Category</option>
-              {categories.map((cat) => (
-                <option key={cat.id} value={cat.id}>
-                  {cat.name}
-                </option>
-              ))}
-            </select>
+            <Select value={categoryId || 'none'} onValueChange={(value) => setCategoryId(value === 'none' ? '' : value)}>
+              <SelectTrigger className="mt-2 h-auto w-full border-none bg-bg-tertiary py-2 text-sm font-normal text-text-normal normal-case">
+                <SelectValue placeholder="No Category" />
+              </SelectTrigger>
+              <SelectContent className="bg-bg-secondary border-bg-tertiary text-text-normal">
+                <SelectItem value="none">No Category</SelectItem>
+                {categories.map((cat) => (
+                  <SelectItem key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </label>
         )}
 

@@ -19,14 +19,14 @@ const ServerIcon = memo(function ServerIcon({
 }) {
   const letter = server.name.charAt(0).toUpperCase();
   const colors = [
-    'bg-indigo-500',
-    'bg-green-500',
-    'bg-yellow-500',
-    'bg-red-500',
-    'bg-pink-500',
-    'bg-purple-500',
-    'bg-blue-500',
-    'bg-teal-500',
+    'bg-brand',
+    'bg-green',
+    'bg-yellow',
+    'bg-red',
+    'bg-blurple',
+    'bg-bg-neutral',
+    'bg-brand-hover',
+    'bg-green-dark',
   ];
   const colorIdx =
     server.id.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0) %
@@ -43,9 +43,10 @@ const ServerIcon = memo(function ServerIcon({
 
       <Tooltip>
         <TooltipTrigger asChild>
-          <button
+          <Button
+            size="icon-lg"
             onClick={onClick}
-            className={`w-12 h-12 flex items-center justify-center transition-all duration-200 text-white font-semibold text-lg ${bgColor} ${
+            className={`h-12 w-12 transition-all duration-200 text-white font-semibold text-lg ${bgColor} ${
               isActive ? 'rounded-[16px]' : 'rounded-[24px] hover:rounded-[16px]'
             }`}
           >
@@ -58,7 +59,7 @@ const ServerIcon = memo(function ServerIcon({
             ) : (
               letter
             )}
-          </button>
+          </Button>
         </TooltipTrigger>
         <TooltipContent side="right" className="bg-bg-floating text-white text-sm font-semibold border-none">
           {server.name}
@@ -132,7 +133,7 @@ export default function ServerSidebar() {
         <Button
           variant="ghost"
           onClick={() => openModal('createServer')}
-          className="w-12 h-12 p-0 rounded-[24px] bg-bg-primary text-green-500 hover:bg-green-500 hover:text-white hover:rounded-[16px] transition-all duration-200 text-2xl font-light"
+          className="w-12 h-12 p-0 rounded-[24px] bg-bg-primary text-green hover:bg-green hover:text-white hover:rounded-[16px] transition-all duration-200 text-2xl font-light"
         >
           +
         </Button>
@@ -142,7 +143,7 @@ export default function ServerSidebar() {
         <Button
           variant="ghost"
           onClick={() => openModal('joinServer')}
-          className="w-12 h-12 p-0 rounded-[24px] bg-bg-primary text-green-500 hover:bg-green-500 hover:text-white hover:rounded-[16px] transition-all duration-200 text-sm font-semibold"
+          className="w-12 h-12 p-0 rounded-[24px] bg-bg-primary text-green hover:bg-green hover:text-white hover:rounded-[16px] transition-all duration-200 text-sm font-semibold"
         >
           Join
         </Button>

@@ -5,6 +5,8 @@ import { useAuthStore } from '../../stores/authStore';
 import { useUIStore } from '../../stores/uiStore';
 import { analytics } from '../../lib/analytics';
 import { normalizeChronological } from '../../lib/messageOrder';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 
 function formatTimestamp(dateStr: string) {
   const date = new Date(dateStr);
@@ -153,15 +155,17 @@ export function DMChat({
     <div className="flex flex-1 flex-col bg-bg-primary">
       {/* Header */}
       <div className="h-12 flex items-center px-4 border-b border-bg-tertiary flex-shrink-0 shadow-sm gap-3">
-        <button
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={() => setMobileSidebarOpen(true)}
-          className="mr-1 text-text-label hover:text-white md:hidden flex-shrink-0"
+          className="mr-1 text-text-label hover:text-white md:hidden flex-shrink-0 hover:bg-transparent"
           aria-label="Open sidebar"
         >
           <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
             <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z" />
           </svg>
-        </button>
+        </Button>
         <span className="text-text-muted text-xl">@</span>
         <UserAvatar user={otherUser ? { displayName: otherUser.displayName, avatarUrl: otherUser.avatarUrl } : undefined} />
         <span className="font-semibold text-white">{displayName}</span>
@@ -177,12 +181,11 @@ export function DMChat({
         <div className="flex flex-col justify-end min-h-full">
         {hasPreviousPage && (
           <div className="flex justify-center py-4">
-            <button
+            <Button variant="link" className="h-auto p-0 text-sm text-text-link hover:underline"
               onClick={() => fetchPreviousPage()}
-              className="text-sm text-text-link hover:underline"
             >
               Load more messages
-            </button>
+            </Button>
           </div>
         )}
 
@@ -264,14 +267,14 @@ export function DMChat({
       {/* Input */}
       <div className="px-4 pb-6 flex-shrink-0">
         <div className="rounded-lg bg-bg-modifier-hover">
-          <textarea
+          <Textarea
             ref={textareaRef}
             value={content}
             onChange={handleChange}
             onKeyDown={handleKeyDown}
             placeholder={`Message @${displayName}`}
             rows={1}
-            className="w-full bg-transparent text-text-normal placeholder-text-muted p-3 resize-none outline-none max-h-[300px]"
+            className="w-full border-none bg-transparent text-text-normal placeholder-text-muted p-3 resize-none shadow-none outline-none focus-visible:ring-0 max-h-[300px] min-h-0"
           />
         </div>
       </div>

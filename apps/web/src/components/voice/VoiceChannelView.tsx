@@ -5,6 +5,7 @@ import { useAuthStore } from '../../stores/authStore';
 import { useChannels } from '../../hooks/useChannels';
 import { useUIStore } from '../../stores/uiStore';
 import type { VoiceParticipant } from '@quarrel/shared';
+import { Button } from '@/components/ui/button';
 
 const ParticipantCard = memo(function ParticipantCard({ participant }: { participant: VoiceParticipant }) {
   const currentUser = useAuthStore((s) => s.user);
@@ -118,13 +119,14 @@ function ScreenShareView() {
           {sharerName}'s screen
         </div>
         {isSelfSharing && (
-          <button
+          <Button
             onClick={stopScreenShare}
-            className="absolute top-2 right-2 bg-red hover:bg-red-hover text-white text-xs px-3 py-1.5 rounded font-medium transition-colors"
+            size="sm"
+            className="absolute top-2 right-2 bg-red hover:bg-red-hover text-white text-xs"
             data-testid="stop-screen-share-btn"
           >
             Stop Sharing
-          </button>
+          </Button>
         )}
       </div>
     </div>
@@ -148,15 +150,17 @@ export function VoiceChannelView({ channelId }: { channelId: string }) {
     <div className="flex flex-col h-full bg-bg-primary">
       {/* Header */}
       <div className="h-12 flex items-center px-4 border-b border-bg-tertiary shrink-0 shadow-sm">
-        <button
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={() => useUIStore.getState().setMobileSidebarOpen(true)}
-          className="mr-2 text-text-label hover:text-white md:hidden flex-shrink-0"
+          className="mr-2 text-text-label hover:text-white md:hidden flex-shrink-0 hover:bg-transparent"
           aria-label="Open sidebar"
         >
           <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
             <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z" />
           </svg>
-        </button>
+        </Button>
         <span className="text-lg mr-2">&#x1F50A;</span>
         <h2 className="font-semibold text-white">{channelName}</h2>
       </div>
@@ -186,13 +190,13 @@ export function VoiceChannelView({ channelId }: { channelId: string }) {
             </div>
             <h3 className="text-xl font-semibold text-white mb-2">{channelName}</h3>
             <p className="text-text-muted mb-6">Click below to join the voice channel</p>
-            <button
+            <Button
               onClick={() => joinChannel(channelId)}
               disabled={isConnecting}
-              className="px-6 py-2.5 bg-green-dark hover:bg-green-dark-hover text-white rounded font-medium transition-colors disabled:opacity-50"
+              className="bg-green-dark hover:bg-green-dark-hover text-white"
             >
               {isConnecting ? 'Connecting...' : 'Join Voice'}
-            </button>
+            </Button>
           </div>
         )}
       </div>

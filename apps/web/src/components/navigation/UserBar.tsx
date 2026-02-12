@@ -6,10 +6,10 @@ import { Bug, Settings } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 const statusColors: Record<string, string> = {
-  online: 'bg-green-500',
-  idle: 'bg-yellow-500',
-  dnd: 'bg-red-500',
-  offline: 'bg-gray-500',
+  online: 'bg-green',
+  idle: 'bg-yellow',
+  dnd: 'bg-red',
+  offline: 'bg-status-offline',
 };
 
 export default function UserBar() {
@@ -27,7 +27,7 @@ export default function UserBar() {
       <div className="relative">
         <Avatar className="size-8">
           <AvatarImage src={user.avatarUrl ?? undefined} alt={user.username} />
-          <AvatarFallback className="bg-indigo-500 text-white text-sm font-semibold">
+          <AvatarFallback className="bg-brand text-white text-sm font-semibold">
             {avatarLetter}
           </AvatarFallback>
         </Avatar>

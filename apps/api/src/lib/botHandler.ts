@@ -20,6 +20,62 @@ function isRateLimited(channelId: string): boolean {
   return false;
 }
 
+function extractProviderReason(raw: string): string | null {
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+
+  const jsonStart = trimmed.indexOf("{");
+  const jsonEnd = trimmed.lastIndexOf("}");
+  if (jsonStart >= 0 && jsonEnd > jsonStart) {
+    const maybeJson = trimmed.slice(jsonStart, jsonEnd + 1);
+    try {
+      const parsed = JSON.parse(maybeJson);
+      const reason =
+        parsed?.error?.message ??
+        parsed?.message ??
+        parsed?.candidates?.[0]?.finishReason;
+      if (typeof reason === "string" && reason.trim()) {
+        return reason.trim();
+      }
+    } catch {
+      // ignore parse errors, fall back below
+    }
+  }
+
+  const compact = trimmed.replace(/\s+/g, " ");
+  if (!compact) return null;
+  return compact.slice(0, 160);
+}
+
+function buildBotErrorMessage(provider: string, err?: unknown): string {
+  const raw = String(err ?? "");
+  const lower = raw.toLowerCase();
+  const reason = extractProviderReason(raw);
+
+  let hint = "Check API key, model, and provider settings in Server Settings -> AI.";
+  if (lower.includes("401") || lower.includes("unauthorized") || lower.includes("invalid api key") || lower.includes("invalid_api_key")) {
+    hint = "My API key appears invalid. Update it in Server Settings -> AI.";
+  } else if (lower.includes("model") && (lower.includes("not found") || lower.includes("does not exist") || lower.includes("unsupported"))) {
+    hint = "The configured model looks unavailable. Choose a different model in Server Settings -> AI.";
+  } else if (lower.includes("429") || lower.includes("rate limit")) {
+    hint = "Provider rate limit reached. Try again in a moment.";
+  } else if (lower.includes("credit balance is too low") || lower.includes("insufficient_quota") || lower.includes("billing")) {
+    hint = "This provider account has no available credits/billing. Add credits, then try again.";
+  }
+
+  let detail = "";
+  const statusMatch = raw.match(/\b(4\d{2}|5\d{2})\b/);
+  if (statusMatch) {
+    detail = ` (HTTP ${statusMatch[1]})`;
+  } else if (raw.trim()) {
+    const compact = raw.replace(/\s+/g, " ").trim();
+    detail = ` (${compact.slice(0, 80)})`;
+  }
+
+  const reasonText = reason ? ` Reason: ${reason}` : "";
+  return `I couldn't respond right now (${provider} error${detail}). ${hint}${reasonText}`;
+}
+
 export async function handleBotMentions(
   channelId: string,
   serverId: string,
@@ -56,6 +112,7 @@ export async function handleBotMentions(
       systemPrompt: serverBots.systemPrompt,
       username: users.username,
       displayName: users.displayName,
+      avatarUrl: users.avatarUrl,
     })
     .from(serverBots)
     .innerJoin(users, eq(serverBots.botUserId, users.id))
@@ -136,7 +193,30 @@ export async function handleBotMentions(
         botConfig.systemPrompt
       );
 
-      if (!response) continue;
+      if (!response) {
+        const [fallbackMessage] = await db
+          .insert(messages)
+          .values({
+            channelId,
+            authorId: mentionedId,
+            content: buildBotErrorMessage(botConfig.provider),
+          })
+          .returning();
+
+        const fallbackAuthor = {
+          id: mentionedId,
+          username: botConfig.username ?? "Bot",
+          displayName: botConfig.displayName ?? "Bot",
+          avatarUrl: botConfig.avatarUrl,
+          isBot: true,
+        };
+
+        broadcastToChannel(channelId, "message:new", {
+          ...fallbackMessage,
+          author: fallbackAuthor,
+        });
+        continue;
+      }
 
       // Insert AI response as a message
       const [newMessage] = await db
@@ -152,7 +232,7 @@ export async function handleBotMentions(
         id: mentionedId,
         username: botConfig.username ?? "Bot",
         displayName: botConfig.displayName ?? "Bot",
-        avatarUrl: null as string | null,
+        avatarUrl: botConfig.avatarUrl,
         isBot: true,
       };
 
@@ -169,6 +249,29 @@ export async function handleBotMentions(
       });
     } catch (err) {
       console.error(`Bot response error (${botConfig.provider}):`, err);
+
+      const [errorMessage] = await db
+        .insert(messages)
+        .values({
+          channelId,
+          authorId: mentionedId,
+          content: buildBotErrorMessage(botConfig.provider, err),
+        })
+        .returning();
+
+      const errorAuthor = {
+        id: mentionedId,
+        username: botConfig.username ?? "Bot",
+        displayName: botConfig.displayName ?? "Bot",
+        avatarUrl: botConfig.avatarUrl,
+        isBot: true,
+      };
+
+      broadcastToChannel(channelId, "message:new", {
+        ...errorMessage,
+        author: errorAuthor,
+      });
+
       analytics.capture(authorId, "bot:response_error", {
         serverId,
         channelId,

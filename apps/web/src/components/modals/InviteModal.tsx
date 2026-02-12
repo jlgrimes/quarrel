@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useServers } from '../../hooks/useServers';
 import { useUIStore } from '../../stores/uiStore';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import Modal from './Modal';
 
 export default function InviteModal() {
@@ -28,18 +30,18 @@ export default function InviteModal() {
       <label className="mb-4 block text-xs font-bold uppercase text-text-label">
         Invite Code
         <div className="mt-2 flex gap-2">
-          <input
+          <Input
             type="text"
             value={inviteCode}
             readOnly
-            className="block w-full rounded bg-bg-tertiary p-2 text-base font-normal text-text-normal outline-none normal-case"
+            className="block w-full rounded border-none bg-bg-tertiary p-2 text-base font-normal text-text-normal shadow-none outline-none normal-case"
           />
-          <button
+          <Button
             onClick={handleCopy}
             className="shrink-0 rounded bg-brand px-4 py-2 font-medium text-white hover:bg-brand-hover"
           >
             {copied ? 'Copied!' : 'Copy'}
-          </button>
+          </Button>
         </div>
       </label>
     </Modal>

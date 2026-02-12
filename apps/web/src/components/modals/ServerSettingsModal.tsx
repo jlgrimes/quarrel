@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
-import { Trash2 } from 'lucide-react';
+import { Pencil, Trash2 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useUIStore } from '../../stores/uiStore';
 import { analytics } from '../../lib/analytics';
@@ -26,9 +26,15 @@ const PROVIDER_MODELS: Record<string, { label: string; value: string }[]> = {
     { label: 'Claude Haiku 4.5', value: 'claude-haiku-4-5-20251001' },
   ],
   openai: [
+    { label: 'GPT-5', value: 'gpt-5' },
+    { label: 'GPT-5 Mini', value: 'gpt-5-mini' },
+    { label: 'GPT-5 Codex', value: 'gpt-5-codex' },
+    { label: 'GPT-4.1', value: 'gpt-4.1' },
+    { label: 'GPT-4.1 Mini', value: 'gpt-4.1-mini' },
     { label: 'GPT-4o', value: 'gpt-4o' },
     { label: 'GPT-4o Mini', value: 'gpt-4o-mini' },
     { label: 'o3', value: 'o3' },
+    { label: 'o3 Mini', value: 'o3-mini' },
     { label: 'o4-mini', value: 'o4-mini' },
   ],
   google: [
@@ -58,6 +64,14 @@ export default function ServerSettingsModal() {
   const [systemPrompt, setSystemPrompt] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [editingBotId, setEditingBotId] = useState<string | null>(null);
+  const [editModel, setEditModel] = useState('');
+  const [editApiKey, setEditApiKey] = useState('');
+  const [editSystemPrompt, setEditSystemPrompt] = useState('');
+  const [editSubmitting, setEditSubmitting] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+  const [testingBotId, setTestingBotId] = useState<string | null>(null);
+  const [testResultByBotId, setTestResultByBotId] = useState<Record<string, { ok: boolean; message: string }>>({});
 
   const fetchBots = useCallback(async () => {
     if (!serverId) return;
@@ -122,6 +136,83 @@ export default function ServerSettingsModal() {
       fetchBots();
     } catch {
       // ignore
+    }
+  };
+
+  const startEdit = (bot: any) => {
+    setEditingBotId(bot.id);
+    setEditModel(bot.model);
+    setEditApiKey('');
+    setEditSystemPrompt(bot.systemPrompt ?? '');
+    setEditError(null);
+  };
+
+  const cancelEdit = () => {
+    setEditingBotId(null);
+    setEditModel('');
+    setEditApiKey('');
+    setEditSystemPrompt('');
+    setEditError(null);
+  };
+
+  const handleSaveEdit = async (bot: any) => {
+    if (!serverId) return;
+    setEditSubmitting(true);
+    setEditError(null);
+    try {
+      await api.updateBot(serverId, bot.id, {
+        model: editModel,
+        apiKey: editApiKey.trim() ? editApiKey.trim() : undefined,
+        systemPrompt: editSystemPrompt.trim() ? editSystemPrompt : null,
+      });
+      analytics.capture('bot:updated', { serverId, provider: bot.provider, botId: bot.id });
+      cancelEdit();
+      fetchBots();
+    } catch (err: any) {
+      setEditError(err.message || 'Failed to update AI');
+    } finally {
+      setEditSubmitting(false);
+    }
+  };
+
+  const handleTestConnection = async (bot: any) => {
+    if (!serverId) return;
+    setTestingBotId(bot.id);
+    setTestResultByBotId((old) => {
+      const next = { ...old };
+      delete next[bot.id];
+      return next;
+    });
+    try {
+      const result = await api.testBotConnection(serverId, bot.id);
+      if (result.success) {
+        const preview = result.responsePreview ? ` | ${result.responsePreview}` : '';
+        setTestResultByBotId((old) => ({
+          ...old,
+          [bot.id]: {
+            ok: true,
+            message: `Connected in ${result.latencyMs}ms${preview}`,
+          },
+        }));
+      } else {
+        setTestResultByBotId((old) => ({
+          ...old,
+          [bot.id]: {
+            ok: false,
+            message: result.error || 'Connection test failed.',
+          },
+        }));
+      }
+    } catch (err: any) {
+      setTestResultByBotId((old) => ({
+        ...old,
+        [bot.id]: {
+          ok: false,
+          message: err.message || 'Connection test failed.',
+        },
+      }));
+    } finally {
+      setTestingBotId(null);
     }
   };
 
@@ -234,40 +325,142 @@ export default function ServerSettingsModal() {
                 {bots.map((bot) => (
                   <div
                     key={bot.id}
-                    className="flex items-center justify-between rounded-lg border px-4 py-3"
+                    className="rounded-lg border px-4 py-3"
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-xs font-bold">
-                        {bot.botUser?.displayName?.[0] ?? '?'}
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium">
-                            {bot.botUser?.displayName ?? bot.provider}
-                          </span>
-                          <span className="inline-flex items-center px-1 py-0.5 rounded text-[10px] font-semibold bg-primary text-primary-foreground leading-none">
-                            AI
-                          </span>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        {bot.botUser?.avatarUrl ? (
+                          <img
+                            src={bot.botUser.avatarUrl}
+                            alt={`${bot.botUser?.displayName ?? bot.provider} logo`}
+                            className="w-8 h-8 rounded-full object-cover bg-bg-tertiary p-1"
+                          />
+                        ) : (
+                          <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-xs font-bold">
+                            {bot.botUser?.displayName?.[0] ?? '?'}
+                          </div>
+                        )}
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium">
+                              {bot.botUser?.displayName ?? bot.provider}
+                            </span>
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold text-white/85 leading-none bg-white/10 border border-white/10">
+                              AI
+                            </span>
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            {PROVIDER_LABELS[bot.provider] ?? bot.provider} &middot; {bot.model}
+                          </p>
                         </div>
-                        <p className="text-xs text-muted-foreground">
-                          {PROVIDER_LABELS[bot.provider] ?? bot.provider} &middot; {bot.model}
-                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="xs"
+                          onClick={() => handleTestConnection(bot)}
+                          disabled={testingBotId === bot.id}
+                          title="Test Connection"
+                        >
+                          {testingBotId === bot.id ? 'Testing...' : 'Test'}
+                        </Button>
+                        <Switch
+                          checked={bot.enabled}
+                          onCheckedChange={() => handleToggle(bot)}
+                        />
+                        <Button
+                          variant="ghost"
+                          size="icon-xs"
+                          onClick={() => (editingBotId === bot.id ? cancelEdit() : startEdit(bot))}
+                          className="text-muted-foreground hover:text-foreground"
+                          title={editingBotId === bot.id ? 'Cancel Edit' : 'Edit AI'}
+                        >
+                          <Pencil size={16} />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon-xs"
+                          onClick={() => handleRemove(bot)}
+                          className="text-muted-foreground hover:text-destructive"
+                          title="Remove AI"
+                        >
+                          <Trash2 size={16} />
+                        </Button>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <Switch
-                        checked={bot.enabled}
-                        onCheckedChange={() => handleToggle(bot)}
-                      />
-                      <Button
-                        variant="ghost"
-                        size="icon-xs"
-                        onClick={() => handleRemove(bot)}
-                        className="text-muted-foreground hover:text-destructive"
+
+                    {editingBotId === bot.id && (
+                      <div className="mt-3 border-t pt-3 space-y-3">
+                        {editError && (
+                          <div className="text-sm text-destructive bg-destructive/10 px-3 py-2 rounded">
+                            {editError}
+                          </div>
+                        )}
+                        <div className="space-y-2">
+                          <Label>Model</Label>
+                          <Select value={editModel} onValueChange={setEditModel}>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {PROVIDER_MODELS[bot.provider]?.map((m) => (
+                                <SelectItem key={m.value} value={m.value}>
+                                  {m.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>API Key</Label>
+                          <Input
+                            type="password"
+                            value={editApiKey}
+                            onChange={(e) => setEditApiKey(e.target.value)}
+                            placeholder="Leave blank to keep existing key"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>System Prompt (Optional)</Label>
+                          <Textarea
+                            value={editSystemPrompt}
+                            onChange={(e) => setEditSystemPrompt(e.target.value)}
+                            placeholder="Custom personality for the AI..."
+                            maxLength={2000}
+                            rows={3}
+                          />
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            onClick={() => handleSaveEdit(bot)}
+                            disabled={editSubmitting}
+                          >
+                            {editSubmitting ? 'Saving...' : 'Save'}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={cancelEdit}
+                            disabled={editSubmitting}
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+
+                    {testResultByBotId[bot.id] && (
+                      <div
+                        className={`mt-3 rounded px-3 py-2 text-xs ${
+                          testResultByBotId[bot.id].ok
+                            ? 'bg-green/10 text-green'
+                            : 'bg-red/10 text-red'
+                        }`}
                       >
-                        <Trash2 size={16} />
-                      </Button>
-                    </div>
+                        {testResultByBotId[bot.id].message}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

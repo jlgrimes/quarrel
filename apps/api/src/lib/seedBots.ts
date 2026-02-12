@@ -7,18 +7,21 @@ const BOT_USERS = [
     username: "claude",
     displayName: "Claude",
     email: "claude@bot.quarrel",
+    avatarUrl: "/ai-avatars/claude.svg",
   },
   {
     id: "00000000-0000-0000-0000-000000000002",
     username: "chatgpt",
     displayName: "ChatGPT",
     email: "chatgpt@bot.quarrel",
+    avatarUrl: "/ai-avatars/chatgpt.svg",
   },
   {
     id: "00000000-0000-0000-0000-000000000003",
     username: "gemini",
     displayName: "Gemini",
     email: "gemini@bot.quarrel",
+    avatarUrl: "/ai-avatars/gemini.svg",
   },
 ] as const;
 
@@ -39,7 +42,13 @@ export async function seedBots() {
       }
       await db
         .update(users)
-        .set({ isBot: true, status: "online" })
+        .set({
+          displayName: bot.displayName,
+          email: bot.email,
+          avatarUrl: bot.avatarUrl,
+          isBot: true,
+          status: "online",
+        })
         .where(eq(users.id, existing.id));
       continue;
     }
@@ -49,6 +58,7 @@ export async function seedBots() {
       username: bot.username,
       displayName: bot.displayName,
       email: bot.email,
+      avatarUrl: bot.avatarUrl,
       hashedPassword: "BOT_NO_LOGIN",
       status: "online",
       isBot: true,

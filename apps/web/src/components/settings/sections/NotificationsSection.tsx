@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { api } from '../../../lib/api';
 import { analytics } from '../../../lib/analytics';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
 
 export function NotificationsSection() {
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
@@ -48,7 +49,7 @@ export function NotificationsSection() {
       <h1 className="mb-5 text-xl font-bold text-white">Notifications</h1>
 
       {success && (
-        <div className="mb-3 rounded bg-green-500/10 p-2 text-sm text-green-400">
+        <div className="mb-3 rounded bg-brand/10 p-2 text-sm text-brand-light">
           {success}
         </div>
       )}
@@ -62,20 +63,11 @@ export function NotificationsSection() {
               Receive notifications for new messages and events
             </p>
           </div>
-          <button
-            role="switch"
-            aria-checked={notificationsEnabled}
-            onClick={() => setNotificationsEnabled(!notificationsEnabled)}
-            className={`relative h-6 w-11 rounded-full transition-colors ${
-              notificationsEnabled ? 'bg-brand' : 'bg-bg-neutral'
-            }`}
-          >
-            <span
-              className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
-                notificationsEnabled ? 'translate-x-5' : 'translate-x-0'
-              }`}
-            />
-          </button>
+          <Switch
+            checked={notificationsEnabled}
+            onCheckedChange={setNotificationsEnabled}
+            className="data-[state=checked]:bg-brand data-[state=unchecked]:bg-bg-neutral"
+          />
         </div>
       </div>
 
@@ -88,20 +80,11 @@ export function NotificationsSection() {
               Play a sound when a notification arrives
             </p>
           </div>
-          <button
-            role="switch"
-            aria-checked={notificationSounds}
-            onClick={() => setNotificationSounds(!notificationSounds)}
-            className={`relative h-6 w-11 rounded-full transition-colors ${
-              notificationSounds ? 'bg-brand' : 'bg-bg-neutral'
-            }`}
-          >
-            <span
-              className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
-                notificationSounds ? 'translate-x-5' : 'translate-x-0'
-              }`}
-            />
-          </button>
+          <Switch
+            checked={notificationSounds}
+            onCheckedChange={setNotificationSounds}
+            className="data-[state=checked]:bg-brand data-[state=unchecked]:bg-bg-neutral"
+          />
         </div>
       </div>
 

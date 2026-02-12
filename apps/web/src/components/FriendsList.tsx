@@ -72,15 +72,17 @@ export default function FriendsList() {
     <div className="flex flex-1 flex-col">
       {/* Header with tabs */}
       <div className="flex h-12 items-center gap-2 md:gap-4 border-b border-bg-tertiary px-4 overflow-x-auto">
-        <button
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={() => useUIStore.getState().setMobileSidebarOpen(true)}
-          className="mr-1 text-text-label hover:text-white md:hidden flex-shrink-0"
+          className="mr-1 text-text-label hover:text-white md:hidden flex-shrink-0 hover:bg-transparent"
           aria-label="Open sidebar"
         >
           <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
             <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z" />
           </svg>
-        </button>
+        </Button>
         <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" className="hidden md:block flex-shrink-0 text-text-muted">
           <path d="M14 8.00598C14 10.211 12.206 12.006 10 12.006C7.795 12.006 6 10.211 6 8.00598C6 5.80098 7.795 4.00598 10 4.00598C12.206 4.00598 14 5.80098 14 8.00598ZM2 19.006C2 15.473 5.29 13.006 10 13.006C14.711 13.006 18 15.473 18 19.006V20.006H2V19.006Z" />
         </svg>

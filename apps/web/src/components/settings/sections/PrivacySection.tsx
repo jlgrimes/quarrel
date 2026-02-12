@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { api } from '../../../lib/api';
 import { analytics } from '../../../lib/analytics';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 export function PrivacySection() {
   const [allowDms, setAllowDms] = useState<'everyone' | 'friends' | 'none'>('everyone');
@@ -60,7 +61,7 @@ export function PrivacySection() {
       <h1 className="mb-5 text-xl font-bold text-white">Privacy</h1>
 
       {success && (
-        <div className="mb-3 rounded bg-green-500/10 p-2 text-sm text-green-400">
+        <div className="mb-3 rounded bg-brand/10 p-2 text-sm text-brand-light">
           {success}
         </div>
       )}
@@ -76,12 +77,12 @@ export function PrivacySection() {
               key={option}
               className="flex cursor-pointer items-center gap-3 rounded-lg bg-bg-tertiary p-3"
             >
-              <input
+              <Input
                 type="radio"
                 name="allowDms"
                 checked={allowDms === option}
                 onChange={() => setAllowDms(option)}
-                className="accent-brand"
+                className="h-4 w-4 border-none bg-transparent accent-brand p-0 shadow-none"
               />
               <span className="text-sm capitalize text-white">
                 {option === 'none' ? 'No one' : option}

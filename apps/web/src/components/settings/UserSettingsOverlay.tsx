@@ -7,6 +7,7 @@ import { AppearanceSection } from './sections/AppearanceSection';
 import { NotificationsSection } from './sections/NotificationsSection';
 import { VoiceAudioSection } from './sections/VoiceAudioSection';
 import { PrivacySection } from './sections/PrivacySection';
+import { Button } from '@/components/ui/button';
 
 const SECTIONS = [
   { id: 'account', label: 'My Account' },
@@ -56,17 +57,18 @@ export default function UserSettingsOverlay() {
             User Settings
           </h2>
           {SECTIONS.map((section) => (
-            <button
+            <Button
               key={section.id}
               onClick={() => handleSectionChange(section.id)}
-              className={`mb-0.5 w-full rounded px-2.5 py-1.5 text-left text-sm font-medium transition-colors ${
+              variant="ghost"
+              className={`mb-0.5 w-full justify-start rounded px-2.5 py-1.5 text-left text-sm font-medium transition-colors ${
                 activeSection === section.id
                   ? 'bg-bg-modifier-active text-white'
                   : 'text-text-label hover:bg-bg-modifier-hover hover:text-text-normal'
               }`}
             >
               {section.label}
-            </button>
+            </Button>
           ))}
         </div>
       </div>
@@ -85,16 +87,18 @@ export default function UserSettingsOverlay() {
 
       {/* Close button */}
       <div className="flex shrink-0 flex-col items-center pt-16 pr-5">
-        <button
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={handleClose}
-          className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-text-label text-text-label transition-colors hover:border-white hover:text-white"
+          className="h-9 w-9 rounded-full border-2 border-text-label text-text-label transition-colors hover:border-white hover:text-white hover:bg-transparent"
           aria-label="Close settings"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <line x1="18" y1="6" x2="6" y2="18" />
             <line x1="6" y1="6" x2="18" y2="18" />
           </svg>
-        </button>
+        </Button>
         <span className="mt-1 text-xs text-text-muted">ESC</span>
       </div>
     </div>

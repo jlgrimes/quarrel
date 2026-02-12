@@ -12,7 +12,7 @@ import { useWebSocketNotifications } from './useNotifications';
 
 export function useWebSocketEvents() {
   const token = useAuthStore((s) => s.token);
-  const url = token ? getWsUrl() : null;
+  const url = token ? getWsUrl(token) : null;
   const didAuth = useRef(false);
 
   const { sendJsonMessage, lastJsonMessage, readyState } = useWebSocket(url, {

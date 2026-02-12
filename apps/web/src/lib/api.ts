@@ -177,6 +177,11 @@ export const api = {
     request<{ bot: any }>(`/servers/${serverId}/bots/${botId}`, { method: 'PATCH', body: JSON.stringify(data) }).then(r => r.bot),
   removeBot: (serverId: string, botId: string) =>
     request(`/servers/${serverId}/bots/${botId}`, { method: 'DELETE' }),
+  testBotConnection: (serverId: string, botId: string) =>
+    request<{ success: boolean; provider: string; model: string; enabled: boolean; botName: string; latencyMs: number; responsePreview?: string; error?: string }>(
+      `/servers/${serverId}/bots/${botId}/test`,
+      { method: 'POST' },
+    ),
 
   // Embeds
   getUrlMetadata: (url: string) =>

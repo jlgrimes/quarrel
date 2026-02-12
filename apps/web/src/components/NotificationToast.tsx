@@ -1,5 +1,6 @@
 import { useNotificationStore, type Toast } from '../stores/notificationStore';
 import { useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
 
 function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: string) => void }) {
   const navigate = useNavigate();
@@ -23,18 +24,20 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: string)
         <p className="text-sm font-semibold text-white truncate">{toast.title}</p>
         <p className="text-xs text-text-label truncate">{toast.body}</p>
       </div>
-      <button
+      <Button
+        variant="ghost"
+        size="icon-xs"
         onClick={(e) => {
           e.stopPropagation();
           onDismiss(toast.id);
         }}
-        className="shrink-0 text-text-muted hover:text-white transition-colors"
+        className="shrink-0 text-text-muted hover:text-white transition-colors hover:bg-transparent"
         aria-label="Dismiss notification"
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
           <path d="M18.4 4L12 10.4 5.6 4 4 5.6 10.4 12 4 18.4 5.6 20 12 13.6 18.4 20 20 18.4 13.6 12 20 5.6z" />
         </svg>
-      </button>
+      </Button>
     </div>
   );
 }

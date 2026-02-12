@@ -7,8 +7,15 @@ import {
 } from "./helpers";
 
 // Mock the AI providers module before importing botHandler
+let mockProviderShouldThrow = false;
+let mockProviderErrorMessage = "Anthropic API error (401): invalid_api_key";
 mock.module("../lib/aiProviders", () => ({
-  callAIProvider: async () => "Hello! I'm a bot response.",
+  callAIProvider: async () => {
+    if (mockProviderShouldThrow) {
+      throw new Error(mockProviderErrorMessage);
+    }
+    return "Hello! I'm a bot response.";
+  },
 }));
 
 // Mock the ws module to capture broadcasts
@@ -33,6 +40,8 @@ beforeEach(async () => {
   analyticsMock.clear();
   broadcasts.length = 0;
   _testing.rateLimitMap.clear();
+  mockProviderShouldThrow = false;
+  mockProviderErrorMessage = "Anthropic API error (401): invalid_api_key";
 });
 
 async function seedBotAndServer() {
@@ -177,5 +186,33 @@ describe("Bot Handler", () => {
     await handleBotMentions("channel-1", "server-1", "Hey <@bot-1> hello?", "user-1");
     const botMessages = broadcasts.filter((b) => b.event === "message:new");
     expect(botMessages.length).toBe(0);
+  });
+
+  test("provider error → bot posts visible diagnostic message", async () => {
+    await seedBotAndServer();
+    mockProviderShouldThrow = true;
+    broadcasts.length = 0;
+
+    await handleBotMentions("channel-1", "server-1", "Hey <@bot-1> hello?", "user-1");
+    const botMessages = broadcasts.filter((b) => b.event === "message:new");
+
+    expect(botMessages.length).toBe(1);
+    expect(botMessages[0].data.author.isBot).toBe(true);
+    expect(String(botMessages[0].data.content)).toContain("couldn't respond");
+    expect(String(botMessages[0].data.content)).toContain("API key");
+  });
+
+  test("provider billing error reason is forwarded to chat", async () => {
+    await seedBotAndServer();
+    mockProviderShouldThrow = true;
+    mockProviderErrorMessage = `Anthropic API error (400): {"type":"error","error":{"type":"invalid_request_error","message":"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits."},"request_id":"req_123"}`;
+    broadcasts.length = 0;
+
+    await handleBotMentions("channel-1", "server-1", "Hey <@bot-1> hello?", "user-1");
+    const botMessages = broadcasts.filter((b) => b.event === "message:new");
+
+    expect(botMessages.length).toBe(1);
+    expect(String(botMessages[0].data.content)).toContain("no available credits/billing");
+    expect(String(botMessages[0].data.content)).toContain("credit balance is too low");
   });
 });

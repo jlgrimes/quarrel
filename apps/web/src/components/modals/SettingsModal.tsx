@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useUploadAvatar, useRemoveAvatar } from '../../hooks/useAvatarUpload';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Switch } from '@/components/ui/switch';
 import Modal from './Modal';
 
 export default function SettingsModal() {
@@ -100,16 +101,18 @@ export default function SettingsModal() {
         <div className='flex flex-col gap-1'>
           <span className='text-sm font-medium text-white'>Avatar</span>
           {user?.avatarUrl && (
-            <button
+            <Button
+              variant="link"
+              size="sm"
               onClick={() => removeAvatar.mutate()}
               disabled={removeAvatar.isPending}
-              className='text-xs text-red hover:underline disabled:opacity-50 text-left'
+              className='h-auto justify-start p-0 text-xs text-red hover:text-red-hover'
             >
               {removeAvatar.isPending ? 'Removing...' : 'Remove Avatar'}
-            </button>
+            </Button>
           )}
         </div>
-        <input
+        <Input
           ref={fileInputRef}
           type='file'
           accept='image/png,image/jpeg,image/gif,image/webp'
@@ -145,31 +148,28 @@ export default function SettingsModal() {
         <div className='space-y-2'>
           <label className='flex items-center justify-between'>
             <span className='text-sm text-text-normal'>Enable Notifications</span>
-            <input
-              type='checkbox'
+            <Switch
               checked={notifEnabled}
-              onChange={(e) => setNotifEnabled(e.target.checked)}
-              className='h-4 w-4 accent-brand'
+              onCheckedChange={setNotifEnabled}
+              className='data-[state=checked]:bg-brand data-[state=unchecked]:bg-bg-neutral'
               data-testid='notif-enabled'
             />
           </label>
           <label className='flex items-center justify-between'>
             <span className='text-sm text-text-normal'>Notification Sounds</span>
-            <input
-              type='checkbox'
+            <Switch
               checked={soundEnabled}
-              onChange={(e) => setSoundEnabled(e.target.checked)}
-              className='h-4 w-4 accent-brand'
+              onCheckedChange={setSoundEnabled}
+              className='data-[state=checked]:bg-brand data-[state=unchecked]:bg-bg-neutral'
               data-testid='notif-sound'
             />
           </label>
           <label className='flex items-center justify-between'>
             <span className='text-sm text-text-normal'>Desktop Notifications</span>
-            <input
-              type='checkbox'
+            <Switch
               checked={desktopEnabled}
-              onChange={(e) => setDesktopEnabled(e.target.checked)}
-              className='h-4 w-4 accent-brand'
+              onCheckedChange={setDesktopEnabled}
+              className='data-[state=checked]:bg-brand data-[state=unchecked]:bg-bg-neutral'
               data-testid='notif-desktop'
             />
           </label>

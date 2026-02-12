@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { api } from '../../../lib/api';
 import { analytics } from '../../../lib/analytics';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
 
 export function AppearanceSection() {
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
@@ -47,7 +48,7 @@ export function AppearanceSection() {
       <h1 className="mb-5 text-xl font-bold text-white">Appearance</h1>
 
       {success && (
-        <div className="mb-3 rounded bg-green-500/10 p-2 text-sm text-green-400">
+        <div className="mb-3 rounded bg-brand/10 p-2 text-sm text-brand-light">
           {success}
         </div>
       )}
@@ -56,7 +57,8 @@ export function AppearanceSection() {
       <div className="mb-6">
         <h2 className="mb-3 text-xs font-bold uppercase text-text-label">Theme</h2>
         <div className="flex gap-3">
-          <button
+          <Button
+            variant="ghost"
             onClick={() => setTheme('dark')}
             className={`flex flex-1 flex-col items-center rounded-lg border-2 p-4 transition-colors ${
               theme === 'dark'
@@ -66,8 +68,9 @@ export function AppearanceSection() {
           >
             <div className="mb-2 h-12 w-12 rounded-lg bg-bg-primary" />
             <span className="text-sm font-medium text-white">Dark</span>
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="ghost"
             onClick={() => setTheme('light')}
             className={`flex flex-1 flex-col items-center rounded-lg border-2 p-4 transition-colors ${
               theme === 'light'
@@ -77,7 +80,7 @@ export function AppearanceSection() {
           >
             <div className="mb-2 h-12 w-12 rounded-lg bg-white" />
             <span className="text-sm font-medium text-white">Light</span>
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -86,8 +89,9 @@ export function AppearanceSection() {
         <h2 className="mb-3 text-xs font-bold uppercase text-text-label">Font Size</h2>
         <div className="flex gap-3">
           {(['small', 'normal', 'large'] as const).map((size) => (
-            <button
+            <Button
               key={size}
+              variant="ghost"
               onClick={() => setFontSize(size)}
               className={`flex-1 rounded-lg border-2 px-4 py-3 text-center font-medium capitalize transition-colors ${
                 fontSize === size
@@ -96,7 +100,7 @@ export function AppearanceSection() {
               }`}
             >
               {size}
-            </button>
+            </Button>
           ))}
         </div>
       </div>
@@ -110,20 +114,11 @@ export function AppearanceSection() {
               Reduce spacing between messages for a denser layout
             </p>
           </div>
-          <button
-            role="switch"
-            aria-checked={compactMode}
-            onClick={() => setCompactMode(!compactMode)}
-            className={`relative h-6 w-11 rounded-full transition-colors ${
-              compactMode ? 'bg-brand' : 'bg-bg-neutral'
-            }`}
-          >
-            <span
-              className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
-                compactMode ? 'translate-x-5' : 'translate-x-0'
-              }`}
-            />
-          </button>
+          <Switch
+            checked={compactMode}
+            onCheckedChange={setCompactMode}
+            className="data-[state=checked]:bg-brand data-[state=unchecked]:bg-bg-neutral"
+          />
         </div>
       </div>
 

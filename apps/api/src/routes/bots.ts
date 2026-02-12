@@ -5,6 +5,7 @@ import { eq, and } from "drizzle-orm";
 import { authMiddleware, type AuthEnv } from "../middleware/auth";
 import { PROVIDER_TO_USERNAME } from "../lib/seedBots";
 import { analytics } from "../lib/analytics";
+import { callAIProvider } from "../lib/aiProviders";
 
 export const botRoutes = new Hono<AuthEnv>();
 
@@ -257,4 +258,100 @@ botRoutes.delete("/servers/:serverId/bots/:botId", async (c) => {
   });
 
   return c.json({ success: true });
+});
+
+// Test bot connection (owner only)
+botRoutes.post("/servers/:serverId/bots/:botId/test", async (c) => {
+  const serverId = c.req.param("serverId");
+  const botId = c.req.param("botId");
+  const userId = c.get("userId");
+
+  const [server] = await db
+    .select({ id: servers.id, ownerId: servers.ownerId })
+    .from(servers)
+    .where(eq(servers.id, serverId))
+    .limit(1);
+
+  if (!server) {
+    return c.json({ error: "Server not found" }, 404);
+  }
+
+  if (server.ownerId !== userId) {
+    return c.json({ error: "Only the owner can test bots" }, 403);
+  }
+
+  const [bot] = await db
+    .select({
+      id: serverBots.id,
+      provider: serverBots.provider,
+      model: serverBots.model,
+      apiKey: serverBots.apiKey,
+      systemPrompt: serverBots.systemPrompt,
+      enabled: serverBots.enabled,
+      botDisplayName: users.displayName,
+      botUsername: users.username,
+    })
+    .from(serverBots)
+    .innerJoin(users, eq(serverBots.botUserId, users.id))
+    .where(and(eq(serverBots.id, botId), eq(serverBots.serverId, serverId)))
+    .limit(1);
+
+  if (!bot) {
+    return c.json({ error: "Bot not found" }, 404);
+  }
+
+  const start = Date.now();
+  try {
+    const response = await callAIProvider(
+      bot.provider,
+      bot.model,
+      bot.apiKey,
+      [{ role: "user", content: "Reply with exactly: pong" }],
+      bot.systemPrompt,
+      { maxTokens: 16 }
+    );
+
+    const latencyMs = Date.now() - start;
+    analytics.capture(userId, "bot:test_connection", {
+      serverId,
+      botId,
+      provider: bot.provider,
+      model: bot.model,
+      success: true,
+      latencyMs,
+    });
+
+    return c.json({
+      success: true,
+      provider: bot.provider,
+      model: bot.model,
+      enabled: bot.enabled,
+      botName: bot.botDisplayName ?? bot.botUsername,
+      latencyMs,
+      responsePreview: response.slice(0, 120),
+    });
+  } catch (err) {
+    const latencyMs = Date.now() - start;
+    const message = String(err);
+
+    analytics.capture(userId, "bot:test_connection", {
+      serverId,
+      botId,
+      provider: bot.provider,
+      model: bot.model,
+      success: false,
+      latencyMs,
+      error: message,
+    });
+
+    return c.json({
+      success: false,
+      provider: bot.provider,
+      model: bot.model,
+      enabled: bot.enabled,
+      botName: bot.botDisplayName ?? bot.botUsername,
+      latencyMs,
+      error: message,
+    });
+  }
 });

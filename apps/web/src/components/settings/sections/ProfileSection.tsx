@@ -60,7 +60,7 @@ export function ProfileSection() {
         </div>
       )}
       {success && (
-        <div className="mb-3 rounded bg-green-500/10 p-2 text-sm text-green-400">
+        <div className="mb-3 rounded bg-brand/10 p-2 text-sm text-brand-light">
           {success}
         </div>
       )}
@@ -89,16 +89,18 @@ export function ProfileSection() {
         <div className="flex flex-col gap-1">
           <span className="text-sm font-medium text-white">Avatar</span>
           {user?.avatarUrl && (
-            <button
+            <Button
+              variant="link"
+              size="sm"
               onClick={() => removeAvatar.mutate()}
               disabled={removeAvatar.isPending}
-              className="text-xs text-red hover:underline disabled:opacity-50 text-left"
+              className="h-auto justify-start p-0 text-xs text-red hover:text-red-hover"
             >
               {removeAvatar.isPending ? 'Removing...' : 'Remove Avatar'}
-            </button>
+            </Button>
           )}
         </div>
-        <input
+        <Input
           ref={fileInputRef}
           type="file"
           accept="image/png,image/jpeg,image/gif,image/webp"

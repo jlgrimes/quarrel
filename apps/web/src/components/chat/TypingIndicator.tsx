@@ -13,7 +13,7 @@ export function TypingIndicator({ channelId }: { channelId: string }) {
   const [typingUsers, setTypingUsers] = useState<Map<string, TypingUser>>(new Map());
   const currentUserId = useAuthStore((s) => s.user?.id);
   const token = useAuthStore((s) => s.token);
-  const { lastJsonMessage } = useWebSocket(token ? getWsUrl() : null, { share: true });
+  const { lastJsonMessage } = useWebSocket(token ? getWsUrl(token) : null, { share: true });
 
   useEffect(() => {
     if (!lastJsonMessage) return;

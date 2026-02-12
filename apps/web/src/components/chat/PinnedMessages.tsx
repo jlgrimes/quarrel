@@ -4,6 +4,7 @@ import { queryKeys } from '../../hooks/queryKeys';
 import { useUIStore } from '../../stores/uiStore';
 import type { Message } from '@quarrel/shared';
 import { analytics } from '../../lib/analytics';
+import { Button } from '@/components/ui/button';
 
 function formatTimestamp(dateStr: string) {
   const date = new Date(dateStr);
@@ -32,14 +33,16 @@ export function PinnedMessages({ channelId }: { channelId: string }) {
     <div className="border-b border-bg-tertiary bg-bg-secondary max-h-64 overflow-y-auto flex-shrink-0">
       <div className="flex items-center justify-between px-4 py-2 border-b border-bg-tertiary">
         <span className="text-sm font-semibold text-white">Pinned Messages</span>
-        <button
+        <Button
+          variant="ghost"
+          size="icon-sm"
           onClick={togglePins}
-          className="text-text-muted hover:text-white"
+          className="text-text-muted hover:text-white hover:bg-transparent"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
             <path d="M18.4 4L12 10.4L5.6 4L4 5.6L10.4 12L4 18.4L5.6 20L12 13.6L18.4 20L20 18.4L13.6 12L20 5.6L18.4 4Z" />
           </svg>
-        </button>
+        </Button>
       </div>
 
       {isLoading ? (
@@ -59,15 +62,17 @@ export function PinnedMessages({ channelId }: { channelId: string }) {
                     {formatTimestamp(msg.createdAt)}
                   </span>
                 </div>
-                <button
+                <Button
+                  variant="ghost"
+                  size="xs"
                   onClick={() => handleUnpin(msg.id)}
-                  className="hidden group-hover:block text-text-muted hover:text-white text-xs"
+                  className="hidden group-hover:inline-flex text-text-muted hover:text-white hover:bg-transparent"
                   title="Unpin"
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M18.4 4L12 10.4L5.6 4L4 5.6L10.4 12L4 18.4L5.6 20L12 13.6L18.4 20L20 18.4L13.6 12L20 5.6L18.4 4Z" />
                   </svg>
-                </button>
+                </Button>
               </div>
               <div className="text-sm text-text-normal mt-0.5 break-words">{msg.content}</div>
             </div>

@@ -5,10 +5,10 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 const statusDot: Record<UserStatus, string> = {
-  online: 'bg-green-500',
-  idle: 'bg-yellow-500',
-  dnd: 'bg-red-500',
-  offline: 'bg-gray-500',
+  online: 'bg-green',
+  idle: 'bg-yellow',
+  dnd: 'bg-red',
+  offline: 'bg-status-offline',
 };
 
 type MemberWithRoles = Member & {
@@ -30,14 +30,14 @@ const MemberRow = memo(function MemberRow({ member }: { member: MemberWithRoles 
   const nameColor = highestRole?.color || undefined;
 
   const colors = [
-    'bg-indigo-500',
-    'bg-green-500',
-    'bg-yellow-500',
-    'bg-red-500',
-    'bg-pink-500',
-    'bg-purple-500',
-    'bg-blue-500',
-    'bg-teal-500',
+    'bg-brand',
+    'bg-green',
+    'bg-yellow',
+    'bg-red',
+    'bg-blurple',
+    'bg-bg-neutral',
+    'bg-brand-hover',
+    'bg-green-dark',
   ];
   const colorIdx =
     user.id.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0) %
@@ -66,8 +66,8 @@ const MemberRow = memo(function MemberRow({ member }: { member: MemberWithRoles 
         {displayName}
       </span>
       {user.isBot && (
-        <span className="inline-flex items-center px-1 py-0.5 rounded text-[10px] font-semibold bg-brand text-white leading-none shrink-0">
-          BOT
+        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold text-white/85 leading-none shrink-0 bg-white/10 border border-white/10">
+          AI
         </span>
       )}
     </div>

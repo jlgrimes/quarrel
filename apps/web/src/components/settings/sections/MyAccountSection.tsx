@@ -95,7 +95,7 @@ export function MyAccountSection() {
           </div>
         )}
         {passwordSuccess && (
-          <div className="mb-3 rounded bg-green-500/10 p-2 text-sm text-green-400">
+          <div className="mb-3 rounded bg-brand/10 p-2 text-sm text-brand-light">
             {passwordSuccess}
           </div>
         )}
