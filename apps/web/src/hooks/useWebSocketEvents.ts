@@ -259,34 +259,31 @@ export function useWebSocketEvents() {
         break;
       }
 
-      // Voice events
+      // Voice events: ignore all signaling when we are not actively connected
+      // to a voice channel. This prevents unsolicited events from creating
+      // peer connections on clients that are only browsing text channels.
       case 'voice:state':
-        useVoiceStore.getState()._handleVoiceState(data);
-        break;
       case 'voice:user-joined':
-        useVoiceStore.getState()._handleUserJoined(data);
-        break;
       case 'voice:user-left':
-        useVoiceStore.getState()._handleUserLeft(data);
-        break;
       case 'voice:offer':
-        useVoiceStore.getState()._handleOffer(data);
-        break;
       case 'voice:answer':
-        useVoiceStore.getState()._handleAnswer(data);
-        break;
       case 'voice:ice-candidate':
-        useVoiceStore.getState()._handleIceCandidate(data);
-        break;
       case 'voice:mute':
-        useVoiceStore.getState()._handleMuteUpdate(data);
-        break;
       case 'voice:screen-share-started':
-        useVoiceStore.getState()._handleScreenShareStarted(data);
+      case 'voice:screen-share-stopped': {
+        const voiceStore = useVoiceStore.getState();
+        if (!voiceStore.currentChannelId) break;
+        if (event === 'voice:state') voiceStore._handleVoiceState(data);
+        else if (event === 'voice:user-joined') voiceStore._handleUserJoined(data);
+        else if (event === 'voice:user-left') voiceStore._handleUserLeft(data);
+        else if (event === 'voice:offer') void voiceStore._handleOffer(data);
+        else if (event === 'voice:answer') void voiceStore._handleAnswer(data);
+        else if (event === 'voice:ice-candidate') void voiceStore._handleIceCandidate(data);
+        else if (event === 'voice:mute') voiceStore._handleMuteUpdate(data);
+        else if (event === 'voice:screen-share-started') voiceStore._handleScreenShareStarted(data);
+        else if (event === 'voice:screen-share-stopped') voiceStore._handleScreenShareStopped(data);
         break;
-      case 'voice:screen-share-stopped':
-        useVoiceStore.getState()._handleScreenShareStopped(data);
-        break;
+      }
     }
   }, [lastJsonMessage]);
 

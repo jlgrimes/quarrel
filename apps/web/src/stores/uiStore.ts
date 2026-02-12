@@ -32,5 +32,8 @@ export const useUIStore = create<UIStore>((set, get) => ({
   setReplyingTo: (id) => set({ replyingTo: id }),
   toggleMemberList: () => set({ showMemberList: !get().showMemberList }),
   togglePins: () => set({ showPins: !get().showPins }),
-  setMobileSidebarOpen: (open) => set({ mobileSidebarOpen: open }),
+  setMobileSidebarOpen: (open) =>
+    set((state) =>
+      state.mobileSidebarOpen === open ? state : { mobileSidebarOpen: open },
+    ),
 }));

@@ -44,7 +44,18 @@ body {
 
 #root {
   height: 100vh;
+  height: 100dvh;
   width: 100vw;
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+html,
+body {
+  height: 100%;
+  width: 100%;
+  background: var(--color-bg-primary);
 }
 
 @theme inline {

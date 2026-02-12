@@ -12,6 +12,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': resolve(__dirname, './src'),
+      '@radix-ui/react-compose-refs': resolve(__dirname, './src/lib/radixComposeRefsSafe.ts'),
     },
   },
   server: {

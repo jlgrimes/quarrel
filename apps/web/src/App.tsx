@@ -55,13 +55,17 @@ function MobileSidebarSync() {
 
   // Sync shadcn openMobile → uiStore mobileSidebarOpen
   useEffect(() => {
-    setMobileSidebarOpen(openMobile);
-  }, [openMobile, setMobileSidebarOpen]);
+    if (mobileSidebarOpen !== openMobile) {
+      setMobileSidebarOpen(openMobile);
+    }
+  }, [openMobile, mobileSidebarOpen, setMobileSidebarOpen]);
 
   // Sync uiStore mobileSidebarOpen → shadcn openMobile
   useEffect(() => {
-    setOpenMobile(mobileSidebarOpen);
-  }, [mobileSidebarOpen, setOpenMobile]);
+    if (openMobile !== mobileSidebarOpen) {
+      setOpenMobile(mobileSidebarOpen);
+    }
+  }, [mobileSidebarOpen, openMobile, setOpenMobile]);
 
   return null;
 }
@@ -167,20 +171,20 @@ export default function App() {
 
   return (
     <TooltipProvider>
-    <Routes>
-      <Route path="/login" element={!user ? <LoginPage /> : <Navigate to="/channels/@me" />} />
-      <Route path="/register" element={!user ? <RegisterPage /> : <Navigate to="/channels/@me" />} />
-      <Route element={<ProtectedRoute />}>
-        <Route element={<AppLayout />}>
-          <Route element={<DMAreaLayout />}>
-            <Route path="/channels/@me" element={<FriendsPage />} />
-            <Route path="/channels/@me/:conversationId" element={<DMPage />} />
+      <Routes>
+        <Route path="/login" element={!user ? <LoginPage /> : <Navigate to="/channels/@me" />} />
+        <Route path="/register" element={!user ? <RegisterPage /> : <Navigate to="/channels/@me" />} />
+        <Route element={<ProtectedRoute />}>
+          <Route element={<AppLayout />}>
+            <Route element={<DMAreaLayout />}>
+              <Route path="/channels/@me" element={<FriendsPage />} />
+              <Route path="/channels/@me/:conversationId" element={<DMPage />} />
+            </Route>
+            <Route path="/channels/:serverId/:channelId?" element={<ServerView />} />
           </Route>
-          <Route path="/channels/:serverId/:channelId?" element={<ServerView />} />
         </Route>
-      </Route>
-      <Route path="*" element={<Navigate to={user ? '/channels/@me' : '/login'} replace />} />
-    </Routes>
+        <Route path="*" element={<Navigate to={user ? '/channels/@me' : '/login'} replace />} />
+      </Routes>
     </TooltipProvider>
   );
 }
