@@ -4,6 +4,7 @@ import { useDMs, useSendDM } from '../../hooks/useDMs';
 import { useAuthStore } from '../../stores/authStore';
 import { useUIStore } from '../../stores/uiStore';
 import { analytics } from '../../lib/analytics';
+import { normalizeChronological } from '../../lib/messageOrder';
 
 function formatTimestamp(dateStr: string) {
   const date = new Date(dateStr);
@@ -86,7 +87,7 @@ export function DMChat({
   const otherUser = conversation?.members?.find((m) => m.id !== currentUser?.id) ?? conversation?.members?.[0];
 
   const messages = useMemo(
-    () => dmData?.pages.flatMap((p) => p.messages) ?? [],
+    () => normalizeChronological(dmData?.pages.flatMap((p) => p.messages) ?? []),
     [dmData],
   );
 

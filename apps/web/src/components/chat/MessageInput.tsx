@@ -8,6 +8,7 @@ import { useAuthStore } from '../../stores/authStore';
 import { getWsUrl } from '../../lib/getWsUrl';
 import { analytics } from '../../lib/analytics';
 import { EmojiPicker } from './EmojiPicker';
+import { normalizeChronological } from '../../lib/messageOrder';
 
 export function MessageInput({ channelId, channelName, members }: { channelId: string; channelName: string; members?: Member[] }) {
   const [content, setContent] = useState('');
@@ -19,7 +20,10 @@ export function MessageInput({ channelId, channelName, members }: { channelId: s
   const replyingTo = useUIStore((s) => s.replyingTo);
   const setReplyingTo = useUIStore((s) => s.setReplyingTo);
   const { data } = useMessages(channelId);
-  const messages = useMemo(() => data?.pages.flatMap((p) => p.messages) ?? [], [data]);
+  const messages = useMemo(
+    () => normalizeChronological(data?.pages.flatMap((p) => p.messages) ?? []),
+    [data],
+  );
   const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const token = useAuthStore((s) => s.token);
   const { sendJsonMessage } = useWebSocket(token ? getWsUrl() : null, { share: true });

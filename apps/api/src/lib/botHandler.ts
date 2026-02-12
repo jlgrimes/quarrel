@@ -5,6 +5,7 @@ import { broadcastToChannel } from "../ws";
 import { analytics } from "./analytics";
 
 const MENTION_REGEX = /<@([a-zA-Z0-9-]+)>/g;
+const PLAIN_MENTION_REGEX = /(^|\s)@([a-zA-Z0-9_]{2,32})\b/g;
 
 // Rate limit: max 1 bot response per 5s per channel
 const rateLimitMap = new Map<string, number>();
@@ -25,39 +26,71 @@ export async function handleBotMentions(
   content: string,
   authorId: string
 ) {
-  // Parse mentions from content
   const mentionedIds = new Set<string>();
+  const mentionedNames = new Set<string>();
+
+  // Parse explicit ID mentions from content: <@user-id>
   let match: RegExpExecArray | null;
   const regex = new RegExp(MENTION_REGEX);
   while ((match = regex.exec(content)) !== null) {
     mentionedIds.add(match[1]);
   }
 
-  if (mentionedIds.size === 0) return;
+  // Parse plain mentions from content: @username
+  const plainRegex = new RegExp(PLAIN_MENTION_REGEX);
+  while ((match = plainRegex.exec(content)) !== null) {
+    const name = match[2]?.toLowerCase();
+    if (!name || name === "everyone" || name === "here") continue;
+    mentionedNames.add(name);
+  }
 
-  // Check which mentions are bots
-  for (const mentionedId of mentionedIds) {
-    const [mentionedUser] = await db
-      .select({ id: users.id, isBot: users.isBot })
-      .from(users)
-      .where(eq(users.id, mentionedId))
-      .limit(1);
+  if (mentionedIds.size === 0 && mentionedNames.size === 0) return;
 
-    if (!mentionedUser || !mentionedUser.isBot) continue;
-
-    // Look up server bot config
-    const [botConfig] = await db
-      .select()
-      .from(serverBots)
-      .where(
-        and(
-          eq(serverBots.serverId, serverId),
-          eq(serverBots.botUserId, mentionedId),
-          eq(serverBots.enabled, true)
-        )
+  const serverBotRows = await db
+    .select({
+      id: serverBots.id,
+      botUserId: serverBots.botUserId,
+      provider: serverBots.provider,
+      model: serverBots.model,
+      apiKey: serverBots.apiKey,
+      systemPrompt: serverBots.systemPrompt,
+      username: users.username,
+      displayName: users.displayName,
+    })
+    .from(serverBots)
+    .innerJoin(users, eq(serverBots.botUserId, users.id))
+    .where(
+      and(
+        eq(serverBots.serverId, serverId),
+        eq(serverBots.enabled, true)
       )
-      .limit(1);
+    );
 
+  if (serverBotRows.length === 0) return;
+
+  const botConfigById = new Map(serverBotRows.map((row) => [row.botUserId, row]));
+  const botsToRespond = new Set<string>();
+
+  // Match <@id> mentions
+  for (const mentionedId of mentionedIds) {
+    if (botConfigById.has(mentionedId)) {
+      botsToRespond.add(mentionedId);
+    }
+  }
+
+  // Match @username / @displayname mentions
+  for (const row of serverBotRows) {
+    const username = row.username.toLowerCase();
+    const displayName = row.displayName.toLowerCase();
+    if (mentionedNames.has(username) || mentionedNames.has(displayName)) {
+      botsToRespond.add(row.botUserId);
+    }
+  }
+
+  if (botsToRespond.size === 0) return;
+
+  for (const mentionedId of botsToRespond) {
+    const botConfig = botConfigById.get(mentionedId);
     if (!botConfig) continue;
 
     // Rate limit check
@@ -71,15 +104,9 @@ export async function handleBotMentions(
     });
 
     // Broadcast typing indicator
-    const [botUser] = await db
-      .select({ username: users.username, displayName: users.displayName })
-      .from(users)
-      .where(eq(users.id, mentionedId))
-      .limit(1);
-
     broadcastToChannel(channelId, "typing:update", {
       userId: mentionedId,
-      username: botUser?.displayName ?? botUser?.username ?? "Bot",
+      username: botConfig.displayName ?? botConfig.username ?? "Bot",
       channelId,
     });
 
@@ -123,8 +150,8 @@ export async function handleBotMentions(
 
       const author = {
         id: mentionedId,
-        username: botUser?.username ?? "Bot",
-        displayName: botUser?.displayName ?? "Bot",
+        username: botConfig.username ?? "Bot",
+        displayName: botConfig.displayName ?? "Bot",
         avatarUrl: null as string | null,
         isBot: true,
       };

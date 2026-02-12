@@ -8,6 +8,7 @@ import { useAddReaction, useRemoveReaction, type ReactionData } from '../../hook
 import { EmojiPicker } from './EmojiPicker';
 import { EmbedPreview } from './EmbedPreview';
 import { analytics } from '../../lib/analytics';
+import { normalizeChronological } from '../../lib/messageOrder';
 
 function formatTimestamp(dateStr: string) {
   const date = new Date(dateStr);
@@ -254,7 +255,7 @@ export function MessageList({ channelId, lastReadMessageId, members: membersList
   const addReaction = useAddReaction();
 
   const messages = useMemo(
-    () => data?.pages.flatMap((p) => p.messages) ?? [],
+    () => normalizeChronological(data?.pages.flatMap((p) => p.messages) ?? []),
     [data],
   );
 

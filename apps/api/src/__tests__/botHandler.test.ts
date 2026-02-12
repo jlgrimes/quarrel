@@ -141,6 +141,17 @@ describe("Bot Handler", () => {
     expect(analyticsMock.events.some((e) => e.event === "bot:response_sent")).toBe(true);
   });
 
+  test("plain @username mention triggers bot response", async () => {
+    await seedBotAndServer();
+    broadcasts.length = 0;
+
+    await handleBotMentions("channel-1", "server-1", "Hey @claude can you help?", "user-1");
+
+    const messageBroadcasts = broadcasts.filter((b) => b.event === "message:new");
+    expect(messageBroadcasts.length).toBe(1);
+    expect(messageBroadcasts[0].data.author.isBot).toBe(true);
+  });
+
   test("rate limiting works", async () => {
     await seedBotAndServer();
     broadcasts.length = 0;
