@@ -1,10 +1,15 @@
 {
   "name": "@quarrel/desktop",
-  "version": "0.1.0",
+  "version": "1.0.1",
   "private": true,
   "scripts": {
     "dev": "tauri dev",
     "build": "tauri build",
+    "ios:init": "tauri ios init",
+    "ios:dev": "tauri ios dev",
+    "ios:open": "tauri ios dev --open --host",
+    "ios:build": "tauri ios build --export-method debugging",
+    "ios:build:open": "tauri ios build --export-method debugging --open",
     "tauri": "tauri"
   },
   "devDependencies": {

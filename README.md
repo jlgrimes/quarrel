@@ -88,6 +88,38 @@ bun run dev
 
 This starts both the API server (`localhost:3001`) and the web app (`localhost:5173`) with hot reload. The Vite dev server proxies `/api` and `/ws` to the backend.
 
+### iOS (Tauri)
+
+```bash
+cd apps/desktop
+bun run ios:init
+bun run ios:open
+```
+
+`ios:open` generates/opens the Xcode project with the correct LAN host wiring for device testing. In Xcode, pick your iPhone as the run target, set your Apple Team for signing, then Run.
+
+### iOS Production Build (No Dev Server)
+
+```bash
+cd apps/desktop
+bun run ios:init
+bun run ios:build:open
+```
+
+This uses the built web assets (`apps/web/dist`) and does not use your iPhone as a dev client.
+
+In Xcode:
+1. Select the `quarrel-desktop_iOS` target.
+2. Set `Signing & Capabilities` Team and Bundle Identifier.
+3. Choose your iPhone and run a Release/Archive build.
+
+You can also build from CLI without opening Xcode:
+
+```bash
+cd apps/desktop
+bun run ios:build
+```
+
 ## Testing
 
 ```bash
