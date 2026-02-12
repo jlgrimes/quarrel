@@ -6,6 +6,13 @@ import { useUploadAvatar, useRemoveAvatar } from '../../../hooks/useAvatarUpload
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 
 export function ProfileSection() {
   const user = useAuthStore((s) => s.user);
@@ -55,20 +62,27 @@ export function ProfileSection() {
       <h1 className="mb-5 text-xl font-bold text-white">Profile</h1>
 
       {error && (
-        <div className="mb-3 rounded bg-red/10 p-2 text-sm text-red">
+        <div className='mb-3 rounded-lg border border-red/30 bg-red/10 p-2 text-sm text-red'>
           {error}
         </div>
       )}
       {success && (
-        <div className="mb-3 rounded bg-brand/10 p-2 text-sm text-brand-light">
+        <div className='mb-3 rounded-lg border border-brand/30 bg-brand/10 p-2 text-sm text-brand-light'>
           {success}
         </div>
       )}
 
-      {/* Avatar */}
-      <div className="mb-6 flex items-center gap-4">
+      <Card className='mb-6 border-white/10 bg-bg-tertiary/65 py-0'>
+        <CardHeader>
+          <CardTitle className='text-base text-white'>Identity</CardTitle>
+          <CardDescription className='text-text-muted'>
+            Configure your profile card details.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className='space-y-4 pb-5'>
+      <div className='flex items-center gap-4'>
         <div
-          className="relative cursor-pointer group"
+          className='group relative cursor-pointer'
           onClick={() => fileInputRef.current?.click()}
         >
           <Avatar className="h-20 w-20">
@@ -110,32 +124,34 @@ export function ProfileSection() {
       </div>
 
       {/* Display Name */}
-      <label className="mb-4 block text-xs font-bold uppercase text-text-label">
+      <label className='mb-4 block text-xs font-bold uppercase text-text-label'>
         Display Name
         <Input
-          type="text"
+          type='text'
           value={displayName}
-          onChange={(e) => setDisplayName(e.target.value)}
-          className="mt-2 h-auto rounded border-none bg-bg-tertiary p-2 text-base font-normal text-text-normal shadow-none normal-case"
+          onChange={e => setDisplayName(e.target.value)}
+          className='mt-2 h-auto rounded-xl border border-white/10 bg-bg-tertiary p-2 text-base font-normal text-text-normal shadow-none normal-case'
         />
       </label>
 
       {/* Custom Status */}
-      <label className="mb-6 block text-xs font-bold uppercase text-text-label">
+      <label className='mb-1 block text-xs font-bold uppercase text-text-label'>
         Custom Status
         <Input
-          type="text"
+          type='text'
           value={customStatus}
-          onChange={(e) => setCustomStatus(e.target.value)}
-          className="mt-2 h-auto rounded border-none bg-bg-tertiary p-2 text-base font-normal text-text-normal shadow-none normal-case"
+          onChange={e => setCustomStatus(e.target.value)}
+          className='mt-2 h-auto rounded-xl border border-white/10 bg-bg-tertiary p-2 text-base font-normal text-text-normal shadow-none normal-case'
           placeholder="What's on your mind?"
         />
       </label>
+        </CardContent>
+      </Card>
 
       <Button
         onClick={handleSave}
         disabled={saving}
-        className="rounded bg-brand px-4 py-2 font-medium text-white hover:bg-brand-hover disabled:opacity-50"
+        className='rounded-xl bg-brand px-4 py-2 font-medium text-white hover:bg-brand-hover disabled:opacity-50'
       >
         {saving ? 'Saving...' : 'Save Changes'}
       </Button>

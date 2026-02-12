@@ -116,8 +116,8 @@ describe("GET /dms/conversations", () => {
 });
 
 describe("POST /dms/:id/messages", () => {
-  test("sends DM", async () => {
-    const { token: aliceToken } = await createTestUser(
+  test("sends DM with author data", async () => {
+    const { token: aliceToken, user: alice } = await createTestUser(
       app,
       "alice",
       "alice@example.com"
@@ -144,6 +144,11 @@ describe("POST /dms/:id/messages", () => {
     const data = (await res.json()) as any;
     expect(data.message.content).toBe("Hey Bob!");
     expect(data.message.conversationId).toBe(conversation.id);
+    expect(data.message.author).toBeDefined();
+    expect(data.message.author.id).toBe(alice.id);
+    expect(data.message.author.username).toBe("alice");
+    expect(data.message.author).not.toHaveProperty("hashedPassword");
+    expect(data.message.author).not.toHaveProperty("email");
   });
 });
 

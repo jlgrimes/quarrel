@@ -1,5 +1,6 @@
 import { memo, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { Plus, Compass, Sparkles } from 'lucide-react';
 import { useServers } from '../../hooks/useServers';
 import { useChannels } from '../../hooks/useChannels';
 import { useUIStore } from '../../stores/uiStore';
@@ -18,54 +19,39 @@ const ServerIcon = memo(function ServerIcon({
   onClick: () => void;
 }) {
   const letter = server.name.charAt(0).toUpperCase();
-  const colors = [
-    'bg-brand',
-    'bg-green',
-    'bg-yellow',
-    'bg-red',
-    'bg-blurple',
-    'bg-bg-neutral',
-    'bg-brand-hover',
-    'bg-green-dark',
-  ];
-  const colorIdx =
-    server.id.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0) %
-    colors.length;
-  const bgColor = colors[colorIdx];
+  const hasIcon = Boolean(server.iconUrl);
 
   return (
-    <div className="relative flex items-center justify-center mb-2 group">
-      <div
-        className={`absolute left-0 w-[3px] bg-white rounded-r-sm transition-all ${
-          isActive ? 'h-10' : hasUnread ? 'h-2' : 'h-0 group-hover:h-5'
-        }`}
-      />
-
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            size="icon-lg"
-            onClick={onClick}
-            className={`h-12 w-12 transition-all duration-200 text-white font-semibold text-lg ${bgColor} ${
-              isActive ? 'rounded-[16px]' : 'rounded-[24px] hover:rounded-[16px]'
-            }`}
-          >
-            {server.iconUrl ? (
-              <img
-                src={server.iconUrl}
-                alt={server.name}
-                className="w-full h-full object-cover rounded-[inherit]"
-              />
-            ) : (
-              letter
-            )}
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent side="right" className="bg-bg-floating text-white text-sm font-semibold border-none">
-          {server.name}
-        </TooltipContent>
-      </Tooltip>
-    </div>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          onClick={onClick}
+          className={`group relative h-auto w-full aspect-square overflow-hidden transition-all duration-200 ${
+            isActive
+              ? 'rounded-[16px] ring-2 ring-brand/60 ring-inset'
+              : 'rounded-[24px] hover:rounded-[16px] hover:bg-bg-modifier-hover/40'
+          } ${!hasIcon ? 'bg-bg-neutral text-white' : ''}`}
+        >
+          {hasUnread && (
+            <span className='absolute right-2 top-2 inline-flex h-2.5 w-2.5 rounded-full bg-brand' />
+          )}
+          {server.iconUrl ? (
+            <img
+              src={server.iconUrl}
+              alt={server.name}
+              className='h-full w-full object-cover'
+            />
+          ) : (
+            <div className='flex h-full w-full items-center justify-center text-base font-semibold text-white'>
+              {letter}
+            </div>
+          )}
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side='right' className='border-none bg-bg-floating text-sm font-semibold text-white'>
+        {server.name}
+      </TooltipContent>
+    </Tooltip>
   );
 });
 
@@ -95,70 +81,77 @@ export default function ServerSidebar() {
   const navigate = useNavigate();
   const { serverId } = useParams();
   const { data: servers = [] } = useServers();
-  const openModal = useUIStore((s) => s.openModal);
-  const mobileSidebarOpen = useUIStore((s) => s.mobileSidebarOpen);
-  const setMobileSidebarOpen = useUIStore((s) => s.setMobileSidebarOpen);
+  const openModal = useUIStore(s => s.openModal);
+  const mobileSidebarOpen = useUIStore(s => s.mobileSidebarOpen);
+  const setMobileSidebarOpen = useUIStore(s => s.setMobileSidebarOpen);
 
-  const handleServerClick = useCallback((server: { id: string }) => {
-    navigate(`/channels/${server.id}`);
-    setMobileSidebarOpen(false);
-  }, [navigate, setMobileSidebarOpen]);
+  const handleServerClick = useCallback(
+    (server: { id: string }) => {
+      navigate(`/channels/${server.id}`);
+      setMobileSidebarOpen(false);
+    },
+    [navigate, setMobileSidebarOpen],
+  );
 
   return (
-    <div
-      className={`w-[72px] bg-bg-tertiary flex flex-col items-center py-3 overflow-y-auto shrink-0 max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:z-50 max-md:transition-transform max-md:duration-200 ${
+    <aside
+      className={`quarrel-panel mr-1 flex w-[66px] shrink-0 flex-col overflow-y-auto p-1 max-md:fixed max-md:inset-y-1 max-md:left-1 max-md:z-50 max-md:w-[62px] max-md:transition-transform max-md:duration-200 ${
         mobileSidebarOpen
           ? 'max-md:translate-x-0'
           : 'max-md:-translate-x-full max-md:pointer-events-none'
       }`}
     >
-      <div className="relative flex items-center justify-center mb-2 group">
-        <Button
-          variant="ghost"
-          onClick={() => {
-            navigate('/channels/@me');
-            setMobileSidebarOpen(false);
-          }}
-          className={`w-12 h-12 p-0 transition-all duration-200 font-bold text-xl ${
-            !serverId
-              ? 'bg-brand rounded-[16px] text-white hover:bg-brand'
-              : 'bg-bg-primary rounded-[24px] text-text-normal hover:bg-brand hover:text-white hover:rounded-[16px]'
-          }`}
-        >
-          Q
-        </Button>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant='ghost'
+            onClick={() => {
+              navigate('/channels/@me');
+              setMobileSidebarOpen(false);
+            }}
+            className={`mb-2 h-auto w-full aspect-square transition-all duration-200 ${
+              !serverId
+                ? 'rounded-[16px] bg-brand/25 text-white ring-2 ring-brand/60 ring-inset'
+                : 'rounded-[24px] text-text-label hover:rounded-[16px] hover:bg-bg-modifier-hover/40 hover:text-white'
+            }`}
+          >
+            <Sparkles size={16} />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent side='right' className='border-none bg-bg-floating text-sm font-semibold text-white'>
+          Home
+        </TooltipContent>
+      </Tooltip>
+
+      <div className='mb-2 h-px w-full bg-white/10' />
+
+      <div className='flex flex-1 flex-col gap-2'>
+        {servers.map(server => (
+          <ServerWithUnread
+            key={server.id}
+            server={server}
+            isActive={serverId === server.id}
+            onClick={() => handleServerClick(server)}
+          />
+        ))}
       </div>
 
-      <div className="w-8 h-[2px] bg-bg-modifier-hover rounded-full mb-2" />
-
-      {servers.map((server) => (
-        <ServerWithUnread
-          key={server.id}
-          server={server}
-          isActive={serverId === server.id}
-          onClick={() => handleServerClick(server)}
-        />
-      ))}
-
-      <div className="relative flex items-center justify-center mb-2 group">
+      <div className='mt-2 space-y-1.5'>
         <Button
-          variant="ghost"
+          variant='ghost'
           onClick={() => openModal('createServer')}
-          className="w-12 h-12 p-0 rounded-[24px] bg-bg-primary text-green hover:bg-green hover:text-white hover:rounded-[16px] transition-all duration-200 text-2xl font-light"
+          className='h-auto w-full aspect-square rounded-[24px] border border-brand/40 bg-brand/15 text-brand-light transition-all duration-200 hover:rounded-[16px] hover:bg-brand/25'
         >
-          +
+          <Plus size={16} />
         </Button>
-      </div>
-
-      <div className="relative flex items-center justify-center mb-2 group">
         <Button
-          variant="ghost"
+          variant='ghost'
           onClick={() => openModal('joinServer')}
-          className="w-12 h-12 p-0 rounded-[24px] bg-bg-primary text-green hover:bg-green hover:text-white hover:rounded-[16px] transition-all duration-200 text-sm font-semibold"
+          className='h-auto w-full aspect-square rounded-[24px] border border-white/15 bg-bg-secondary/75 text-text-label transition-all duration-200 hover:rounded-[16px] hover:border-brand/30 hover:text-white'
         >
-          Join
+          <Compass size={16} />
         </Button>
       </div>
-    </div>
+    </aside>
   );
 }

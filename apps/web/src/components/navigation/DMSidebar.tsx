@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useConversations } from '../../hooks/useDMs';
 import { useAckDM } from '../../hooks/useReadState';
 import { useAuthStore } from '../../stores/authStore';
+import { useIsMobile } from '../../hooks/use-mobile';
 import type { Conversation } from '@quarrel/shared';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
@@ -40,19 +41,21 @@ const DMItem = memo(function DMItem({
   const letter = name[0].toUpperCase();
   const unreadCount = (conversation as any).unreadCount ?? 0;
   const hasUnread = unreadCount > 0;
+  const buttonClassName = [
+    'h-10',
+    !isActive && hasUnread
+      ? 'font-bold text-white'
+      : !isActive
+        ? 'text-text-muted hover:text-text-normal'
+        : '',
+  ].join(' ');
 
   return (
     <SidebarMenuItem>
       <SidebarMenuButton
         isActive={isActive}
         onClick={onClick}
-        className={
-          !isActive && hasUnread
-            ? 'text-white font-bold'
-            : !isActive
-              ? 'text-text-muted hover:text-text-normal'
-              : ''
-        }
+        className={buttonClassName}
       >
         <div className="relative shrink-0">
           <Avatar className="h-8 w-8">
@@ -74,7 +77,7 @@ const DMItem = memo(function DMItem({
         <span className="truncate text-sm">{name}</span>
       </SidebarMenuButton>
       {!isActive && hasUnread && (
-        <SidebarMenuBadge className="bg-red text-white text-[10px] font-bold px-1.5 min-w-[18px] h-4 rounded-full flex items-center justify-center">
+        <SidebarMenuBadge className="flex h-4 min-w-[18px] items-center justify-center rounded-full bg-brand px-1.5 text-[10px] font-bold text-white">
           {unreadCount > 99 ? '99+' : unreadCount}
         </SidebarMenuBadge>
       )}
@@ -83,6 +86,7 @@ const DMItem = memo(function DMItem({
 });
 
 export default function DMSidebar() {
+  const isMobile = useIsMobile();
   const navigate = useNavigate();
   const { conversationId } = useParams();
   const currentUser = useAuthStore((s) => s.user);
@@ -108,37 +112,41 @@ export default function DMSidebar() {
   }, [conversationId]);
 
   return (
-    <Sidebar side="left" collapsible="offcanvas">
-      <SidebarHeader className="h-12 flex-row items-center border-b border-bg-tertiary px-4 py-0">
+    <Sidebar
+      side='left'
+      collapsible={isMobile ? 'offcanvas' : 'none'}
+      className='bg-transparent p-1.5 pr-1'
+    >
+      <SidebarHeader className="group quarrel-panel h-12 flex-row items-center border-none px-2.5 py-0">
         <Input
           type="text"
           placeholder="Find or start a conversation"
-          className="w-full rounded border-none bg-bg-tertiary px-2 py-1 text-sm text-text-normal placeholder-text-muted shadow-none h-auto"
+          className="h-8 w-full rounded-lg border-none bg-bg-tertiary/80 px-3 py-0 text-sm text-text-normal placeholder-text-muted shadow-none"
         />
       </SidebarHeader>
 
-      <SidebarContent>
-        <SidebarGroup className="py-0 px-2">
+      <SidebarContent className="mt-1.5 quarrel-panel border-none px-1 py-1">
+        <SidebarGroup className="px-1 py-0">
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton
                 isActive={!conversationId}
                 onClick={() => { navigate('/channels/@me'); setOpenMobile(false); }}
-                className={conversationId ? 'text-text-muted hover:text-text-normal' : ''}
+                className={conversationId ? 'h-10 text-text-muted hover:text-text-normal' : 'h-10'}
               >
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-brand shrink-0">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
+                <span className="flex w-5 shrink-0 items-center justify-center">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M14 8.00598C14 10.211 12.206 12.006 10 12.006C7.795 12.006 6 10.211 6 8.00598C6 5.80098 7.795 4.00598 10 4.00598C12.206 4.00598 14 5.80098 14 8.00598ZM2 19.006C2 15.473 5.29 13.006 10 13.006C14.711 13.006 18 15.473 18 19.006V20.006H2V19.006Z" />
                   </svg>
-                </div>
-                <span className="text-sm font-medium">Friends</span>
+                </span>
+                <span className="truncate">Friends</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarGroup>
 
-        <SidebarGroup className="px-2">
-          <SidebarGroupLabel className="px-2 text-xs font-semibold uppercase text-text-muted">
+        <SidebarGroup className="px-1 py-0">
+          <SidebarGroupLabel className="px-1 text-xs font-bold uppercase tracking-wide text-text-muted">
             Direct Messages
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -169,7 +177,7 @@ export default function DMSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="p-0 gap-0">
+      <SidebarFooter className="mt-1.5 gap-1.5 p-0">
         <VoiceConnectionBar />
         <UserBar />
       </SidebarFooter>

@@ -45,7 +45,7 @@ const MemberRow = memo(function MemberRow({ member }: { member: MemberWithRoles 
 
   return (
     <div
-      className={`flex items-center gap-3 px-2 py-1.5 mx-2 rounded hover:bg-bg-modifier-hover cursor-pointer ${isOffline ? 'opacity-40' : ''}`}
+      className={`mx-2 flex cursor-pointer items-center gap-3 rounded-xl border border-transparent px-2 py-1.5 hover:border-white/10 hover:bg-bg-modifier-hover ${isOffline ? 'opacity-40' : ''}`}
     >
       <div className="relative shrink-0">
         <Avatar className="size-8">
@@ -146,7 +146,7 @@ export default function MemberList({ serverId, className }: { serverId: string; 
   }, [members]);
 
   return (
-    <ScrollArea className={`w-60 bg-bg-secondary shrink-0 ${className ?? ''}`}>
+    <ScrollArea className={`quarrel-panel m-1 h-full w-60 shrink-0 ${className ?? ''}`}>
       {roleSections.map((section) => (
         <MemberSection
           key={section.role.id}

@@ -12,6 +12,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -220,7 +227,10 @@ export default function ServerSettingsModal() {
 
   return (
     <Dialog open onOpenChange={(open) => { if (!open) closeModal(); }}>
-      <DialogContent className="sm:max-w-[600px] max-h-[80vh] flex flex-col" showCloseButton>
+      <DialogContent
+        className='max-h-[80vh] border-white/10 bg-bg-secondary sm:max-w-[680px]'
+        showCloseButton
+      >
         <DialogHeader>
           <DialogTitle>Server Settings</DialogTitle>
           <DialogDescription>Manage your server configuration and AI assistants.</DialogDescription>
@@ -249,9 +259,17 @@ export default function ServerSettingsModal() {
             </div>
 
             {showAddForm && (
-              <form onSubmit={handleAddBot} className="rounded-lg border p-4 space-y-4">
+              <Card className='border-white/10 bg-bg-tertiary/60 py-0'>
+                <CardHeader>
+                  <CardTitle className='text-base text-white'>Add AI</CardTitle>
+                  <CardDescription>
+                    Connect a provider and model for this server.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className='space-y-4 pb-5'>
+              <form onSubmit={handleAddBot} className='space-y-4'>
                 {error && (
-                  <div className="text-sm text-destructive bg-destructive/10 px-3 py-2 rounded">
+                  <div className='rounded border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive'>
                     {error}
                   </div>
                 )}
@@ -312,6 +330,8 @@ export default function ServerSettingsModal() {
                   {submitting ? 'Adding...' : 'Add AI'}
                 </Button>
               </form>
+                </CardContent>
+              </Card>
             )}
 
             {loading ? (
@@ -323,10 +343,11 @@ export default function ServerSettingsModal() {
             ) : (
               <div className="space-y-2">
                 {bots.map((bot) => (
-                  <div
+                  <Card
                     key={bot.id}
-                    className="rounded-lg border px-4 py-3"
+                    className='border-white/10 bg-bg-tertiary/60 py-0'
                   >
+                    <CardContent className='px-4 py-3'>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         {bot.botUser?.avatarUrl ? (
@@ -390,7 +411,7 @@ export default function ServerSettingsModal() {
                     </div>
 
                     {editingBotId === bot.id && (
-                      <div className="mt-3 border-t pt-3 space-y-3">
+                      <div className="mt-3 space-y-3 border-t border-white/10 pt-3">
                         {editError && (
                           <div className="text-sm text-destructive bg-destructive/10 px-3 py-2 rounded">
                             {editError}
@@ -461,7 +482,8 @@ export default function ServerSettingsModal() {
                         {testResultByBotId[bot.id].message}
                       </div>
                     )}
-                  </div>
+                    </CardContent>
+                  </Card>
                 ))}
               </div>
             )}

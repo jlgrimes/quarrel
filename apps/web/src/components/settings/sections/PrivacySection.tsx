@@ -2,7 +2,14 @@ import { useState, useEffect } from 'react';
 import { api } from '../../../lib/api';
 import { analytics } from '../../../lib/analytics';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 export function PrivacySection() {
   const [allowDms, setAllowDms] = useState<'everyone' | 'friends' | 'none'>('everyone');
@@ -61,50 +68,51 @@ export function PrivacySection() {
       <h1 className="mb-5 text-xl font-bold text-white">Privacy</h1>
 
       {success && (
-        <div className="mb-3 rounded bg-brand/10 p-2 text-sm text-brand-light">
+        <div className='mb-3 rounded-lg border border-brand/30 bg-brand/10 p-2 text-sm text-brand-light'>
           {success}
         </div>
       )}
 
       {/* DM Settings */}
-      <div className="mb-6">
-        <h2 className="mb-3 text-xs font-bold uppercase text-text-label">
-          Who can send you direct messages
-        </h2>
-        <div className="space-y-2">
-          {(['everyone', 'friends', 'none'] as const).map((option) => (
-            <label
-              key={option}
-              className="flex cursor-pointer items-center gap-3 rounded-lg bg-bg-tertiary p-3"
-            >
-              <Input
-                type="radio"
-                name="allowDms"
-                checked={allowDms === option}
-                onChange={() => setAllowDms(option)}
-                className="h-4 w-4 border-none bg-transparent accent-brand p-0 shadow-none"
-              />
-              <span className="text-sm capitalize text-white">
-                {option === 'none' ? 'No one' : option}
-              </span>
-            </label>
-          ))}
-        </div>
-      </div>
+      <Card className='mb-6 border-white/10 bg-bg-tertiary/65 py-0'>
+        <CardHeader>
+          <CardTitle className='text-sm uppercase tracking-wide text-text-label'>
+            Who can send you direct messages
+          </CardTitle>
+        </CardHeader>
+        <CardContent className='pb-5'>
+          <Select
+            value={allowDms}
+            onValueChange={value => setAllowDms(value as typeof allowDms)}
+          >
+            <SelectTrigger className='w-full rounded-xl border border-white/10 bg-bg-tertiary'>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value='everyone'>Everyone</SelectItem>
+              <SelectItem value='friends'>Friends Only</SelectItem>
+              <SelectItem value='none'>No one</SelectItem>
+            </SelectContent>
+          </Select>
+        </CardContent>
+      </Card>
 
       <Button
         onClick={handleSave}
         disabled={saving}
-        className="mb-8 rounded bg-brand px-4 py-2 font-medium text-white hover:bg-brand-hover disabled:opacity-50"
+        className='mb-8 rounded-xl bg-brand px-4 py-2 font-medium text-white hover:bg-brand-hover disabled:opacity-50'
       >
         {saving ? 'Saving...' : 'Save Changes'}
       </Button>
 
       {/* Blocked Users */}
-      <div>
-        <h2 className="mb-3 text-xs font-bold uppercase text-text-label">
+      <Card className='border-white/10 bg-bg-tertiary/65 py-0'>
+        <CardHeader>
+          <CardTitle className="text-sm uppercase tracking-wide text-text-label">
           Blocked Users
-        </h2>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className='pb-5'>
         {blockedUsers.length === 0 ? (
           <p className="text-sm text-text-muted">No blocked users</p>
         ) : (
@@ -121,7 +129,7 @@ export function PrivacySection() {
                   </span>
                   <Button
                     onClick={() => handleUnblock(blocked.id)}
-                    className="rounded bg-bg-neutral px-3 py-1 text-xs font-medium text-white hover:bg-bg-neutral-hover"
+                    className="rounded-xl bg-bg-neutral px-3 py-1 text-xs font-medium text-white hover:bg-bg-neutral-hover"
                   >
                     Unblock
                   </Button>
@@ -130,7 +138,8 @@ export function PrivacySection() {
             })}
           </div>
         )}
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

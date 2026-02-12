@@ -23,7 +23,7 @@ export default function UserBar() {
     .toUpperCase();
 
   return (
-    <div className="h-[52px] bg-bg-tertiary flex items-center px-2 gap-2 shrink-0">
+    <div className="quarrel-footer-card flex shrink-0 items-center gap-1.5 px-1.5">
       <div className="relative">
         <Avatar className="size-8">
           <AvatarImage src={user.avatarUrl ?? undefined} alt={user.username} />
@@ -51,7 +51,7 @@ export default function UserBar() {
             href="https://github.com/jlgrimes/quarrel/issues"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center justify-center size-8 rounded text-text-label hover:text-text-normal hover:bg-bg-modifier-hover"
+          className="inline-flex size-8 items-center justify-center rounded-lg text-text-label hover:bg-bg-modifier-hover hover:text-text-normal"
             aria-label="Report a bug"
           >
             <Bug size={18} />
@@ -67,7 +67,7 @@ export default function UserBar() {
             variant="ghost"
             size="icon-sm"
             onClick={() => openModal('settings')}
-            className="text-text-label hover:text-text-normal hover:bg-bg-modifier-hover"
+            className="rounded-lg text-text-label hover:bg-bg-modifier-hover hover:text-text-normal"
             aria-label="User settings"
           >
             <Settings size={18} />

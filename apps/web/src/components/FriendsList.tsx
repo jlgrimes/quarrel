@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { analytics } from '../lib/analytics';
 
 type Tab = 'all' | 'online' | 'pending' | 'blocked';
@@ -69,46 +70,42 @@ export default function FriendsList() {
   ];
 
   return (
-    <div className="flex flex-1 flex-col">
+    <div className="flex h-full flex-col px-1 pb-1.5 pt-1">
       {/* Header with tabs */}
-      <div className="flex h-12 items-center gap-2 md:gap-4 border-b border-bg-tertiary px-4 overflow-x-auto">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => useUIStore.getState().setMobileSidebarOpen(true)}
-          className="mr-1 text-text-label hover:text-white md:hidden flex-shrink-0 hover:bg-transparent"
-          aria-label="Open sidebar"
-        >
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z" />
-          </svg>
-        </Button>
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" className="hidden md:block flex-shrink-0 text-text-muted">
-          <path d="M14 8.00598C14 10.211 12.206 12.006 10 12.006C7.795 12.006 6 10.211 6 8.00598C6 5.80098 7.795 4.00598 10 4.00598C12.206 4.00598 14 5.80098 14 8.00598ZM2 19.006C2 15.473 5.29 13.006 10 13.006C14.711 13.006 18 15.473 18 19.006V20.006H2V19.006Z" />
-        </svg>
-        <span className="font-semibold text-white shrink-0">Friends</span>
-        <div className="h-6 w-px bg-bg-modifier-hover shrink-0" />
-        {tabs.map((t) => (
+      <div className="mb-1.5 flex h-12 shrink-0 items-center px-3">
+        <div className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto">
           <Button
-            key={t.value}
             variant="ghost"
-            size="sm"
-            onClick={() => setTab(t.value)}
-            className={`rounded px-2 py-1 text-sm font-medium transition-colors ${
-              tab === t.value
-                ? 'bg-bg-modifier-active text-white hover:bg-bg-modifier-active'
-                : 'text-text-label hover:bg-bg-modifier-hover hover:text-text-normal'
-            }`}
+            size="icon"
+            onClick={() => useUIStore.getState().setMobileSidebarOpen(true)}
+            className="mr-1 shrink-0 rounded-lg text-text-label hover:bg-bg-modifier-hover hover:text-white md:hidden"
+            aria-label="Open sidebar"
           >
-            {t.label}
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z" />
+            </svg>
           </Button>
-        ))}
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" className="hidden md:block flex-shrink-0 text-text-muted">
+            <path d="M14 8.00598C14 10.211 12.206 12.006 10 12.006C7.795 12.006 6 10.211 6 8.00598C6 5.80098 7.795 4.00598 10 4.00598C12.206 4.00598 14 5.80098 14 8.00598ZM2 19.006C2 15.473 5.29 13.006 10 13.006C14.711 13.006 18 15.473 18 19.006V20.006H2V19.006Z" />
+          </svg>
+          <h2 className="shrink-0 truncate font-semibold text-white">Friends</h2>
+          <div className="h-5 w-px shrink-0 bg-white/10" />
+          <Tabs value={tab} onValueChange={(v) => setTab(v as Tab)} className="min-w-[300px] flex-1">
+            <TabsList variant="line" className="h-8 gap-1 bg-transparent p-0">
+              {tabs.map((t) => (
+                <TabsTrigger key={t.value} value={t.value}>
+                  {t.label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
+        </div>
       </div>
 
       {/* Add friend input */}
-      <div className="border-b border-bg-tertiary p-4">
+      <div className="quarrel-panel mb-1.5 p-3">
         <h2 className="mb-2 text-sm font-bold uppercase text-white">Add Friend</h2>
-        <div className="flex items-center gap-2 rounded-lg bg-bg-tertiary p-2">
+        <div className="quarrel-panel-soft flex items-center gap-2 p-1.5">
           <Input
             type="text"
             value={addInput}
@@ -133,14 +130,14 @@ export default function FriendsList() {
       </div>
 
       {/* Friends list */}
-      <ScrollArea className="flex-1 p-4">
+      <ScrollArea className="quarrel-panel min-h-0 flex-1 p-2.5">
         <h3 className="mb-2 text-xs font-semibold uppercase text-text-muted">
           {tab} — {filtered.length}
         </h3>
         {filtered.map((friend) => {
           const user = friend.friend || friend.user;
           return (
-            <div key={friend.id} className="flex items-center gap-3 rounded-lg px-2 py-2 hover:bg-bg-modifier-hover">
+            <div key={friend.id} className="mb-1 flex items-center gap-3 rounded-xl border border-white/0 px-2 py-2 hover:border-white/10 hover:bg-bg-modifier-hover">
               <div className="relative">
                 <Avatar className="h-8 w-8">
                   <AvatarImage src={user?.avatarUrl ?? undefined} alt={user?.username} />

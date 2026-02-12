@@ -71,9 +71,11 @@ function AppLayout() {
   useWebSocketEvents();
 
   return (
-    <div className='flex h-full overflow-hidden'>
+    <div className='flex h-full overflow-hidden bg-transparent p-1'>
       <ServerSidebar />
-      <Outlet />
+      <div className='quarrel-shell flex min-w-0 flex-1 overflow-hidden'>
+        <Outlet />
+      </div>
       <ModalRenderer />
       <NotificationToast />
     </div>
@@ -84,9 +86,9 @@ function MobileAppLayout() {
   useWebSocketEvents();
 
   return (
-    <div className='flex h-full overflow-hidden'>
+    <div className='flex h-full overflow-hidden bg-transparent p-1'>
       <MobileSidebar />
-      <div className='flex min-w-0 flex-1 flex-col bg-bg-primary pt-[env(safe-area-inset-top)]'>
+      <div className='quarrel-shell flex min-w-0 flex-1 flex-col pt-[env(safe-area-inset-top)]'>
         <Outlet />
       </div>
       <ModalRenderer />
@@ -102,7 +104,7 @@ function DMAreaLayout() {
       style={{ '--sidebar-width': '15rem' } as React.CSSProperties}
     >
       <DMSidebar />
-      <div className='flex flex-1 flex-col bg-bg-primary min-w-0'>
+      <div className='flex min-w-0 flex-1 flex-col'>
         <Outlet />
       </div>
     </SidebarProvider>
@@ -142,7 +144,7 @@ function ServerView() {
       style={{ '--sidebar-width': '15rem' } as React.CSSProperties}
     >
       <ChannelSidebar />
-      <div className='flex flex-1 flex-col bg-bg-primary min-w-0'>
+      <div className='flex min-w-0 flex-1 flex-col'>
         {channelId ? (
           activeChannel?.type === 'voice' ? (
             <VoiceChannelView channelId={channelId} />
@@ -151,7 +153,7 @@ function ServerView() {
           )
         ) : (
           <div className='flex flex-1 flex-col items-center justify-center text-text-muted'>
-            <SidebarTrigger className='mb-4 text-text-label hover:text-white md:hidden size-8' />
+            <SidebarTrigger className='mb-4 size-8 text-text-label hover:text-white md:hidden' />
             Select a channel
           </div>
         )}

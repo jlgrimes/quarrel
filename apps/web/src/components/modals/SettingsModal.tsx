@@ -8,6 +8,13 @@ import { Button } from '@/components/ui/button';
 import { useUploadAvatar, useRemoveAvatar } from '../../hooks/useAvatarUpload';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Switch } from '@/components/ui/switch';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import Modal from './Modal';
 
 export default function SettingsModal() {
@@ -68,84 +75,103 @@ export default function SettingsModal() {
   };
 
   return (
-    <Modal title='User Settings' onClose={closeModal}>
+    <Modal
+      title='User Settings'
+      description='Manage your profile and notification preferences.'
+      onClose={closeModal}
+    >
       {error && (
-        <div className='mb-3 rounded bg-red/10 p-2 text-sm text-red'>
+        <div className='mb-4 rounded-lg border border-red/30 bg-red/10 p-2 text-sm text-red'>
           {error}
         </div>
       )}
 
-      <div className='mb-4 flex items-center gap-4'>
-        <div
-          className='relative cursor-pointer group'
-          onClick={() => fileInputRef.current?.click()}
-        >
-          <Avatar className='h-20 w-20'>
-            <AvatarImage
-              src={user?.avatarUrl ?? undefined}
-              alt={user?.username}
-            />
-            <AvatarFallback className='bg-brand text-2xl font-medium text-white'>
-              {(user?.displayName || user?.username || '?')[0].toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-          <div className='absolute inset-0 flex items-center justify-center rounded-full bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity'>
-            <span className='text-xs font-medium text-white'>Change</span>
-          </div>
-          {uploadAvatar.isPending && (
-            <div className='absolute inset-0 flex items-center justify-center rounded-full bg-black/60'>
-              <div className='h-6 w-6 animate-spin rounded-full border-2 border-white/30 border-t-white' />
-            </div>
-          )}
-        </div>
-        <div className='flex flex-col gap-1'>
-          <span className='text-sm font-medium text-white'>Avatar</span>
-          {user?.avatarUrl && (
-            <Button
-              variant="link"
-              size="sm"
-              onClick={() => removeAvatar.mutate()}
-              disabled={removeAvatar.isPending}
-              className='h-auto justify-start p-0 text-xs text-red hover:text-red-hover'
+      <Card className='mb-4 border-white/10 bg-bg-secondary/70 py-0'>
+        <CardHeader>
+          <CardTitle className='text-sm text-white'>Profile</CardTitle>
+          <CardDescription className='text-text-muted'>
+            Update your public identity.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className='space-y-4 pb-5'>
+          <div className='flex items-center gap-4'>
+            <div
+              className='group relative cursor-pointer'
+              onClick={() => fileInputRef.current?.click()}
             >
-              {removeAvatar.isPending ? 'Removing...' : 'Remove Avatar'}
-            </Button>
-          )}
-        </div>
-        <Input
-          ref={fileInputRef}
-          type='file'
-          accept='image/png,image/jpeg,image/gif,image/webp'
-          onChange={handleFileSelect}
-          className='hidden'
-        />
-      </div>
+              <Avatar className='h-20 w-20'>
+                <AvatarImage
+                  src={user?.avatarUrl ?? undefined}
+                  alt={user?.username}
+                />
+                <AvatarFallback className='bg-brand text-2xl font-medium text-white'>
+                  {(user?.displayName || user?.username || '?')[0].toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <div className='absolute inset-0 flex items-center justify-center rounded-full bg-black/60 opacity-0 transition-opacity group-hover:opacity-100'>
+                <span className='text-xs font-medium text-white'>Change</span>
+              </div>
+              {uploadAvatar.isPending && (
+                <div className='absolute inset-0 flex items-center justify-center rounded-full bg-black/60'>
+                  <div className='h-6 w-6 animate-spin rounded-full border-2 border-white/30 border-t-white' />
+                </div>
+              )}
+            </div>
+            <div className='flex flex-col gap-1'>
+              <span className='text-sm font-medium text-white'>Avatar</span>
+              {user?.avatarUrl && (
+                <Button
+                  variant='link'
+                  size='sm'
+                  onClick={() => removeAvatar.mutate()}
+                  disabled={removeAvatar.isPending}
+                  className='h-auto justify-start p-0 text-xs text-red hover:text-red-hover'
+                >
+                  {removeAvatar.isPending ? 'Removing...' : 'Remove Avatar'}
+                </Button>
+              )}
+            </div>
+            <Input
+              ref={fileInputRef}
+              type='file'
+              accept='image/png,image/jpeg,image/gif,image/webp'
+              onChange={handleFileSelect}
+              className='hidden'
+            />
+          </div>
 
-      <label className='mb-4 block text-xs font-bold uppercase text-text-label'>
-        Display Name
-        <Input
-          type='text'
-          value={displayName}
-          onChange={e => setDisplayName(e.target.value)}
-          className='mt-2 h-auto rounded border-none bg-bg-tertiary p-2 text-base font-normal text-text-normal shadow-none normal-case'
-        />
-      </label>
+          <label className='block text-xs font-bold uppercase text-text-label'>
+            Display Name
+            <Input
+              type='text'
+              value={displayName}
+              onChange={e => setDisplayName(e.target.value)}
+              className='mt-2 h-auto rounded-xl border border-white/10 bg-bg-tertiary/85 p-2 text-base font-normal text-text-normal shadow-none normal-case'
+            />
+          </label>
 
-      <label className='mb-6 block text-xs font-bold uppercase text-text-label'>
-        Custom Status
-        <Input
-          type='text'
-          value={customStatus}
-          onChange={e => setCustomStatus(e.target.value)}
-          className='mt-2 h-auto rounded border-none bg-bg-tertiary p-2 text-base font-normal text-text-normal shadow-none normal-case'
-          placeholder="What's on your mind?"
-        />
-      </label>
+          <label className='block text-xs font-bold uppercase text-text-label'>
+            Custom Status
+            <Input
+              type='text'
+              value={customStatus}
+              onChange={e => setCustomStatus(e.target.value)}
+              className='mt-2 h-auto rounded-xl border border-white/10 bg-bg-tertiary/85 p-2 text-base font-normal text-text-normal shadow-none normal-case'
+              placeholder="What's on your mind?"
+            />
+          </label>
+        </CardContent>
+      </Card>
 
       {/* Notification Settings */}
-      <div className='mb-6'>
-        <h3 className='mb-3 text-xs font-bold uppercase text-text-label'>Notifications</h3>
-        <div className='space-y-2'>
+      <Card className='mb-6 border-white/10 bg-bg-secondary/70 py-0'>
+        <CardHeader>
+          <CardTitle className='text-sm text-white'>Notifications</CardTitle>
+          <CardDescription className='text-text-muted'>
+            Control app and browser notification behavior.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className='space-y-2 pb-5'>
           <label className='flex items-center justify-between'>
             <span className='text-sm text-text-normal'>Enable Notifications</span>
             <Switch
@@ -182,20 +208,20 @@ export default function SettingsModal() {
               {browserPermission === 'denied' ? 'Permission Denied' : 'Allow Browser Notifications'}
             </Button>
           )}
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
       <div className='flex gap-3'>
         <Button
           onClick={handleSave}
           disabled={saving}
-          className='flex-1 rounded bg-brand p-2.5 font-medium text-white hover:bg-brand-hover disabled:opacity-50'
+          className='flex-1 rounded-xl bg-brand p-2.5 font-medium text-white hover:bg-brand-hover disabled:opacity-50'
         >
           {saving ? 'Saving...' : 'Save'}
         </Button>
         <Button
           onClick={handleLogout}
-          className='rounded bg-red px-4 p-2.5 font-medium text-white hover:bg-red-hover'
+          className='rounded-xl bg-red px-4 p-2.5 font-medium text-white hover:bg-red-hover'
         >
           Log Out
         </Button>

@@ -84,9 +84,9 @@ describe('UserSettingsOverlay', () => {
     expect(screen.getByTestId('settings-overlay')).toBeInTheDocument();
     expect(screen.getByText('User Settings')).toBeInTheDocument();
 
-    // Check navigation buttons exist in sidebar
-    const nav = screen.getAllByRole('button');
-    const navLabels = nav.map((b) => b.textContent);
+    // Check navigation tabs exist in sidebar
+    const nav = screen.getAllByRole('tab');
+    const navLabels = nav.map((tab) => tab.textContent);
     expect(navLabels).toContain('My Account');
     expect(navLabels).toContain('Profile');
     expect(navLabels).toContain('Appearance');
@@ -105,27 +105,20 @@ describe('UserSettingsOverlay', () => {
   });
 
   it('switches to Profile section on click', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ pointerEventsCheck: 0 });
     render(<UserSettingsOverlay />, { wrapper: Wrapper });
 
-    // Click the Profile nav button (it's a button element, not a heading)
-    const profileBtn = screen.getAllByRole('button').find(
-      (b) => b.textContent === 'Profile'
-    )!;
-    await user.click(profileBtn);
+    await user.click(screen.getByRole('tab', { name: 'Profile' }));
 
     expect(screen.getByText('Display Name')).toBeInTheDocument();
     expect(screen.getByText('Custom Status')).toBeInTheDocument();
   });
 
   it('switches to Appearance section on click', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ pointerEventsCheck: 0 });
     render(<UserSettingsOverlay />, { wrapper: Wrapper });
 
-    const appearanceBtn = screen.getAllByRole('button').find(
-      (b) => b.textContent === 'Appearance'
-    )!;
-    await user.click(appearanceBtn);
+    await user.click(screen.getByRole('tab', { name: 'Appearance' }));
 
     await waitFor(() => {
       expect(screen.getByText('Theme')).toBeInTheDocument();
@@ -135,11 +128,11 @@ describe('UserSettingsOverlay', () => {
   });
 
   it('closes on X button click', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ pointerEventsCheck: 0 });
     render(<UserSettingsOverlay />, { wrapper: Wrapper });
 
-    await user.click(screen.getByLabelText('Close settings'));
-    expect(screen.getByLabelText('Close settings')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Close' }));
+    expect(screen.getByRole('button', { name: 'Close' })).toBeInTheDocument();
   });
 
   it('closes on Escape key', async () => {
@@ -157,13 +150,10 @@ describe('UserSettingsOverlay', () => {
   });
 
   it('captures section change analytics', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ pointerEventsCheck: 0 });
     render(<UserSettingsOverlay />, { wrapper: Wrapper });
 
-    const profileBtn = screen.getAllByRole('button').find(
-      (b) => b.textContent === 'Profile'
-    )!;
-    await user.click(profileBtn);
+    await user.click(screen.getByRole('tab', { name: 'Profile' }));
 
     expect(analytics.capture).toHaveBeenCalledWith('settings:section_changed', {
       section: 'profile',

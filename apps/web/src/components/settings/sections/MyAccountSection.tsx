@@ -5,6 +5,13 @@ import { api } from '../../../lib/api';
 import { analytics } from '../../../lib/analytics';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 
 export function MyAccountSection() {
   const user = useAuthStore((s) => s.user);
@@ -76,26 +83,37 @@ export function MyAccountSection() {
       <h1 className="mb-5 text-xl font-bold text-white">My Account</h1>
 
       {/* Account info */}
-      <div className="mb-8 rounded-lg bg-bg-tertiary p-4">
-        <div className="flex items-center gap-4">
+      <Card className='mb-8 border-white/10 bg-bg-tertiary/65 py-0'>
+        <CardHeader>
+          <CardTitle className='text-base text-white'>Account Info</CardTitle>
+        </CardHeader>
+        <CardContent className='pb-5'>
+          <div className='flex items-center gap-4'>
           <div className="flex flex-col">
             <span className="text-sm font-medium text-white">{user?.username}</span>
             <span className="text-sm text-text-muted">{user?.email}</span>
           </div>
         </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {/* Change Password */}
-      <div className="mb-8">
-        <h2 className="mb-4 text-base font-bold text-white">Change Password</h2>
+      <Card className='mb-8 border-white/10 bg-bg-tertiary/65 py-0'>
+        <CardHeader>
+          <h2 className='text-base font-bold text-white'>Change Password</h2>
+          <CardDescription className='text-text-muted'>
+            Update your account password.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className='pb-5'>
 
         {passwordError && (
-          <div className="mb-3 rounded bg-red/10 p-2 text-sm text-red">
+          <div className="mb-3 rounded-lg border border-red/30 bg-red/10 p-2 text-sm text-red">
             {passwordError}
           </div>
         )}
         {passwordSuccess && (
-          <div className="mb-3 rounded bg-brand/10 p-2 text-sm text-brand-light">
+          <div className="mb-3 rounded-lg border border-brand/30 bg-brand/10 p-2 text-sm text-brand-light">
             {passwordSuccess}
           </div>
         )}
@@ -106,7 +124,7 @@ export function MyAccountSection() {
             type="password"
             value={currentPassword}
             onChange={(e) => setCurrentPassword(e.target.value)}
-            className="mt-2 h-auto rounded border-none bg-bg-tertiary p-2 text-base font-normal text-text-normal shadow-none normal-case"
+            className="mt-2 h-auto rounded-xl border border-white/10 bg-bg-tertiary p-2 text-base font-normal text-text-normal shadow-none normal-case"
           />
         </label>
 
@@ -116,7 +134,7 @@ export function MyAccountSection() {
             type="password"
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
-            className="mt-2 h-auto rounded border-none bg-bg-tertiary p-2 text-base font-normal text-text-normal shadow-none normal-case"
+            className="mt-2 h-auto rounded-xl border border-white/10 bg-bg-tertiary p-2 text-base font-normal text-text-normal shadow-none normal-case"
           />
         </label>
 
@@ -126,18 +144,19 @@ export function MyAccountSection() {
             type="password"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
-            className="mt-2 h-auto rounded border-none bg-bg-tertiary p-2 text-base font-normal text-text-normal shadow-none normal-case"
+            className="mt-2 h-auto rounded-xl border border-white/10 bg-bg-tertiary p-2 text-base font-normal text-text-normal shadow-none normal-case"
           />
         </label>
 
         <Button
           onClick={handleChangePassword}
           disabled={changingPassword || !currentPassword || !newPassword || !confirmPassword}
-          className="rounded bg-brand px-4 py-2 font-medium text-white hover:bg-brand-hover disabled:opacity-50"
+          className="rounded-xl bg-brand px-4 py-2 font-medium text-white hover:bg-brand-hover disabled:opacity-50"
         >
           {changingPassword ? 'Changing...' : 'Change Password'}
         </Button>
-      </div>
+        </CardContent>
+      </Card>
 
       {/* Log Out */}
       <div className="mb-8">
@@ -147,23 +166,27 @@ export function MyAccountSection() {
             closeModal();
             await logout();
           }}
-          className="rounded bg-bg-neutral px-4 py-2 font-medium text-white hover:bg-bg-neutral-hover"
+          className="rounded-xl bg-bg-neutral px-4 py-2 font-medium text-white hover:bg-bg-neutral-hover"
         >
           Log Out
         </Button>
       </div>
 
       {/* Account Deletion */}
-      <div className="rounded-lg border border-red/30 p-4">
-        <h2 className="mb-2 text-base font-bold text-red">Delete Account</h2>
-        <p className="mb-4 text-sm text-text-muted">
+      <Card className='border-white/10 bg-bg-tertiary/65 py-0'>
+        <CardHeader>
+          <CardTitle className='text-base text-white'>Delete Account</CardTitle>
+        </CardHeader>
+        <CardContent className='pb-5'>
+        <p className='mb-4 text-sm text-text-muted'>
           This action is irreversible. All your data will be permanently deleted.
         </p>
 
         {!showDeleteConfirm ? (
           <Button
             onClick={() => setShowDeleteConfirm(true)}
-            className="rounded bg-red px-4 py-2 font-medium text-white hover:bg-red-hover"
+            variant="outline"
+            className="rounded-xl border-white/15 bg-bg-tertiary px-4 py-2 font-medium text-text-normal hover:bg-bg-modifier-hover hover:text-white"
           >
             Delete Account
           </Button>
@@ -181,7 +204,7 @@ export function MyAccountSection() {
                 type="password"
                 value={deletePassword}
                 onChange={(e) => setDeletePassword(e.target.value)}
-                className="mt-2 h-auto rounded border-none bg-bg-tertiary p-2 text-base font-normal text-text-normal shadow-none normal-case"
+                className="mt-2 h-auto rounded-xl border border-white/10 bg-bg-tertiary p-2 text-base font-normal text-text-normal shadow-none normal-case"
               />
             </label>
 
@@ -189,7 +212,7 @@ export function MyAccountSection() {
               <Button
                 onClick={handleDeleteAccount}
                 disabled={deleting || !deletePassword}
-                className="rounded bg-red px-4 py-2 font-medium text-white hover:bg-red-hover disabled:opacity-50"
+                className="rounded-xl bg-red px-4 py-2 font-medium text-white hover:bg-red-hover disabled:opacity-50"
               >
                 {deleting ? 'Deleting...' : 'Confirm Delete'}
               </Button>
@@ -199,14 +222,15 @@ export function MyAccountSection() {
                   setDeletePassword('');
                   setDeleteError('');
                 }}
-                className="rounded bg-bg-neutral px-4 py-2 font-medium text-white hover:bg-bg-neutral-hover"
+                className="rounded-xl bg-bg-neutral px-4 py-2 font-medium text-white hover:bg-bg-neutral-hover"
               >
                 Cancel
               </Button>
             </div>
           </div>
         )}
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

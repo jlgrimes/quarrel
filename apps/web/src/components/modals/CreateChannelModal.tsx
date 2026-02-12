@@ -50,44 +50,53 @@ export default function CreateChannelModal() {
   const nameIcon = type === 'category' ? '\u{1F4C1}' : type === 'voice' ? '\u{1F50A}' : '#';
 
   return (
-    <Modal title="Create Channel" onClose={closeModal}>
+    <Modal
+      title='Create Channel'
+      description='Choose a channel type, optional category, and name.'
+      onClose={closeModal}
+    >
       <form onSubmit={handleSubmit}>
         {error && (
-          <div className="mb-3 rounded bg-red/10 p-2 text-sm text-red">{error}</div>
+          <div className='mb-3 rounded-lg border border-red/30 bg-red/10 p-2 text-sm text-red'>
+            {error}
+          </div>
         )}
 
-        <label className="mb-1 block text-xs font-bold uppercase text-text-label">
+        <label className='mb-1 block text-xs font-bold uppercase text-text-label'>
           Channel Type
         </label>
-        <div className="mb-4 space-y-2">
-          {types.map((t) => (
+        <div className='mb-4 space-y-2'>
+          {types.map(t => (
             <Button
               key={t.value}
-              type="button"
-              variant="ghost"
+              type='button'
+              variant='ghost'
               onClick={() => setType(t.value)}
-              className={`flex w-full items-center justify-start gap-3 rounded p-2.5 h-auto ${
+              className={`h-auto w-full justify-start gap-3 rounded-xl border p-2.5 ${
                 type === t.value
-                  ? 'bg-bg-modifier-active text-white hover:bg-bg-modifier-active'
-                  : 'bg-bg-tertiary text-text-muted hover:bg-bg-modifier-hover hover:text-text-normal'
+                  ? 'border-brand/60 bg-brand/20 text-white hover:bg-brand/20'
+                  : 'border-white/10 bg-bg-tertiary/75 text-text-muted hover:bg-bg-modifier-hover hover:text-text-normal'
               }`}
             >
-              <span className="text-lg">{t.icon}</span>
-              <span className="font-medium">{t.label}</span>
+              <span className='text-lg'>{t.icon}</span>
+              <span className='font-medium'>{t.label}</span>
             </Button>
           ))}
         </div>
 
         {type !== 'category' && categories.length > 0 && (
-          <label className="mb-4 block text-xs font-bold uppercase text-text-label">
+          <label className='mb-4 block text-xs font-bold uppercase text-text-label'>
             Category
-            <Select value={categoryId || 'none'} onValueChange={(value) => setCategoryId(value === 'none' ? '' : value)}>
-              <SelectTrigger className="mt-2 h-auto w-full border-none bg-bg-tertiary py-2 text-sm font-normal text-text-normal normal-case">
-                <SelectValue placeholder="No Category" />
+            <Select
+              value={categoryId || 'none'}
+              onValueChange={value => setCategoryId(value === 'none' ? '' : value)}
+            >
+              <SelectTrigger className='mt-2 h-auto w-full rounded-xl border border-white/10 bg-bg-tertiary/85 py-2 text-sm font-normal text-text-normal normal-case'>
+                <SelectValue placeholder='No Category' />
               </SelectTrigger>
-              <SelectContent className="bg-bg-secondary border-bg-tertiary text-text-normal">
-                <SelectItem value="none">No Category</SelectItem>
-                {categories.map((cat) => (
+              <SelectContent className='border-bg-tertiary bg-bg-secondary text-text-normal'>
+                <SelectItem value='none'>No Category</SelectItem>
+                {categories.map(cat => (
                   <SelectItem key={cat.id} value={cat.id}>
                     {cat.name}
                   </SelectItem>
@@ -97,15 +106,17 @@ export default function CreateChannelModal() {
           </label>
         )}
 
-        <label className="mb-4 block text-xs font-bold uppercase text-text-label">
+        <label className='mb-4 block text-xs font-bold uppercase text-text-label'>
           {type === 'category' ? 'Category Name' : 'Channel Name'}
-          <div className="mt-2 flex items-center rounded bg-bg-tertiary p-2">
-            <span className="mr-1 text-text-muted">{nameIcon}</span>
+          <div className='mt-2 flex items-center rounded-xl border border-white/10 bg-bg-tertiary/85 p-2'>
+            <span className='mr-1 text-text-muted'>{nameIcon}</span>
             <Input
-              type="text"
+              type='text'
               value={name}
-              onChange={(e) => setName(e.target.value.toLowerCase().replace(/\s+/g, '-'))}
-              className="flex-1 border-none bg-transparent p-0 h-auto text-base font-normal text-text-normal normal-case shadow-none"
+              onChange={e =>
+                setName(e.target.value.toLowerCase().replace(/\s+/g, '-'))
+              }
+              className='h-auto flex-1 border-none bg-transparent p-0 text-base font-normal text-text-normal normal-case shadow-none'
               placeholder={type === 'category' ? 'new-category' : 'new-channel'}
               autoFocus
             />
@@ -113,9 +124,9 @@ export default function CreateChannelModal() {
         </label>
 
         <Button
-          type="submit"
+          type='submit'
           disabled={!name.trim() || createChannel.isPending}
-          className="w-full rounded bg-brand p-2.5 font-medium text-white hover:bg-brand-hover disabled:opacity-50"
+          className='w-full rounded-xl bg-brand p-2.5 font-medium text-white hover:bg-brand-hover disabled:opacity-50'
         >
           {createChannel.isPending ? 'Creating...' : type === 'category' ? 'Create Category' : 'Create Channel'}
         </Button>

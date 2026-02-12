@@ -173,9 +173,9 @@ export function MessageInput({ channelId, channelName, members }: { channelId: s
   };
 
   return (
-    <div className="px-4 pb-2 flex-shrink-0">
+    <div className="px-1 pb-0 flex-shrink-0">
       {replyMessage && (
-        <div className="flex items-center gap-2 px-3 py-2 mb-1 bg-bg-secondary rounded-t-lg text-sm text-text-muted">
+        <div className="flex items-center gap-2 px-3 py-2 mb-1 bg-bg-secondary rounded-t-xl text-sm text-text-muted">
           <span>
             Replying to <span className="font-medium text-white">{replyMessage.author?.displayName ?? 'Unknown'}</span>
           </span>
@@ -191,7 +191,7 @@ export function MessageInput({ channelId, channelName, members }: { channelId: s
           </Button>
         </div>
       )}
-      <div className={`relative bg-bg-modifier-hover ${replyMessage ? 'rounded-b-lg' : 'rounded-lg'}`}>
+      <div className={`relative quarrel-footer-card bg-bg-modifier-hover ${replyMessage ? 'rounded-b-xl' : 'rounded-xl'}`}>
         {mentionQuery !== null && mentionSuggestions.length > 0 && (
           <div className="absolute bottom-full left-0 right-0 mb-1 bg-bg-secondary border border-bg-tertiary rounded-lg shadow-xl max-h-48 overflow-y-auto z-50">
             {mentionSuggestions.map((s, idx) => (
@@ -228,13 +228,13 @@ export function MessageInput({ channelId, channelName, members }: { channelId: s
           onKeyDown={handleKeyDown}
           placeholder={`Message #${channelName}`}
           rows={1}
-          className="w-full border-none bg-transparent text-text-normal placeholder-text-muted p-3 pr-10 resize-none shadow-none outline-none focus-visible:ring-0 max-h-[300px] min-h-0"
+          className="w-full border-none bg-transparent text-text-normal placeholder-text-muted p-3 pr-10 resize-none shadow-none outline-none focus-visible:ring-0 max-h-[300px] min-h-[44px]"
         />
         <Button
           variant="ghost"
           size="icon-sm"
           onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-          className="absolute right-2 top-2.5 text-text-label hover:text-white transition-colors hover:bg-transparent"
+          className="absolute right-2 top-1/2 -translate-y-1/2 text-text-label hover:text-white transition-colors hover:bg-transparent"
           title="Emoji"
           type="button"
         >

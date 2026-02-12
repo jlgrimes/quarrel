@@ -3,6 +3,7 @@ import { api } from '../../../lib/api';
 import { analytics } from '../../../lib/analytics';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 export function NotificationsSection() {
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
@@ -49,13 +50,17 @@ export function NotificationsSection() {
       <h1 className="mb-5 text-xl font-bold text-white">Notifications</h1>
 
       {success && (
-        <div className="mb-3 rounded bg-brand/10 p-2 text-sm text-brand-light">
+        <div className='mb-3 rounded-lg border border-brand/30 bg-brand/10 p-2 text-sm text-brand-light'>
           {success}
         </div>
       )}
 
       {/* Enable Notifications */}
-      <div className="mb-4">
+      <Card className='mb-4 border-white/10 bg-bg-tertiary/65 py-0'>
+        <CardHeader>
+          <CardTitle className='text-sm text-white'>General</CardTitle>
+        </CardHeader>
+        <CardContent className='pb-4'>
         <div className="flex items-center justify-between rounded-lg bg-bg-tertiary p-4">
           <div>
             <h3 className="text-sm font-medium text-white">Enable Notifications</h3>
@@ -69,10 +74,12 @@ export function NotificationsSection() {
             className="data-[state=checked]:bg-brand data-[state=unchecked]:bg-bg-neutral"
           />
         </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {/* Notification Sounds */}
-      <div className="mb-6">
+      <Card className='mb-6 border-white/10 bg-bg-tertiary/65 py-0'>
+        <CardContent className='pt-5 pb-5'>
         <div className="flex items-center justify-between rounded-lg bg-bg-tertiary p-4">
           <div>
             <h3 className="text-sm font-medium text-white">Notification Sounds</h3>
@@ -86,12 +93,13 @@ export function NotificationsSection() {
             className="data-[state=checked]:bg-brand data-[state=unchecked]:bg-bg-neutral"
           />
         </div>
-      </div>
+        </CardContent>
+      </Card>
 
       <Button
         onClick={handleSave}
         disabled={saving}
-        className="rounded bg-brand px-4 py-2 font-medium text-white hover:bg-brand-hover disabled:opacity-50"
+        className='rounded-xl bg-brand px-4 py-2 font-medium text-white hover:bg-brand-hover disabled:opacity-50'
       >
         {saving ? 'Saving...' : 'Save Changes'}
       </Button>

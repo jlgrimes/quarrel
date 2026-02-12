@@ -3,6 +3,7 @@ import { api } from '../../../lib/api';
 import { analytics } from '../../../lib/analytics';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 export function AppearanceSection() {
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
@@ -48,14 +49,17 @@ export function AppearanceSection() {
       <h1 className="mb-5 text-xl font-bold text-white">Appearance</h1>
 
       {success && (
-        <div className="mb-3 rounded bg-brand/10 p-2 text-sm text-brand-light">
+        <div className="mb-3 rounded-lg border border-brand/30 bg-brand/10 p-2 text-sm text-brand-light">
           {success}
         </div>
       )}
 
       {/* Theme */}
-      <div className="mb-6">
-        <h2 className="mb-3 text-xs font-bold uppercase text-text-label">Theme</h2>
+      <Card className='mb-6 border-white/10 bg-bg-tertiary/65 py-0'>
+        <CardHeader>
+          <CardTitle className='text-sm uppercase tracking-wide text-text-label'>Theme</CardTitle>
+        </CardHeader>
+        <CardContent className='pb-5'>
         <div className="flex gap-3">
           <Button
             variant="ghost"
@@ -82,11 +86,15 @@ export function AppearanceSection() {
             <span className="text-sm font-medium text-white">Light</span>
           </Button>
         </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {/* Font Size */}
-      <div className="mb-6">
-        <h2 className="mb-3 text-xs font-bold uppercase text-text-label">Font Size</h2>
+      <Card className='mb-6 border-white/10 bg-bg-tertiary/65 py-0'>
+        <CardHeader>
+          <CardTitle className='text-sm uppercase tracking-wide text-text-label'>Font Size</CardTitle>
+        </CardHeader>
+        <CardContent className='pb-5'>
         <div className="flex gap-3">
           {(['small', 'normal', 'large'] as const).map((size) => (
             <Button
@@ -103,10 +111,12 @@ export function AppearanceSection() {
             </Button>
           ))}
         </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {/* Compact Mode */}
-      <div className="mb-6">
+      <Card className='mb-6 border-white/10 bg-bg-tertiary/65 py-0'>
+        <CardContent className='pt-5 pb-5'>
         <div className="flex items-center justify-between rounded-lg bg-bg-tertiary p-4">
           <div>
             <h3 className="text-sm font-medium text-white">Compact Mode</h3>
@@ -120,12 +130,13 @@ export function AppearanceSection() {
             className="data-[state=checked]:bg-brand data-[state=unchecked]:bg-bg-neutral"
           />
         </div>
-      </div>
+        </CardContent>
+      </Card>
 
       <Button
         onClick={handleSave}
         disabled={saving}
-        className="rounded bg-brand px-4 py-2 font-medium text-white hover:bg-brand-hover disabled:opacity-50"
+        className="rounded-xl bg-brand px-4 py-2 font-medium text-white hover:bg-brand-hover disabled:opacity-50"
       >
         {saving ? 'Saving...' : 'Save Changes'}
       </Button>

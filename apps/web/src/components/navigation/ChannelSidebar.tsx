@@ -7,6 +7,7 @@ import { useUIStore } from '../../stores/uiStore';
 import { useVoiceStore } from '../../stores/voiceStore';
 import { analytics } from '../../lib/analytics';
 import type { Channel } from '@quarrel/shared';
+import { useIsMobile } from '../../hooks/use-mobile';
 import { Button } from '@/components/ui/button';
 import { Volume2, Hash, Settings } from 'lucide-react';
 import {
@@ -44,11 +45,11 @@ function VoiceParticipants({ channelId }: { channelId: string }) {
       {participants.map(p => (
         <div
           key={p.userId}
-          className='flex items-center gap-2 py-0.5 px-2 text-xs text-text-muted'
+          className='flex items-center gap-2 rounded-lg px-2 py-1 text-xs text-text-muted'
         >
           <div
-            className={`w-5 h-5 rounded-full bg-brand flex items-center justify-center text-white text-[10px] font-semibold shrink-0 ${
-              speakingUsers.has(p.userId) ? 'ring-2 ring-green' : ''
+            className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand text-[10px] font-semibold text-white ${
+              speakingUsers.has(p.userId) ? 'ring-2 ring-brand/60' : ''
             }`}
           >
             {(p.displayName || p.username).charAt(0).toUpperCase()}
@@ -100,7 +101,7 @@ const CategorySection = memo(function CategorySection({
       <SidebarGroup className='px-1 py-0 mt-4'>
         <SidebarGroupLabel
           asChild
-          className='text-text-muted text-xs uppercase font-bold tracking-wide px-1'
+          className='px-1 text-xs font-bold uppercase tracking-wide text-text-muted'
         >
           <CollapsibleTrigger className='flex items-center gap-0.5'>
             <span className='text-[10px] transition-transform group-data-[state=closed]/collapsible:-rotate-90'>
@@ -111,7 +112,7 @@ const CategorySection = memo(function CategorySection({
         </SidebarGroupLabel>
         <SidebarGroupAction
           onClick={onAddChannel}
-          className='text-text-muted hover:text-text-normal'
+          className='rounded-md text-text-muted hover:bg-bg-modifier-hover hover:text-text-normal'
           aria-label='Create channel'
         >
           +
@@ -153,7 +154,7 @@ const ChannelItem = memo(function ChannelItem({
         onClick={onClick}
         className={
           !isActive && hasUnread
-            ? 'text-white font-bold'
+            ? 'font-bold text-white'
             : !isActive
               ? 'text-text-muted hover:text-text-normal'
               : ''
@@ -169,7 +170,7 @@ const ChannelItem = memo(function ChannelItem({
         <span className='truncate'>{channel.name}</span>
       </SidebarMenuButton>
       {!isActive && hasUnread && (
-        <SidebarMenuBadge className='bg-red text-white text-[10px] font-bold px-1.5 min-w-[18px] h-4 rounded-full flex items-center justify-center'>
+        <SidebarMenuBadge className='flex h-4 min-w-[18px] items-center justify-center rounded-full bg-brand px-1.5 text-[10px] font-bold text-white'>
           {(channel.unreadCount ?? 0) > 99 ? '99+' : channel.unreadCount}
         </SidebarMenuBadge>
       )}
@@ -179,6 +180,7 @@ const ChannelItem = memo(function ChannelItem({
 });
 
 export default function ChannelSidebar() {
+  const isMobile = useIsMobile();
   const navigate = useNavigate();
   const { serverId, channelId } = useParams();
   const { data: servers = [] } = useServers();
@@ -247,16 +249,20 @@ export default function ChannelSidebar() {
   if (!server) return null;
 
   return (
-    <Sidebar side='left' collapsible='offcanvas'>
-      <SidebarHeader className='h-12 flex-row items-center px-4 border-b border-bg-tertiary py-0 group'>
-        <h2 className='font-semibold text-white truncate flex-1'>
+    <Sidebar
+      side='left'
+      collapsible={isMobile ? 'offcanvas' : 'none'}
+      className='bg-transparent p-1.5 pr-1'
+    >
+      <SidebarHeader className='group quarrel-panel h-12 flex-row items-center border-none px-2.5 py-0'>
+        <h2 className='flex-1 truncate text-sm font-semibold text-white'>
           {server.name}
         </h2>
         <Button
           variant='ghost'
           size='icon'
           onClick={() => openModal('inviteServer')}
-          className='text-text-muted hover:text-text-normal opacity-0 group-hover:opacity-100 transition-opacity leading-none ml-auto'
+          className='ml-auto size-8 rounded-lg text-text-muted transition-opacity hover:bg-bg-modifier-hover hover:text-text-normal md:opacity-0 md:group-hover:opacity-100'
           aria-label='Invite people'
         >
           <svg width='18' height='18' viewBox='0 0 24 24' fill='currentColor'>
@@ -267,7 +273,7 @@ export default function ChannelSidebar() {
           variant='ghost'
           size='icon'
           onClick={() => openModal('serverSettings')}
-          className='text-text-muted hover:text-text-normal opacity-0 group-hover:opacity-100 transition-opacity leading-none ml-1'
+          className='ml-1 size-8 rounded-lg text-text-muted transition-opacity hover:bg-bg-modifier-hover hover:text-text-normal md:opacity-0 md:group-hover:opacity-100'
           aria-label='Server settings'
         >
           <Settings size={18} />
@@ -276,14 +282,14 @@ export default function ChannelSidebar() {
           variant='ghost'
           size='icon'
           onClick={() => openModal('createChannel')}
-          className='text-text-muted hover:text-text-normal opacity-0 group-hover:opacity-100 transition-opacity text-xl leading-none ml-1'
+          className='ml-1 size-8 rounded-lg text-xl leading-none text-text-muted transition-opacity hover:bg-bg-modifier-hover hover:text-text-normal md:opacity-0 md:group-hover:opacity-100'
           aria-label='Create channel'
         >
           +
         </Button>
       </SidebarHeader>
 
-      <SidebarContent>
+      <SidebarContent className='mt-1.5 quarrel-panel border-none px-1 py-1'>
         {uncategorized.length > 0 && (
           <CategorySection
             category={null}
@@ -306,7 +312,7 @@ export default function ChannelSidebar() {
         ))}
       </SidebarContent>
 
-      <SidebarFooter className='p-0 gap-0'>
+      <SidebarFooter className='mt-1.5 gap-1.5 p-0'>
         <VoiceConnectionBar />
         <UserBar />
       </SidebarFooter>

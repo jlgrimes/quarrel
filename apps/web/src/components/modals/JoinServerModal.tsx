@@ -29,32 +29,34 @@ export default function JoinServerModal() {
   };
 
   return (
-    <Modal title="Join a server" onClose={closeModal}>
+    <Modal
+      title='Join a server'
+      description='Enter an invite code to join an existing server.'
+      onClose={closeModal}
+    >
       <form onSubmit={handleSubmit}>
-        <p className="mb-4 text-center text-sm text-text-label">
-          Enter an invite code to join an existing server.
-        </p>
-
         {error && (
-          <div className="mb-3 rounded bg-red/10 p-2 text-sm text-red">{error}</div>
+          <div className='mb-3 rounded-lg border border-red/30 bg-red/10 p-2 text-sm text-red'>
+            {error}
+          </div>
         )}
 
-        <label className="mb-4 block text-xs font-bold uppercase text-text-label">
+        <label className='mb-4 block text-xs font-bold uppercase text-text-label'>
           Invite Code
           <Input
-            type="text"
+            type='text'
             value={inviteCode}
-            onChange={(e) => setInviteCode(e.target.value)}
-            className="mt-2 block w-full rounded border-none bg-bg-tertiary p-2 text-base font-normal text-text-normal normal-case"
-            placeholder="Enter invite code"
+            onChange={e => setInviteCode(e.target.value)}
+            className='mt-2 block w-full rounded-xl border border-white/10 bg-bg-tertiary/85 p-2 text-base font-normal text-text-normal normal-case'
+            placeholder='Enter invite code'
             autoFocus
           />
         </label>
 
         <Button
-          type="submit"
+          type='submit'
           disabled={!inviteCode.trim() || joinServer.isPending}
-          className="w-full rounded bg-brand p-2.5 font-medium text-white hover:bg-brand-hover disabled:opacity-50"
+          className='w-full rounded-xl bg-brand p-2.5 font-medium text-white hover:bg-brand-hover disabled:opacity-50'
         >
           {joinServer.isPending ? 'Joining...' : 'Join Server'}
         </Button>

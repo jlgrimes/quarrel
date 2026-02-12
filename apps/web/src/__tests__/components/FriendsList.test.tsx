@@ -78,18 +78,18 @@ describe('FriendsList', () => {
     render(<FriendsList />, { wrapper: Wrapper });
 
     expect(screen.getByText('Friends')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Online' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'All' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Pending' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Blocked' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Online' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'All' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Pending' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: 'Blocked' })).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Enter a username')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Send Friend Request' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Send Friend Request/i })).toBeInTheDocument();
   });
 
   it('send button is disabled when input is empty', () => {
     render(<FriendsList />, { wrapper: Wrapper });
 
-    expect(screen.getByRole('button', { name: 'Send Friend Request' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /Send Friend Request/i })).toBeDisabled();
   });
 
   it('sends friend request and shows success', async () => {
@@ -99,7 +99,7 @@ describe('FriendsList', () => {
     render(<FriendsList />, { wrapper: Wrapper });
 
     await user.type(screen.getByPlaceholderText('Enter a username'), 'bob');
-    await user.click(screen.getByRole('button', { name: 'Send Friend Request' }));
+    await user.click(screen.getByRole('button', { name: /Send Friend Request/i }));
 
     expect(mockMutateAsync).toHaveBeenCalledWith('bob');
     await waitFor(() => {
@@ -114,7 +114,7 @@ describe('FriendsList', () => {
     render(<FriendsList />, { wrapper: Wrapper });
 
     await user.type(screen.getByPlaceholderText('Enter a username'), 'bob');
-    await user.click(screen.getByRole('button', { name: 'Send Friend Request' }));
+    await user.click(screen.getByRole('button', { name: /Send Friend Request/i }));
 
     await waitFor(() => {
       expect(mockCapture).toHaveBeenCalledWith('friend:request_sent');
@@ -128,7 +128,7 @@ describe('FriendsList', () => {
     render(<FriendsList />, { wrapper: Wrapper });
 
     await user.type(screen.getByPlaceholderText('Enter a username'), 'nobody');
-    await user.click(screen.getByRole('button', { name: 'Send Friend Request' }));
+    await user.click(screen.getByRole('button', { name: /Send Friend Request/i }));
 
     await waitFor(() => {
       expect(screen.getByText('User not found')).toBeInTheDocument();
@@ -142,7 +142,7 @@ describe('FriendsList', () => {
     render(<FriendsList />, { wrapper: Wrapper });
 
     await user.type(screen.getByPlaceholderText('Enter a username'), 'nobody');
-    await user.click(screen.getByRole('button', { name: 'Send Friend Request' }));
+    await user.click(screen.getByRole('button', { name: /Send Friend Request/i }));
 
     await waitFor(() => {
       expect(screen.getByText('User not found')).toBeInTheDocument();
@@ -158,7 +158,7 @@ describe('FriendsList', () => {
 
     const input = screen.getByPlaceholderText('Enter a username');
     await user.type(input, 'bob');
-    await user.click(screen.getByRole('button', { name: 'Send Friend Request' }));
+    await user.click(screen.getByRole('button', { name: /Send Friend Request/i }));
 
     await waitFor(() => {
       expect(input).toHaveValue('');
@@ -183,7 +183,7 @@ describe('FriendsList', () => {
     render(<FriendsList />, { wrapper: Wrapper });
 
     await user.type(screen.getByPlaceholderText('Enter a username'), '  bob  ');
-    await user.click(screen.getByRole('button', { name: 'Send Friend Request' }));
+    await user.click(screen.getByRole('button', { name: /Send Friend Request/i }));
 
     expect(mockMutateAsync).toHaveBeenCalledWith('bob');
   });
@@ -195,13 +195,13 @@ describe('FriendsList', () => {
     // Default tab is 'online'
     expect(screen.getByText('No friends online right now.')).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: 'All' }));
+    await user.click(screen.getByRole('tab', { name: 'All' }));
     expect(screen.getByText("You don't have any friends yet.")).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: 'Pending' }));
+    await user.click(screen.getByRole('tab', { name: 'Pending' }));
     expect(screen.getByText('No pending friend requests.')).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: 'Blocked' }));
+    await user.click(screen.getByRole('tab', { name: 'Blocked' }));
     expect(screen.getByText('No blocked users.')).toBeInTheDocument();
   });
 });
@@ -231,7 +231,7 @@ describe('FriendsList with friends data', () => {
     render(<FriendsList />, { wrapper: Wrapper });
     const user = userEvent.setup();
 
-    await user.click(screen.getByRole('button', { name: 'Pending' }));
+    await user.click(screen.getByRole('tab', { name: 'Pending' }));
 
     expect(screen.getByRole('button', { name: 'Accept' })).toBeInTheDocument();
   });
@@ -240,7 +240,7 @@ describe('FriendsList with friends data', () => {
     render(<FriendsList />, { wrapper: Wrapper });
     const user = userEvent.setup();
 
-    await user.click(screen.getByRole('button', { name: 'Pending' }));
+    await user.click(screen.getByRole('tab', { name: 'Pending' }));
     await user.click(screen.getByRole('button', { name: 'Accept' }));
 
     expect(mockAcceptMutate).toHaveBeenCalledWith('f1');

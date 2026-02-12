@@ -540,7 +540,18 @@ dmRoutes.post("/:conversationId/messages", async (c) => {
     })
     .returning();
 
-  return c.json({ message }, 201);
+  const [author] = await db
+    .select({
+      id: users.id,
+      username: users.username,
+      displayName: users.displayName,
+      avatarUrl: users.avatarUrl,
+    })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+
+  return c.json({ message: { ...message, author } }, 201);
 });
 
 dmRoutes.get("/:conversationId/messages", async (c) => {

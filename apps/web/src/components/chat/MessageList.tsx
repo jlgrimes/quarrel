@@ -10,6 +10,7 @@ import { EmbedPreview } from './EmbedPreview';
 import { analytics } from '../../lib/analytics';
 import { normalizeChronological } from '../../lib/messageOrder';
 import { Button } from '@/components/ui/button';
+import { createPortal } from 'react-dom';
 
 function formatTimestamp(dateStr: string) {
   const date = new Date(dateStr);
@@ -263,6 +264,7 @@ export function MessageList({ channelId, lastReadMessageId, members: membersList
   const currentUser = useAuthStore((s) => s.user);
   const bottomRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const pickerRef = useRef<HTMLDivElement>(null);
   const shouldAutoScroll = useRef(true);
   const [reactionPickerState, setReactionPickerState] = useState<{
     messageId: string;
@@ -359,6 +361,47 @@ export function MessageList({ channelId, lastReadMessageId, members: membersList
       setReactionPickerState(null);
     }
   }, [reactionPickerState, addReaction]);
+
+  useEffect(() => {
+    if (!reactionPickerState) return;
+
+    const clampPicker = () => {
+      const el = pickerRef.current;
+      if (!el) return;
+
+      const rect = el.getBoundingClientRect();
+      const margin = 12;
+      const maxTop = window.innerHeight - rect.height - margin;
+      const maxLeft = window.innerWidth - rect.width - margin;
+      const nextTop = Math.max(margin, Math.min(reactionPickerState.top, maxTop));
+      const nextLeft = Math.max(
+        margin,
+        Math.min(reactionPickerState.left, maxLeft),
+      );
+
+      if (
+        nextTop !== reactionPickerState.top ||
+        nextLeft !== reactionPickerState.left
+      ) {
+        setReactionPickerState(prev =>
+          prev
+            ? {
+                ...prev,
+                top: nextTop,
+                left: nextLeft,
+              }
+            : prev,
+        );
+      }
+    };
+
+    const rafId = requestAnimationFrame(clampPicker);
+    window.addEventListener('resize', clampPicker);
+    return () => {
+      cancelAnimationFrame(rafId);
+      window.removeEventListener('resize', clampPicker);
+    };
+  }, [reactionPickerState]);
 
   return (
     <div
@@ -462,20 +505,24 @@ export function MessageList({ channelId, lastReadMessageId, members: membersList
 
                 <MessageReactions reactions={msgReactions} messageId={msg.id} />
 
-                {reactionPickerState?.messageId === msg.id && (
-                  <div
-                    className="fixed z-50"
-                    style={{
-                      top: `${reactionPickerState.top}px`,
-                      left: `${reactionPickerState.left}px`,
-                    }}
-                  >
-                    <EmojiPicker
-                      onSelect={handleReactionSelect}
-                      onClose={() => setReactionPickerState(null)}
-                    />
-                  </div>
-                )}
+                {reactionPickerState?.messageId === msg.id &&
+                  typeof document !== 'undefined' &&
+                  createPortal(
+                    <div
+                      ref={pickerRef}
+                      className='fixed z-50'
+                      style={{
+                        top: `${reactionPickerState.top}px`,
+                        left: `${reactionPickerState.left}px`,
+                      }}
+                    >
+                      <EmojiPicker
+                        onSelect={handleReactionSelect}
+                        onClose={() => setReactionPickerState(null)}
+                      />
+                    </div>,
+                    document.body,
+                  )}
               </div>
             </div>
           );

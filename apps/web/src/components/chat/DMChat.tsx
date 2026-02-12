@@ -152,14 +152,14 @@ export function DMChat({
   const displayName = otherUser?.displayName || otherUser?.username || 'Direct Message';
 
   return (
-    <div className="flex flex-1 flex-col bg-bg-primary">
+    <div className="flex flex-1 flex-col px-1 pb-1 pt-1">
       {/* Header */}
-      <div className="h-12 flex items-center px-4 border-b border-bg-tertiary flex-shrink-0 shadow-sm gap-3">
+      <div className="quarrel-panel mb-1.5 flex h-12 shrink-0 items-center gap-2.5 border-none px-3">
         <Button
           variant="ghost"
           size="icon"
           onClick={() => setMobileSidebarOpen(true)}
-          className="mr-1 text-text-label hover:text-white md:hidden flex-shrink-0 hover:bg-transparent"
+          className="mr-1 shrink-0 rounded-lg text-text-label hover:bg-bg-modifier-hover hover:text-white md:hidden"
           aria-label="Open sidebar"
         >
           <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
@@ -176,7 +176,7 @@ export function DMChat({
       <div
         ref={containerRef}
         onScroll={handleScroll}
-        className="flex-1 overflow-y-auto overflow-x-hidden"
+        className="quarrel-panel flex-1 overflow-y-auto overflow-x-hidden"
       >
         <div className="flex flex-col justify-end min-h-full">
         {hasPreviousPage && (
@@ -265,8 +265,8 @@ export function DMChat({
       </div>
 
       {/* Input */}
-      <div className="px-4 pb-6 flex-shrink-0">
-        <div className="rounded-lg bg-bg-modifier-hover">
+      <div className="mt-1.5 px-0 pb-1 shrink-0">
+        <div className="quarrel-panel-soft">
           <Textarea
             ref={textareaRef}
             value={content}
@@ -274,7 +274,7 @@ export function DMChat({
             onKeyDown={handleKeyDown}
             placeholder={`Message @${displayName}`}
             rows={1}
-            className="w-full border-none bg-transparent text-text-normal placeholder-text-muted p-3 resize-none shadow-none outline-none focus-visible:ring-0 max-h-[300px] min-h-0"
+            className="min-h-0 max-h-[300px] w-full resize-none border-none bg-transparent p-2 text-text-normal placeholder-text-muted shadow-none outline-none focus-visible:ring-0"
           />
         </div>
       </div>

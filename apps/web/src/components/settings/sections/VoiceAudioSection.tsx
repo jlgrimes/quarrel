@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { analytics } from '../../../lib/analytics';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 export function VoiceAudioSection() {
   const [inputDevices, setInputDevices] = useState<MediaDeviceInfo[]>([]);
@@ -44,7 +45,12 @@ export function VoiceAudioSection() {
       <h1 className="mb-5 text-xl font-bold text-white">Voice & Audio</h1>
 
       {/* Input Device */}
-      <div className="mb-6">
+      <Card className='mb-6 border-white/10 bg-bg-tertiary/65 py-0'>
+        <CardHeader>
+          <CardTitle className='text-sm uppercase tracking-wide text-text-label'>Input</CardTitle>
+        </CardHeader>
+        <CardContent className='space-y-6 pb-5'>
+      <div>
         <label className="mb-2 block text-xs font-bold uppercase text-text-label">
           Input Device
         </label>
@@ -64,7 +70,7 @@ export function VoiceAudioSection() {
       </div>
 
       {/* Input Volume */}
-      <div className="mb-6">
+      <div>
         <label className="mb-2 block text-xs font-bold uppercase text-text-label">
           Input Volume
         </label>
@@ -80,9 +86,16 @@ export function VoiceAudioSection() {
           <span className="w-10 text-right text-sm text-text-label">{inputVolume}%</span>
         </div>
       </div>
+        </CardContent>
+      </Card>
 
       {/* Output Device */}
-      <div className="mb-6">
+      <Card className='mb-6 border-white/10 bg-bg-tertiary/65 py-0'>
+        <CardHeader>
+          <CardTitle className='text-sm uppercase tracking-wide text-text-label'>Output</CardTitle>
+        </CardHeader>
+        <CardContent className='space-y-6 pb-5'>
+      <div>
         <label className="mb-2 block text-xs font-bold uppercase text-text-label">
           Output Device
         </label>
@@ -102,7 +115,7 @@ export function VoiceAudioSection() {
       </div>
 
       {/* Output Volume */}
-      <div className="mb-6">
+      <div>
         <label className="mb-2 block text-xs font-bold uppercase text-text-label">
           Output Volume
         </label>
@@ -118,6 +131,8 @@ export function VoiceAudioSection() {
           <span className="w-10 text-right text-sm text-text-label">{outputVolume}%</span>
         </div>
       </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

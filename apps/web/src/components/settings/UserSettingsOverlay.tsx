@@ -7,7 +7,14 @@ import { AppearanceSection } from './sections/AppearanceSection';
 import { NotificationsSection } from './sections/NotificationsSection';
 import { VoiceAudioSection } from './sections/VoiceAudioSection';
 import { PrivacySection } from './sections/PrivacySection';
-import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const SECTIONS = [
   { id: 'account', label: 'My Account' },
@@ -33,74 +40,74 @@ export default function UserSettingsOverlay() {
     analytics.capture('settings:opened');
   }, []);
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        handleClose();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleClose]);
-
   const handleSectionChange = (id: SectionId) => {
     setActiveSection(id);
     analytics.capture('settings:section_changed', { section: id });
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex bg-bg-primary" data-testid="settings-overlay">
-      {/* Left sidebar */}
-      <div className="flex w-[218px] shrink-0 flex-col bg-bg-secondary overflow-y-auto">
-        <div className="flex flex-1 flex-col justify-start p-2 pt-16">
-          <h2 className="mb-1 px-2.5 text-xs font-bold uppercase text-text-muted">
-            User Settings
-          </h2>
-          {SECTIONS.map((section) => (
-            <Button
-              key={section.id}
-              onClick={() => handleSectionChange(section.id)}
-              variant="ghost"
-              className={`mb-0.5 w-full justify-start rounded px-2.5 py-1.5 text-left text-sm font-medium transition-colors ${
-                activeSection === section.id
-                  ? 'bg-bg-modifier-active text-white'
-                  : 'text-text-label hover:bg-bg-modifier-hover hover:text-text-normal'
-              }`}
-            >
-              {section.label}
-            </Button>
-          ))}
-        </div>
-      </div>
-
-      {/* Main content */}
-      <div className="flex flex-1 flex-col overflow-y-auto">
-        <div className="mx-auto w-full max-w-[740px] px-10 py-16">
-          {activeSection === 'account' && <MyAccountSection />}
-          {activeSection === 'profile' && <ProfileSection />}
-          {activeSection === 'appearance' && <AppearanceSection />}
-          {activeSection === 'notifications' && <NotificationsSection />}
-          {activeSection === 'voice' && <VoiceAudioSection />}
-          {activeSection === 'privacy' && <PrivacySection />}
-        </div>
-      </div>
-
-      {/* Close button */}
-      <div className="flex shrink-0 flex-col items-center pt-16 pr-5">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={handleClose}
-          className="h-9 w-9 rounded-full border-2 border-text-label text-text-label transition-colors hover:border-white hover:text-white hover:bg-transparent"
-          aria-label="Close settings"
+    <Dialog open onOpenChange={(open) => !open && handleClose()}>
+      <DialogContent
+        data-testid='settings-overlay'
+        className='h-[82vh] max-h-[780px] w-[calc(100vw-2rem)] sm:max-w-5xl overflow-hidden border-white/10 bg-bg-secondary p-0'
+      >
+        <DialogHeader className='sr-only'>
+          <DialogTitle>Settings Dialog</DialogTitle>
+          <DialogDescription>
+            Manage account, profile, appearance, notifications, voice, and
+            privacy settings.
+          </DialogDescription>
+        </DialogHeader>
+        <Tabs
+          orientation='vertical'
+          value={activeSection}
+          onValueChange={(value) => handleSectionChange(value as SectionId)}
+          className='h-full min-h-0 w-full flex-row gap-0'
         >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <line x1="18" y1="6" x2="6" y2="18" />
-            <line x1="6" y1="6" x2="18" y2="18" />
-          </svg>
-        </Button>
-        <span className="mt-1 text-xs text-text-muted">ESC</span>
-      </div>
-    </div>
+          <aside className='flex w-[240px] shrink-0 flex-col border-r border-white/10 bg-bg-tertiary/60 p-2'>
+            <h2 className='mb-2 px-2.5 text-xs font-bold uppercase text-text-muted'>
+              User Settings
+            </h2>
+            <TabsList
+              className='h-auto w-full flex-col items-stretch bg-transparent p-0'
+              variant='line'
+            >
+              {SECTIONS.map((section) => (
+                <TabsTrigger
+                  key={section.id}
+                  value={section.id}
+                  className='justify-start rounded-md px-2.5 py-2 text-left text-sm text-text-label data-[state=active]:bg-bg-modifier-active data-[state=active]:text-white hover:bg-bg-modifier-hover hover:text-text-normal'
+                >
+                  {section.label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </aside>
+
+          <section className='relative min-h-0 min-w-0 flex-1 overflow-hidden'>
+            <div className='h-full w-full overflow-y-auto px-6 py-6'>
+              <TabsContent value='account'>
+                <MyAccountSection />
+              </TabsContent>
+              <TabsContent value='profile'>
+                <ProfileSection />
+              </TabsContent>
+              <TabsContent value='appearance'>
+                <AppearanceSection />
+              </TabsContent>
+              <TabsContent value='notifications'>
+                <NotificationsSection />
+              </TabsContent>
+              <TabsContent value='voice'>
+                <VoiceAudioSection />
+              </TabsContent>
+              <TabsContent value='privacy'>
+                <PrivacySection />
+              </TabsContent>
+            </div>
+          </section>
+        </Tabs>
+      </DialogContent>
+    </Dialog>
   );
 }
