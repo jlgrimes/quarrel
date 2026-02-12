@@ -62,7 +62,13 @@ messageRoutes.post("/channels/:channelId/messages", async (c) => {
   const fullMessage = { ...message, author };
   broadcastToChannel(channelId, "message:new", fullMessage);
 
-  handleBotMentions(channelId, channelMember.serverId, parsed.data.content, userId).catch(console.error);
+  handleBotMentions(
+    channelId,
+    channelMember.serverId,
+    parsed.data.content,
+    userId,
+    message.createdAt ?? undefined
+  ).catch(console.error);
 
   return c.json({ message: fullMessage }, 201);
 });

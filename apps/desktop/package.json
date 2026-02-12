@@ -1,6 +1,6 @@
 {
   "name": "@quarrel/desktop",
-  "version": "1.0.1",
+  "version": "1.0.6",
   "private": true,
   "scripts": {
     "dev": "tauri dev",
@@ -8,8 +8,8 @@
     "ios:init": "tauri ios init",
     "ios:dev": "tauri ios dev",
     "ios:open": "tauri ios dev --open --host",
-    "ios:build": "tauri ios build --export-method debugging",
-    "ios:build:open": "tauri ios build --export-method debugging --open",
+    "ios:build": "node ./scripts/ios-build.mjs",
+    "ios:build:open": "node ./scripts/ios-build.mjs --open",
     "tauri": "tauri"
   },
   "devDependencies": {

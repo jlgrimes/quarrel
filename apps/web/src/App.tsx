@@ -1,8 +1,16 @@
 import { useEffect, lazy, Suspense, useMemo } from 'react';
-import { Routes, Route, Navigate, useParams, useNavigate, Outlet } from 'react-router-dom';
+import {
+  Routes,
+  Route,
+  Navigate,
+  useParams,
+  useNavigate,
+  Outlet,
+} from 'react-router-dom';
 import { useAuthStore } from './stores/authStore';
 import { usePageView } from './hooks/usePageView';
 import { useTauriExternalLinks } from './hooks/useTauriExternalLinks';
+import { useIsMobile } from './hooks/use-mobile';
 import { useUIStore } from './stores/uiStore';
 import { useChannels } from './hooks/useChannels';
 import { useWebSocketEvents } from './hooks/useWebSocketEvents';
@@ -17,24 +25,35 @@ import ServerSidebar from './components/navigation/ServerSidebar';
 import ChannelSidebar from './components/navigation/ChannelSidebar';
 import DMSidebar from './components/navigation/DMSidebar';
 import MemberList from './components/navigation/MemberList';
+import MobileSidebar from './components/navigation/MobileSidebar';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 
-const CreateServerModal = lazy(() => import('./components/modals/CreateServerModal'));
-const JoinServerModal = lazy(() => import('./components/modals/JoinServerModal'));
-const CreateChannelModal = lazy(() => import('./components/modals/CreateChannelModal'));
-const UserSettingsOverlay = lazy(() => import('./components/settings/UserSettingsOverlay'));
+const CreateServerModal = lazy(
+  () => import('./components/modals/CreateServerModal'),
+);
+const JoinServerModal = lazy(
+  () => import('./components/modals/JoinServerModal'),
+);
+const CreateChannelModal = lazy(
+  () => import('./components/modals/CreateChannelModal'),
+);
+const UserSettingsOverlay = lazy(
+  () => import('./components/settings/UserSettingsOverlay'),
+);
 const InviteModal = lazy(() => import('./components/modals/InviteModal'));
-const ServerSettingsModal = lazy(() => import('./components/modals/ServerSettingsModal'));
+const ServerSettingsModal = lazy(
+  () => import('./components/modals/ServerSettingsModal'),
+);
 
 function ProtectedRoute() {
-  const user = useAuthStore((s) => s.user);
-  if (!user) return <Navigate to="/login" replace />;
+  const user = useAuthStore(s => s.user);
+  if (!user) return <Navigate to='/login' replace />;
   return <Outlet />;
 }
 
 function ModalRenderer() {
-  const modal = useUIStore((s) => s.modal);
+  const modal = useUIStore(s => s.modal);
   if (!modal) return null;
   return (
     <Suspense fallback={null}>
@@ -52,9 +71,24 @@ function AppLayout() {
   useWebSocketEvents();
 
   return (
-    <div className="flex h-full overflow-hidden">
+    <div className='flex h-full overflow-hidden'>
       <ServerSidebar />
       <Outlet />
+      <ModalRenderer />
+      <NotificationToast />
+    </div>
+  );
+}
+
+function MobileAppLayout() {
+  useWebSocketEvents();
+
+  return (
+    <div className='flex h-full overflow-hidden'>
+      <MobileSidebar />
+      <div className='flex min-w-0 flex-1 flex-col bg-bg-primary'>
+        <Outlet />
+      </div>
       <ModalRenderer />
       <NotificationToast />
     </div>
@@ -64,11 +98,11 @@ function AppLayout() {
 function DMAreaLayout() {
   return (
     <SidebarProvider
-      className="min-h-0 h-full flex-1 min-w-0"
-      style={{ "--sidebar-width": "15rem" } as React.CSSProperties}
+      className='min-h-0 h-full flex-1 min-w-0'
+      style={{ '--sidebar-width': '15rem' } as React.CSSProperties}
     >
       <DMSidebar />
-      <div className="flex flex-1 flex-col bg-bg-primary min-w-0">
+      <div className='flex flex-1 flex-col bg-bg-primary min-w-0'>
         <Outlet />
       </div>
     </SidebarProvider>
@@ -78,12 +112,12 @@ function DMAreaLayout() {
 function ServerView() {
   const { serverId, channelId } = useParams();
   const navigate = useNavigate();
-  const showMemberList = useUIStore((s) => s.showMemberList);
-  const setActiveChannel = useUIStore((s) => s.setActiveChannel);
+  const showMemberList = useUIStore(s => s.showMemberList);
+  const setActiveChannel = useUIStore(s => s.setActiveChannel);
   const { data: channels = [] } = useChannels(serverId);
 
   const activeChannel = useMemo(
-    () => channelId ? channels.find((c) => c.id === channelId) : undefined,
+    () => (channelId ? channels.find(c => c.id === channelId) : undefined),
     [channels, channelId],
   );
 
@@ -96,18 +130,19 @@ function ServerView() {
   // Auto-navigate to first text channel if none selected
   useEffect(() => {
     if (serverId && !channelId && channels.length > 0) {
-      const first = channels.find((c) => c.type === 'text');
-      if (first) navigate(`/channels/${serverId}/${first.id}`, { replace: true });
+      const first = channels.find(c => c.type === 'text');
+      if (first)
+        navigate(`/channels/${serverId}/${first.id}`, { replace: true });
     }
   }, [serverId, channelId, channels, navigate]);
 
   return (
     <SidebarProvider
-      className="min-h-0 h-full flex-1 min-w-0"
-      style={{ "--sidebar-width": "15rem" } as React.CSSProperties}
+      className='min-h-0 h-full flex-1 min-w-0'
+      style={{ '--sidebar-width': '15rem' } as React.CSSProperties}
     >
       <ChannelSidebar />
-      <div className="flex flex-1 flex-col bg-bg-primary min-w-0">
+      <div className='flex flex-1 flex-col bg-bg-primary min-w-0'>
         {channelId ? (
           activeChannel?.type === 'voice' ? (
             <VoiceChannelView channelId={channelId} />
@@ -115,23 +150,72 @@ function ServerView() {
             <ChatArea channelId={channelId} serverId={serverId!} />
           )
         ) : (
-          <div className="flex flex-1 flex-col items-center justify-center text-text-muted">
-            <SidebarTrigger className="mb-4 text-text-label hover:text-white md:hidden size-8" />
+          <div className='flex flex-1 flex-col items-center justify-center text-text-muted'>
+            <SidebarTrigger className='mb-4 text-text-label hover:text-white md:hidden size-8' />
             Select a channel
           </div>
         )}
       </div>
-      {showMemberList && serverId && <MemberList serverId={serverId} className="max-md:hidden" />}
+      {showMemberList && serverId && (
+        <MemberList serverId={serverId} className='max-md:hidden' />
+      )}
     </SidebarProvider>
   );
+}
+
+function MobileServerView() {
+  const { serverId, channelId } = useParams();
+  const navigate = useNavigate();
+  const setActiveChannel = useUIStore(s => s.setActiveChannel);
+  const setMobileSidebarOpen = useUIStore(s => s.setMobileSidebarOpen);
+  const { data: channels = [] } = useChannels(serverId);
+
+  const activeChannel = useMemo(
+    () => (channelId ? channels.find(c => c.id === channelId) : undefined),
+    [channels, channelId],
+  );
+
+  useEffect(() => {
+    setActiveChannel(channelId ?? null);
+    return () => setActiveChannel(null);
+  }, [channelId, setActiveChannel]);
+
+  useEffect(() => {
+    if (serverId && !channelId && channels.length > 0) {
+      const first = channels.find(c => c.type === 'text');
+      if (first)
+        navigate(`/channels/${serverId}/${first.id}`, { replace: true });
+    }
+  }, [serverId, channelId, channels, navigate]);
+
+  if (!channelId) {
+    return (
+      <div className='flex flex-1 flex-col items-center justify-center text-text-muted'>
+        <button
+          className='mb-3 rounded-md bg-bg-modifier-hover px-3 py-2 text-sm text-white'
+          onClick={() => setMobileSidebarOpen(true)}
+        >
+          Open sidebar
+        </button>
+        Select a channel
+      </div>
+    );
+  }
+
+  if (activeChannel?.type === 'voice') {
+    return <VoiceChannelView channelId={channelId} />;
+  }
+
+  return <ChatArea channelId={channelId} serverId={serverId!} />;
 }
 
 export default function App() {
   usePageView();
   useTauriExternalLinks();
-  const user = useAuthStore((s) => s.user);
-  const loading = useAuthStore((s) => s.loading);
-  const fetchUser = useAuthStore((s) => s.fetchUser);
+  const isMobile = useIsMobile();
+  const user = useAuthStore(s => s.user);
+  const loading = useAuthStore(s => s.loading);
+  const fetchUser = useAuthStore(s => s.fetchUser);
 
   useEffect(() => {
     fetchUser();
@@ -139,8 +223,8 @@ export default function App() {
 
   if (loading) {
     return (
-      <div className="flex h-full items-center justify-center bg-bg-primary">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-text-muted border-t-white" />
+      <div className='flex h-full items-center justify-center bg-bg-primary'>
+        <div className='h-8 w-8 animate-spin rounded-full border-2 border-text-muted border-t-white' />
       </div>
     );
   }
@@ -148,18 +232,44 @@ export default function App() {
   return (
     <TooltipProvider>
       <Routes>
-        <Route path="/login" element={!user ? <LoginPage /> : <Navigate to="/channels/@me" />} />
-        <Route path="/register" element={!user ? <RegisterPage /> : <Navigate to="/channels/@me" />} />
+        <Route
+          path='/login'
+          element={!user ? <LoginPage /> : <Navigate to='/channels/@me' />}
+        />
+        <Route
+          path='/register'
+          element={!user ? <RegisterPage /> : <Navigate to='/channels/@me' />}
+        />
         <Route element={<ProtectedRoute />}>
-          <Route element={<AppLayout />}>
-            <Route element={<DMAreaLayout />}>
-              <Route path="/channels/@me" element={<FriendsPage />} />
-              <Route path="/channels/@me/:conversationId" element={<DMPage />} />
+          {isMobile ? (
+            <Route element={<MobileAppLayout />}>
+              <Route path='/channels/@me' element={<FriendsPage />} />
+              <Route path='/channels/@me/:conversationId' element={<DMPage />} />
+              <Route
+                path='/channels/:serverId/:channelId?'
+                element={<MobileServerView />}
+              />
             </Route>
-            <Route path="/channels/:serverId/:channelId?" element={<ServerView />} />
-          </Route>
+          ) : (
+            <Route element={<AppLayout />}>
+              <Route element={<DMAreaLayout />}>
+                <Route path='/channels/@me' element={<FriendsPage />} />
+                <Route
+                  path='/channels/@me/:conversationId'
+                  element={<DMPage />}
+                />
+              </Route>
+              <Route
+                path='/channels/:serverId/:channelId?'
+                element={<ServerView />}
+              />
+            </Route>
+          )}
         </Route>
-        <Route path="*" element={<Navigate to={user ? '/channels/@me' : '/login'} replace />} />
+        <Route
+          path='*'
+          element={<Navigate to={user ? '/channels/@me' : '/login'} replace />}
+        />
       </Routes>
     </TooltipProvider>
   );

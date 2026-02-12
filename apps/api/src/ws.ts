@@ -260,7 +260,13 @@ const eventHandlers: Record<string, EventHandler> = {
       author,
     });
 
-    handleBotMentions(channelId, channel.serverId, content, ws.data.userId).catch(console.error);
+    handleBotMentions(
+      channelId,
+      channel.serverId,
+      content,
+      ws.data.userId,
+      newMessage.createdAt ?? undefined
+    ).catch(console.error);
   },
 
   "typing:start": async (ws, data) => {

@@ -80,7 +80,8 @@ export async function handleBotMentions(
   channelId: string,
   serverId: string,
   content: string,
-  authorId: string
+  authorId: string,
+  userMessageCreatedAt?: Date
 ) {
   const mentionedIds = new Set<string>();
   const mentionedNames = new Set<string>();
@@ -146,7 +147,8 @@ export async function handleBotMentions(
 
   if (botsToRespond.size === 0) return;
 
-  for (const mentionedId of botsToRespond) {
+  const orderedBots = Array.from(botsToRespond);
+  for (const [botIndex, mentionedId] of orderedBots.entries()) {
     const botConfig = botConfigById.get(mentionedId);
     if (!botConfig) continue;
     let streamingMessageId: string | null = null;
@@ -194,6 +196,11 @@ export async function handleBotMentions(
         isBot: true,
       };
 
+      // Ensure bot messages always sort after the triggering user message.
+      const botCreatedAt = userMessageCreatedAt
+        ? new Date(userMessageCreatedAt.getTime() + ((botIndex + 1) * 10))
+        : undefined;
+
       // Insert placeholder bot message so clients can stream incremental content.
       const [streamingMessage] = await db
         .insert(messages)
@@ -201,6 +208,7 @@ export async function handleBotMentions(
           channelId,
           authorId: mentionedId,
           content: "",
+          ...(botCreatedAt ? { createdAt: botCreatedAt } : {}),
         })
         .returning();
       streamingMessageId = streamingMessage.id;
@@ -292,6 +300,7 @@ export async function handleBotMentions(
             channelId,
             authorId: mentionedId,
             content: errorContent,
+            ...(botCreatedAt ? { createdAt: botCreatedAt } : {}),
           })
           .returning();
 

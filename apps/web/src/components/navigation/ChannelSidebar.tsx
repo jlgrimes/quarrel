@@ -33,23 +33,30 @@ import { VoiceConnectionBar } from '../voice/VoiceConnectionBar';
 import UserBar from './UserBar';
 
 function VoiceParticipants({ channelId }: { channelId: string }) {
-  const currentChannelId = useVoiceStore((s) => s.currentChannelId);
-  const participants = useVoiceStore((s) => s.participants);
-  const speakingUsers = useVoiceStore((s) => s.speakingUsers);
+  const currentChannelId = useVoiceStore(s => s.currentChannelId);
+  const participants = useVoiceStore(s => s.participants);
+  const speakingUsers = useVoiceStore(s => s.speakingUsers);
 
   if (currentChannelId !== channelId || participants.length === 0) return null;
 
   return (
-    <div className="ml-8 mt-0.5 mb-1">
-      {participants.map((p) => (
-        <div key={p.userId} className="flex items-center gap-2 py-0.5 px-2 text-xs text-text-muted">
-          <div className={`w-5 h-5 rounded-full bg-brand flex items-center justify-center text-white text-[10px] font-semibold shrink-0 ${
-            speakingUsers.has(p.userId) ? 'ring-2 ring-green' : ''
-          }`}>
+    <div className='ml-8 mt-0.5 mb-1'>
+      {participants.map(p => (
+        <div
+          key={p.userId}
+          className='flex items-center gap-2 py-0.5 px-2 text-xs text-text-muted'
+        >
+          <div
+            className={`w-5 h-5 rounded-full bg-brand flex items-center justify-center text-white text-[10px] font-semibold shrink-0 ${
+              speakingUsers.has(p.userId) ? 'ring-2 ring-green' : ''
+            }`}
+          >
             {(p.displayName || p.username).charAt(0).toUpperCase()}
           </div>
-          <span className="truncate">{p.displayName || p.username}</span>
-          {p.isMuted && <span className="text-red text-[10px] shrink-0">&#x1F507;</span>}
+          <span className='truncate'>{p.displayName || p.username}</span>
+          {p.isMuted && (
+            <span className='text-red text-[10px] shrink-0'>&#x1F507;</span>
+          )}
         </div>
       ))}
     </div>
@@ -71,10 +78,10 @@ const CategorySection = memo(function CategorySection({
 }) {
   if (!category) {
     return (
-      <SidebarGroup className="px-1 py-0">
+      <SidebarGroup className='px-1 py-0'>
         <SidebarGroupContent>
           <SidebarMenu>
-            {channels.map((channel) => (
+            {channels.map(channel => (
               <ChannelItem
                 key={channel.id}
                 channel={channel}
@@ -89,30 +96,30 @@ const CategorySection = memo(function CategorySection({
   }
 
   return (
-    <Collapsible defaultOpen className="group/collapsible">
-      <SidebarGroup className="px-1 py-0 mt-4">
+    <Collapsible defaultOpen className='group/collapsible'>
+      <SidebarGroup className='px-1 py-0 mt-4'>
         <SidebarGroupLabel
           asChild
-          className="text-text-muted text-xs uppercase font-bold tracking-wide px-1"
+          className='text-text-muted text-xs uppercase font-bold tracking-wide px-1'
         >
-          <CollapsibleTrigger className="flex items-center gap-0.5">
-            <span className="text-[10px] transition-transform group-data-[state=closed]/collapsible:-rotate-90">
+          <CollapsibleTrigger className='flex items-center gap-0.5'>
+            <span className='text-[10px] transition-transform group-data-[state=closed]/collapsible:-rotate-90'>
               &#x25BC;
             </span>
-            <span className="truncate">{category.name}</span>
+            <span className='truncate'>{category.name}</span>
           </CollapsibleTrigger>
         </SidebarGroupLabel>
         <SidebarGroupAction
           onClick={onAddChannel}
-          className="text-text-muted hover:text-text-normal"
-          aria-label="Create channel"
+          className='text-text-muted hover:text-text-normal'
+          aria-label='Create channel'
         >
           +
         </SidebarGroupAction>
         <CollapsibleContent>
           <SidebarGroupContent>
             <SidebarMenu>
-              {channels.map((channel) => (
+              {channels.map(channel => (
                 <ChannelItem
                   key={channel.id}
                   channel={channel}
@@ -152,13 +159,17 @@ const ChannelItem = memo(function ChannelItem({
               : ''
         }
       >
-        <span className="shrink-0 w-5 flex items-center justify-center">
-          {channel.type === 'voice' ? <Volume2 size={16} /> : <Hash size={16} />}
+        <span className='shrink-0 w-5 flex items-center justify-center'>
+          {channel.type === 'voice' ? (
+            <Volume2 size={16} />
+          ) : (
+            <Hash size={16} />
+          )}
         </span>
-        <span className="truncate">{channel.name}</span>
+        <span className='truncate'>{channel.name}</span>
       </SidebarMenuButton>
       {!isActive && hasUnread && (
-        <SidebarMenuBadge className="bg-red text-white text-[10px] font-bold px-1.5 min-w-[18px] h-4 rounded-full flex items-center justify-center">
+        <SidebarMenuBadge className='bg-red text-white text-[10px] font-bold px-1.5 min-w-[18px] h-4 rounded-full flex items-center justify-center'>
           {(channel.unreadCount ?? 0) > 99 ? '99+' : channel.unreadCount}
         </SidebarMenuBadge>
       )}
@@ -172,12 +183,12 @@ export default function ChannelSidebar() {
   const { serverId, channelId } = useParams();
   const { data: servers = [] } = useServers();
   const { data: channels = [] } = useChannels(serverId);
-  const openModal = useUIStore((s) => s.openModal);
+  const openModal = useUIStore(s => s.openModal);
   const ackChannel = useAckChannel();
   const prevChannelIdRef = useRef<string | undefined>(channelId);
   const { setOpenMobile } = useSidebar();
 
-  const server = servers.find((s) => s.id === serverId);
+  const server = servers.find(s => s.id === serverId);
 
   // Auto-ack when entering a channel
   useEffect(() => {
@@ -213,14 +224,21 @@ export default function ChannelSidebar() {
     };
   }, [channels]);
 
-  const handleChannelClick = useCallback((channel: Channel) => {
-    analytics.capture('channel:switch', { channelId: channel.id, channelType: channel.type, serverId });
-    navigate(`/channels/${serverId}/${channel.id}`);
-    setOpenMobile(false);
-    if (channel.type === 'voice') {
-      useVoiceStore.getState().joinChannel(channel.id);
-    }
-  }, [serverId, navigate, setOpenMobile]);
+  const handleChannelClick = useCallback(
+    (channel: Channel) => {
+      analytics.capture('channel:switch', {
+        channelId: channel.id,
+        channelType: channel.type,
+        serverId,
+      });
+      navigate(`/channels/${serverId}/${channel.id}`);
+      setOpenMobile(false);
+      if (channel.type === 'voice') {
+        useVoiceStore.getState().joinChannel(channel.id);
+      }
+    },
+    [serverId, navigate, setOpenMobile],
+  );
 
   const handleAddChannel = useCallback(() => {
     openModal('createChannel');
@@ -229,35 +247,37 @@ export default function ChannelSidebar() {
   if (!server) return null;
 
   return (
-    <Sidebar side="left" collapsible="offcanvas">
-      <SidebarHeader className="h-12 flex-row items-center px-4 border-b border-bg-tertiary py-0 group">
-        <h2 className="font-semibold text-white truncate flex-1">{server.name}</h2>
+    <Sidebar side='left' collapsible='offcanvas'>
+      <SidebarHeader className='h-12 flex-row items-center px-4 border-b border-bg-tertiary py-0 group'>
+        <h2 className='font-semibold text-white truncate flex-1'>
+          {server.name}
+        </h2>
         <Button
-          variant="ghost"
-          size="icon"
+          variant='ghost'
+          size='icon'
           onClick={() => openModal('inviteServer')}
-          className="text-text-muted hover:text-text-normal opacity-0 group-hover:opacity-100 transition-opacity leading-none ml-auto"
-          aria-label="Invite people"
+          className='text-text-muted hover:text-text-normal opacity-0 group-hover:opacity-100 transition-opacity leading-none ml-auto'
+          aria-label='Invite people'
         >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M14 8.5a2.5 2.5 0 1 0-5 0 2.5 2.5 0 0 0 5 0M11.5 4a4.5 4.5 0 1 1 0 9 4.5 4.5 0 0 1 0-9M17.5 12a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3m0-5a3.5 3.5 0 1 1 0 7 3.5 3.5 0 0 1 0-7M3 19c0-3.04 2.46-5.5 5.5-5.5h6c3.04 0 5.5 2.46 5.5 5.5v1h-2v-1a3.5 3.5 0 0 0-3.5-3.5h-6A3.5 3.5 0 0 0 5 19v1H3zm18 1h-2v-1c0-.35-.07-.69-.18-1H21z" />
+          <svg width='18' height='18' viewBox='0 0 24 24' fill='currentColor'>
+            <path d='M14 8.5a2.5 2.5 0 1 0-5 0 2.5 2.5 0 0 0 5 0M11.5 4a4.5 4.5 0 1 1 0 9 4.5 4.5 0 0 1 0-9M17.5 12a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3m0-5a3.5 3.5 0 1 1 0 7 3.5 3.5 0 0 1 0-7M3 19c0-3.04 2.46-5.5 5.5-5.5h6c3.04 0 5.5 2.46 5.5 5.5v1h-2v-1a3.5 3.5 0 0 0-3.5-3.5h-6A3.5 3.5 0 0 0 5 19v1H3zm18 1h-2v-1c0-.35-.07-.69-.18-1H21z' />
           </svg>
         </Button>
         <Button
-          variant="ghost"
-          size="icon"
+          variant='ghost'
+          size='icon'
           onClick={() => openModal('serverSettings')}
-          className="text-text-muted hover:text-text-normal opacity-0 group-hover:opacity-100 transition-opacity leading-none ml-1"
-          aria-label="Server settings"
+          className='text-text-muted hover:text-text-normal opacity-0 group-hover:opacity-100 transition-opacity leading-none ml-1'
+          aria-label='Server settings'
         >
           <Settings size={18} />
         </Button>
         <Button
-          variant="ghost"
-          size="icon"
+          variant='ghost'
+          size='icon'
           onClick={() => openModal('createChannel')}
-          className="text-text-muted hover:text-text-normal opacity-0 group-hover:opacity-100 transition-opacity text-xl leading-none ml-1"
-          aria-label="Create channel"
+          className='text-text-muted hover:text-text-normal opacity-0 group-hover:opacity-100 transition-opacity text-xl leading-none ml-1'
+          aria-label='Create channel'
         >
           +
         </Button>
@@ -286,7 +306,7 @@ export default function ChannelSidebar() {
         ))}
       </SidebarContent>
 
-      <SidebarFooter className="p-0 gap-0">
+      <SidebarFooter className='p-0 gap-0'>
         <VoiceConnectionBar />
         <UserBar />
       </SidebarFooter>
