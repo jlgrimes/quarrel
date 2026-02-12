@@ -80,7 +80,22 @@ targets:
       - sdk: UIKit.framework
       - sdk: WebKit.framework
     preBuildScripts:
-      - script: bun tauri ios xcode-script -v --platform ${PLATFORM_DISPLAY_NAME:?} --sdk-root ${SDKROOT:?} --framework-search-paths "${FRAMEWORK_SEARCH_PATHS:?}" --header-search-paths "${HEADER_SEARCH_PATHS:?}" --gcc-preprocessor-definitions "${GCC_PREPROCESSOR_DEFINITIONS:-}" --configuration ${CONFIGURATION:?} ${FORCE_COLOR} ${ARCHS:?}
+      - script: |
+          NODE_BIN="$(command -v node || true)"
+          if [ -z "$NODE_BIN" ] && [ -x /usr/local/bin/node ]; then NODE_BIN=/usr/local/bin/node; fi
+          if [ -z "$NODE_BIN" ] && [ -x /opt/homebrew/bin/node ]; then NODE_BIN=/opt/homebrew/bin/node; fi
+          TAURI_JS="$SRCROOT/../../../../../node_modules/@tauri-apps/cli/tauri.js"
+          TAURI_PROJECT_DIR="$SRCROOT/../.."
+          if [ -z "$NODE_BIN" ]; then
+            echo "error: node not found; install Node or expose it in PATH for Xcode script phases"
+            exit 127
+          fi
+          if [ ! -f "$TAURI_JS" ]; then
+            echo "error: tauri.js not found at $TAURI_JS; run bun install at repo root"
+            exit 127
+          fi
+          cd "$TAURI_PROJECT_DIR"
+          "$NODE_BIN" "$TAURI_JS" ios xcode-script -v --platform ${PLATFORM_DISPLAY_NAME:?} --sdk-root ${SDKROOT:?} --framework-search-paths "${FRAMEWORK_SEARCH_PATHS:?}" --header-search-paths "${HEADER_SEARCH_PATHS:?}" --gcc-preprocessor-definitions "${GCC_PREPROCESSOR_DEFINITIONS:-}" --configuration ${CONFIGURATION:?} ${FORCE_COLOR} ${ARCHS:?}
         name: Build Rust Code
         basedOnDependencyAnalysis: false
         outputFiles:
