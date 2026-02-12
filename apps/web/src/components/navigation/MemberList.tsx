@@ -146,7 +146,9 @@ export default function MemberList({ serverId, className }: { serverId: string; 
   }, [members]);
 
   return (
-    <ScrollArea className={`quarrel-panel m-1 h-full w-60 shrink-0 ${className ?? ''}`}>
+    <ScrollArea
+      className={`quarrel-panel ml-1 mr-1 h-full min-h-0 w-60 shrink-0 ${className ?? ''}`}
+    >
       {roleSections.map((section) => (
         <MemberSection
           key={section.role.id}

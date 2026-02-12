@@ -104,7 +104,7 @@ function DMAreaLayout() {
   return (
     <div className='flex min-h-0 h-full flex-1 min-w-0'>
       <DMSidebar />
-      <div className='flex min-w-0 flex-1 flex-col'>
+      <div className='flex min-h-0 h-full min-w-0 flex-1 flex-col'>
         <Outlet />
       </div>
     </div>
@@ -141,7 +141,7 @@ function ServerView() {
   return (
     <div className='flex min-h-0 h-full flex-1 min-w-0'>
       <ChannelSidebar />
-      <div className='flex min-w-0 flex-1 flex-col'>
+      <div className='flex min-h-0 h-full min-w-0 flex-1 flex-col'>
         {channelId ? (
           activeChannel?.type === 'voice' ? (
             <VoiceChannelView channelId={channelId} />
@@ -242,7 +242,10 @@ export default function App() {
           {isMobile ? (
             <Route element={<MobileAppLayout />}>
               <Route path='/channels/@me' element={<FriendsPage />} />
-              <Route path='/channels/@me/:conversationId' element={<DMPage />} />
+              <Route
+                path='/channels/@me/:conversationId'
+                element={<DMPage />}
+              />
               <Route
                 path='/channels/:serverId/:channelId?'
                 element={<MobileServerView />}
