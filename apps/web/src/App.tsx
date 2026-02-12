@@ -86,7 +86,7 @@ function MobileAppLayout() {
   return (
     <div className='flex h-full overflow-hidden'>
       <MobileSidebar />
-      <div className='flex min-w-0 flex-1 flex-col bg-bg-primary'>
+      <div className='flex min-w-0 flex-1 flex-col bg-bg-primary pt-[env(safe-area-inset-top)]'>
         <Outlet />
       </div>
       <ModalRenderer />
