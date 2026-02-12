@@ -7,7 +7,6 @@ import { useUIStore } from '../../stores/uiStore';
 import { useVoiceStore } from '../../stores/voiceStore';
 import { analytics } from '../../lib/analytics';
 import type { Channel } from '@quarrel/shared';
-import { useIsMobile } from '../../hooks/use-mobile';
 import { Button } from '@/components/ui/button';
 import { Volume2, Hash, Settings } from 'lucide-react';
 import {
@@ -15,23 +14,13 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarGroup,
-  SidebarGroupAction,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuBadge,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  useSidebar,
-} from '@/components/ui/sidebar';
 import { VoiceConnectionBar } from '../voice/VoiceConnectionBar';
 import UserBar from './UserBar';
+import { SecondarySidebarLayout } from './SecondarySidebarLayout';
+import {
+  SIDEBAR_BADGE_CLASS,
+  sidebarItemButtonClass,
+} from './sidebarItemStyles';
 
 function VoiceParticipants({ channelId }: { channelId: string }) {
   const currentChannelId = useVoiceStore(s => s.currentChannelId);
@@ -79,9 +68,9 @@ const CategorySection = memo(function CategorySection({
 }) {
   if (!category) {
     return (
-      <SidebarGroup className='px-1 py-0'>
-        <SidebarGroupContent>
-          <SidebarMenu>
+      <div className='relative flex w-full min-w-0 flex-col px-1 py-0'>
+        <div className='w-full text-sm'>
+          <ul className='flex w-full min-w-0 flex-col gap-1'>
             {channels.map(channel => (
               <ChannelItem
                 key={channel.id}
@@ -90,36 +79,34 @@ const CategorySection = memo(function CategorySection({
                 onClick={() => onChannelClick(channel)}
               />
             ))}
-          </SidebarMenu>
-        </SidebarGroupContent>
-      </SidebarGroup>
+          </ul>
+        </div>
+      </div>
     );
   }
 
   return (
     <Collapsible defaultOpen className='group/collapsible'>
-      <SidebarGroup className='px-1 py-0 mt-4'>
-        <SidebarGroupLabel
-          asChild
-          className='px-1 text-xs font-bold uppercase tracking-wide text-text-muted'
-        >
+      <div className='relative mt-4 flex w-full min-w-0 flex-col px-1 py-0'>
+        <div className='flex h-8 items-center px-1 pr-8 text-xs font-bold uppercase tracking-wide text-text-muted'>
           <CollapsibleTrigger className='flex items-center gap-0.5'>
             <span className='text-[10px] transition-transform group-data-[state=closed]/collapsible:-rotate-90'>
               &#x25BC;
             </span>
             <span className='truncate'>{category.name}</span>
           </CollapsibleTrigger>
-        </SidebarGroupLabel>
-        <SidebarGroupAction
+        </div>
+        <button
+          type='button'
           onClick={onAddChannel}
-          className='rounded-md text-text-muted hover:bg-bg-modifier-hover hover:text-text-normal'
+          className='absolute right-1 top-1.5 flex size-5 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-bg-modifier-hover hover:text-text-normal'
           aria-label='Create channel'
         >
           +
-        </SidebarGroupAction>
+        </button>
         <CollapsibleContent>
-          <SidebarGroupContent>
-            <SidebarMenu>
+          <div className='w-full text-sm'>
+            <ul className='flex w-full min-w-0 flex-col gap-1'>
               {channels.map(channel => (
                 <ChannelItem
                   key={channel.id}
@@ -128,10 +115,10 @@ const CategorySection = memo(function CategorySection({
                   onClick={() => onChannelClick(channel)}
                 />
               ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
+            </ul>
+          </div>
         </CollapsibleContent>
-      </SidebarGroup>
+      </div>
     </Collapsible>
   );
 });
@@ -148,17 +135,11 @@ const ChannelItem = memo(function ChannelItem({
   const hasUnread = (channel.unreadCount ?? 0) > 0;
 
   return (
-    <SidebarMenuItem>
-      <SidebarMenuButton
-        isActive={isActive}
+    <li className='group/menu-item relative'>
+      <button
+        type='button'
         onClick={onClick}
-        className={
-          !isActive && hasUnread
-            ? 'font-bold text-white'
-            : !isActive
-              ? 'text-text-muted hover:text-text-normal'
-              : ''
-        }
+        className={sidebarItemButtonClass({ isActive, hasUnread })}
       >
         <span className='shrink-0 w-5 flex items-center justify-center'>
           {channel.type === 'voice' ? (
@@ -168,19 +149,20 @@ const ChannelItem = memo(function ChannelItem({
           )}
         </span>
         <span className='truncate'>{channel.name}</span>
-      </SidebarMenuButton>
+      </button>
       {!isActive && hasUnread && (
-        <SidebarMenuBadge className='flex h-4 min-w-[18px] items-center justify-center rounded-full bg-brand px-1.5 text-[10px] font-bold text-white'>
+        <span
+          className={`${SIDEBAR_BADGE_CLASS} pointer-events-none absolute right-1 top-1.5`}
+        >
           {(channel.unreadCount ?? 0) > 99 ? '99+' : channel.unreadCount}
-        </SidebarMenuBadge>
+        </span>
       )}
       {channel.type === 'voice' && <VoiceParticipants channelId={channel.id} />}
-    </SidebarMenuItem>
+    </li>
   );
 });
 
 export default function ChannelSidebar() {
-  const isMobile = useIsMobile();
   const navigate = useNavigate();
   const { serverId, channelId } = useParams();
   const { data: servers = [] } = useServers();
@@ -188,7 +170,6 @@ export default function ChannelSidebar() {
   const openModal = useUIStore(s => s.openModal);
   const ackChannel = useAckChannel();
   const prevChannelIdRef = useRef<string | undefined>(channelId);
-  const { setOpenMobile } = useSidebar();
 
   const server = servers.find(s => s.id === serverId);
 
@@ -234,12 +215,11 @@ export default function ChannelSidebar() {
         serverId,
       });
       navigate(`/channels/${serverId}/${channel.id}`);
-      setOpenMobile(false);
       if (channel.type === 'voice') {
         useVoiceStore.getState().joinChannel(channel.id);
       }
     },
-    [serverId, navigate, setOpenMobile],
+    [serverId, navigate],
   );
 
   const handleAddChannel = useCallback(() => {
@@ -249,73 +229,73 @@ export default function ChannelSidebar() {
   if (!server) return null;
 
   return (
-    <Sidebar
-      side='left'
-      collapsible={isMobile ? 'offcanvas' : 'none'}
-      className='bg-transparent p-1.5 pr-1'
-    >
-      <SidebarHeader className='group quarrel-panel h-12 flex-row items-center border-none px-2.5 py-0'>
-        <h2 className='flex-1 truncate text-sm font-semibold text-white'>
-          {server.name}
-        </h2>
-        <Button
-          variant='ghost'
-          size='icon'
-          onClick={() => openModal('inviteServer')}
-          className='ml-auto size-8 rounded-lg text-text-muted transition-opacity hover:bg-bg-modifier-hover hover:text-text-normal md:opacity-0 md:group-hover:opacity-100'
-          aria-label='Invite people'
-        >
-          <svg width='18' height='18' viewBox='0 0 24 24' fill='currentColor'>
-            <path d='M14 8.5a2.5 2.5 0 1 0-5 0 2.5 2.5 0 0 0 5 0M11.5 4a4.5 4.5 0 1 1 0 9 4.5 4.5 0 0 1 0-9M17.5 12a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3m0-5a3.5 3.5 0 1 1 0 7 3.5 3.5 0 0 1 0-7M3 19c0-3.04 2.46-5.5 5.5-5.5h6c3.04 0 5.5 2.46 5.5 5.5v1h-2v-1a3.5 3.5 0 0 0-3.5-3.5h-6A3.5 3.5 0 0 0 5 19v1H3zm18 1h-2v-1c0-.35-.07-.69-.18-1H21z' />
-          </svg>
-        </Button>
-        <Button
-          variant='ghost'
-          size='icon'
-          onClick={() => openModal('serverSettings')}
-          className='ml-1 size-8 rounded-lg text-text-muted transition-opacity hover:bg-bg-modifier-hover hover:text-text-normal md:opacity-0 md:group-hover:opacity-100'
-          aria-label='Server settings'
-        >
-          <Settings size={18} />
-        </Button>
-        <Button
-          variant='ghost'
-          size='icon'
-          onClick={() => openModal('createChannel')}
-          className='ml-1 size-8 rounded-lg text-xl leading-none text-text-muted transition-opacity hover:bg-bg-modifier-hover hover:text-text-normal md:opacity-0 md:group-hover:opacity-100'
-          aria-label='Create channel'
-        >
-          +
-        </Button>
-      </SidebarHeader>
+    <SecondarySidebarLayout
+      header={
+        <>
+          <h2 className='flex-1 truncate text-sm font-semibold text-white'>
+            {server.name}
+          </h2>
+          <Button
+            variant='ghost'
+            size='icon'
+            onClick={() => openModal('inviteServer')}
+            className='ml-auto size-8 rounded-lg text-text-muted transition-opacity hover:bg-bg-modifier-hover hover:text-text-normal md:opacity-0 md:group-hover:opacity-100'
+            aria-label='Invite people'
+          >
+            <svg width='18' height='18' viewBox='0 0 24 24' fill='currentColor'>
+              <path d='M14 8.5a2.5 2.5 0 1 0-5 0 2.5 2.5 0 0 0 5 0M11.5 4a4.5 4.5 0 1 1 0 9 4.5 4.5 0 0 1 0-9M17.5 12a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3m0-5a3.5 3.5 0 1 1 0 7 3.5 3.5 0 0 1 0-7M3 19c0-3.04 2.46-5.5 5.5-5.5h6c3.04 0 5.5 2.46 5.5 5.5v1h-2v-1a3.5 3.5 0 0 0-3.5-3.5h-6A3.5 3.5 0 0 0 5 19v1H3zm18 1h-2v-1c0-.35-.07-.69-.18-1H21z' />
+            </svg>
+          </Button>
+          <Button
+            variant='ghost'
+            size='icon'
+            onClick={() => openModal('serverSettings')}
+            className='ml-1 size-8 rounded-lg text-text-muted transition-opacity hover:bg-bg-modifier-hover hover:text-text-normal md:opacity-0 md:group-hover:opacity-100'
+            aria-label='Server settings'
+          >
+            <Settings size={18} />
+          </Button>
+          <Button
+            variant='ghost'
+            size='icon'
+            onClick={() => openModal('createChannel')}
+            className='ml-1 size-8 rounded-lg text-xl leading-none text-text-muted transition-opacity hover:bg-bg-modifier-hover hover:text-text-normal md:opacity-0 md:group-hover:opacity-100'
+            aria-label='Create channel'
+          >
+            +
+          </Button>
+        </>
+      }
+      content={
+        <>
+          {uncategorized.length > 0 && (
+            <CategorySection
+              category={null}
+              channels={uncategorized}
+              activeChannelId={channelId}
+              onChannelClick={handleChannelClick}
+              onAddChannel={handleAddChannel}
+            />
+          )}
 
-      <SidebarContent className='mt-1.5 quarrel-panel border-none px-1 py-1'>
-        {uncategorized.length > 0 && (
-          <CategorySection
-            category={null}
-            channels={uncategorized}
-            activeChannelId={channelId}
-            onChannelClick={handleChannelClick}
-            onAddChannel={handleAddChannel}
-          />
-        )}
-
-        {categorized.map(({ category, channels: catChannels }: any) => (
-          <CategorySection
-            key={category.id}
-            category={category}
-            channels={catChannels}
-            activeChannelId={channelId}
-            onChannelClick={handleChannelClick}
-            onAddChannel={handleAddChannel}
-          />
-        ))}
-      </SidebarContent>
-
-      <SidebarFooter className='mt-1.5 gap-1.5 p-0'>
-        <VoiceConnectionBar />
-        <UserBar />
-      </SidebarFooter>
-    </Sidebar>
+          {categorized.map(({ category, channels: catChannels }: any) => (
+            <CategorySection
+              key={category.id}
+              category={category}
+              channels={catChannels}
+              activeChannelId={channelId}
+              onChannelClick={handleChannelClick}
+              onAddChannel={handleAddChannel}
+            />
+          ))}
+        </>
+      }
+      footer={
+        <>
+          <VoiceConnectionBar />
+          <UserBar />
+        </>
+      }
+    />
   );
 }

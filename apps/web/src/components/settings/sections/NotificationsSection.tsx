@@ -40,7 +40,7 @@ export function NotificationsSection() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-8">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-text-muted border-t-white" />
+        <div className="h-6 w-6 animate-spin border-2 border-text-muted border-t-white" />
       </div>
     );
   }
@@ -50,7 +50,7 @@ export function NotificationsSection() {
       <h1 className="mb-5 text-xl font-bold text-white">Notifications</h1>
 
       {success && (
-        <div className='mb-3 rounded-lg border border-brand/30 bg-brand/10 p-2 text-sm text-brand-light'>
+        <div className='mb-3 border border-brand/30 bg-brand/10 p-2 text-sm text-brand-light'>
           {success}
         </div>
       )}
@@ -61,7 +61,7 @@ export function NotificationsSection() {
           <CardTitle className='text-sm text-white'>General</CardTitle>
         </CardHeader>
         <CardContent className='pb-4'>
-        <div className="flex items-center justify-between rounded-lg bg-bg-tertiary p-4">
+        <div className="flex items-center justify-between bg-bg-tertiary p-4">
           <div>
             <h3 className="text-sm font-medium text-white">Enable Notifications</h3>
             <p className="text-xs text-text-muted">
@@ -80,7 +80,7 @@ export function NotificationsSection() {
       {/* Notification Sounds */}
       <Card className='mb-6 border-white/10 bg-bg-tertiary/65 py-0'>
         <CardContent className='pt-5 pb-5'>
-        <div className="flex items-center justify-between rounded-lg bg-bg-tertiary p-4">
+        <div className="flex items-center justify-between bg-bg-tertiary p-4">
           <div>
             <h3 className="text-sm font-medium text-white">Notification Sounds</h3>
             <p className="text-xs text-text-muted">
@@ -99,7 +99,7 @@ export function NotificationsSection() {
       <Button
         onClick={handleSave}
         disabled={saving}
-        className='rounded-xl bg-brand px-4 py-2 font-medium text-white hover:bg-brand-hover disabled:opacity-50'
+        className=' bg-brand px-4 py-2 font-medium text-white hover:bg-brand-hover disabled:opacity-50'
       >
         {saving ? 'Saving...' : 'Save Changes'}
       </Button>

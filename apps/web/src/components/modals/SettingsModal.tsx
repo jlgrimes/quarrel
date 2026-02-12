@@ -81,7 +81,7 @@ export default function SettingsModal() {
       onClose={closeModal}
     >
       {error && (
-        <div className='mb-4 rounded-lg border border-red/30 bg-red/10 p-2 text-sm text-red'>
+        <div className='mb-4 border border-red/30 bg-red/10 p-2 text-sm text-red'>
           {error}
         </div>
       )}
@@ -108,12 +108,12 @@ export default function SettingsModal() {
                   {(user?.displayName || user?.username || '?')[0].toUpperCase()}
                 </AvatarFallback>
               </Avatar>
-              <div className='absolute inset-0 flex items-center justify-center rounded-full bg-black/60 opacity-0 transition-opacity group-hover:opacity-100'>
+              <div className='absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 transition-opacity group-hover:opacity-100'>
                 <span className='text-xs font-medium text-white'>Change</span>
               </div>
               {uploadAvatar.isPending && (
-                <div className='absolute inset-0 flex items-center justify-center rounded-full bg-black/60'>
-                  <div className='h-6 w-6 animate-spin rounded-full border-2 border-white/30 border-t-white' />
+                <div className='absolute inset-0 flex items-center justify-center bg-black/60'>
+                  <div className='h-6 w-6 animate-spin border-2 border-white/30 border-t-white' />
                 </div>
               )}
             </div>
@@ -146,7 +146,7 @@ export default function SettingsModal() {
               type='text'
               value={displayName}
               onChange={e => setDisplayName(e.target.value)}
-              className='mt-2 h-auto rounded-xl border border-white/10 bg-bg-tertiary/85 p-2 text-base font-normal text-text-normal shadow-none normal-case'
+              className='mt-2 h-auto border border-white/10 bg-bg-tertiary/85 p-2 text-base font-normal text-text-normal shadow-none normal-case'
             />
           </label>
 
@@ -156,7 +156,7 @@ export default function SettingsModal() {
               type='text'
               value={customStatus}
               onChange={e => setCustomStatus(e.target.value)}
-              className='mt-2 h-auto rounded-xl border border-white/10 bg-bg-tertiary/85 p-2 text-base font-normal text-text-normal shadow-none normal-case'
+              className='mt-2 h-auto border border-white/10 bg-bg-tertiary/85 p-2 text-base font-normal text-text-normal shadow-none normal-case'
               placeholder="What's on your mind?"
             />
           </label>
@@ -203,7 +203,7 @@ export default function SettingsModal() {
             <Button
               onClick={requestBrowserPermission}
               size='sm'
-              className='mt-1 rounded bg-brand px-3 py-1 text-xs text-white hover:bg-brand-hover'
+              className='mt-1 bg-brand px-3 py-1 text-xs text-white hover:bg-brand-hover'
             >
               {browserPermission === 'denied' ? 'Permission Denied' : 'Allow Browser Notifications'}
             </Button>
@@ -215,13 +215,13 @@ export default function SettingsModal() {
         <Button
           onClick={handleSave}
           disabled={saving}
-          className='flex-1 rounded-xl bg-brand p-2.5 font-medium text-white hover:bg-brand-hover disabled:opacity-50'
+          className='flex-1 bg-brand p-2.5 font-medium text-white hover:bg-brand-hover disabled:opacity-50'
         >
           {saving ? 'Saving...' : 'Save'}
         </Button>
         <Button
           onClick={handleLogout}
-          className='rounded-xl bg-red px-4 p-2.5 font-medium text-white hover:bg-red-hover'
+          className=' bg-red px-4 p-2.5 font-medium text-white hover:bg-red-hover'
         >
           Log Out
         </Button>

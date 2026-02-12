@@ -95,7 +95,7 @@ export default function ServerSidebar() {
 
   return (
     <aside
-      className={`quarrel-panel mr-1 flex w-[66px] shrink-0 flex-col overflow-y-auto p-1 max-md:fixed max-md:inset-y-1 max-md:left-1 max-md:z-50 max-md:w-[62px] max-md:transition-transform max-md:duration-200 ${
+      className={`quarrel-panel flex w-[66px] shrink-0 flex-col overflow-y-auto p-1 max-md:fixed max-md:inset-y-1 max-md:left-1 max-md:z-50 max-md:w-[62px] max-md:transition-transform max-md:duration-200 ${
         mobileSidebarOpen
           ? 'max-md:translate-x-0'
           : 'max-md:-translate-x-full max-md:pointer-events-none'

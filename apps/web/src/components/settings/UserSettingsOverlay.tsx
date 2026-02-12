@@ -28,7 +28,7 @@ const SECTIONS = [
 type SectionId = (typeof SECTIONS)[number]['id'];
 
 export default function UserSettingsOverlay() {
-  const closeModal = useUIStore((s) => s.closeModal);
+  const closeModal = useUIStore(s => s.closeModal);
   const [activeSection, setActiveSection] = useState<SectionId>('account');
 
   const handleClose = useCallback(() => {
@@ -46,7 +46,7 @@ export default function UserSettingsOverlay() {
   };
 
   return (
-    <Dialog open onOpenChange={(open) => !open && handleClose()}>
+    <Dialog open onOpenChange={open => !open && handleClose()}>
       <DialogContent
         data-testid='settings-overlay'
         className='h-[82vh] max-h-[780px] w-[calc(100vw-2rem)] sm:max-w-5xl overflow-hidden border-white/10 bg-bg-secondary p-0'
@@ -61,10 +61,10 @@ export default function UserSettingsOverlay() {
         <Tabs
           orientation='vertical'
           value={activeSection}
-          onValueChange={(value) => handleSectionChange(value as SectionId)}
+          onValueChange={value => handleSectionChange(value as SectionId)}
           className='h-full min-h-0 w-full flex-row gap-0'
         >
-          <aside className='flex w-[240px] shrink-0 flex-col border-r border-white/10 bg-bg-tertiary/60 p-2'>
+          <aside className='flex shrink-0 flex-col border-r border-white/10 bg-bg-tertiary/60 p-2'>
             <h2 className='mb-2 px-2.5 text-xs font-bold uppercase text-text-muted'>
               User Settings
             </h2>
@@ -72,11 +72,11 @@ export default function UserSettingsOverlay() {
               className='h-auto w-full flex-col items-stretch bg-transparent p-0'
               variant='line'
             >
-              {SECTIONS.map((section) => (
+              {SECTIONS.map(section => (
                 <TabsTrigger
                   key={section.id}
                   value={section.id}
-                  className='justify-start rounded-md px-2.5 py-2 text-left text-sm text-text-label data-[state=active]:bg-bg-modifier-active data-[state=active]:text-white hover:bg-bg-modifier-hover hover:text-text-normal'
+                  className='justify-start px-2.5 py-2 text-left text-sm text-text-label data-[state=active]:bg-bg-modifier-active data-[state=active]:text-white hover:bg-bg-modifier-hover hover:text-text-normal'
                 >
                   {section.label}
                 </TabsTrigger>

@@ -10,6 +10,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { analytics } from '../lib/analytics';
+import { MainPaneLayout } from './layout/MainPaneLayout';
 
 type Tab = 'all' | 'online' | 'pending' | 'blocked';
 
@@ -70,9 +71,8 @@ export default function FriendsList() {
   ];
 
   return (
-    <div className="flex h-full flex-col px-1 pb-1.5 pt-1">
-      {/* Header with tabs */}
-      <div className="mb-1.5 flex h-12 shrink-0 items-center px-3">
+    <MainPaneLayout
+      header={
         <div className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto">
           <Button
             variant="ghost"
@@ -100,7 +100,8 @@ export default function FriendsList() {
             </TabsList>
           </Tabs>
         </div>
-      </div>
+      }
+    >
 
       {/* Add friend input */}
       <div className="quarrel-panel mb-1.5 p-3">
@@ -207,6 +208,6 @@ export default function FriendsList() {
           </div>
         )}
       </ScrollArea>
-    </div>
+    </MainPaneLayout>
   );
 }

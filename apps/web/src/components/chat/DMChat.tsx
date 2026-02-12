@@ -7,6 +7,7 @@ import { analytics } from '../../lib/analytics';
 import { normalizeChronological } from '../../lib/messageOrder';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { MainPaneLayout } from '../layout/MainPaneLayout';
 
 function formatTimestamp(dateStr: string) {
   const date = new Date(dateStr);
@@ -152,25 +153,28 @@ export function DMChat({
   const displayName = otherUser?.displayName || otherUser?.username || 'Direct Message';
 
   return (
-    <div className="flex flex-1 flex-col px-1 pb-1 pt-1">
-      {/* Header */}
-      <div className="quarrel-panel mb-1.5 flex h-12 shrink-0 items-center gap-2.5 border-none px-3">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setMobileSidebarOpen(true)}
-          className="mr-1 shrink-0 rounded-lg text-text-label hover:bg-bg-modifier-hover hover:text-white md:hidden"
-          aria-label="Open sidebar"
-        >
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z" />
-          </svg>
-        </Button>
-        <span className="text-text-muted text-xl">@</span>
-        <UserAvatar user={otherUser ? { displayName: otherUser.displayName, avatarUrl: otherUser.avatarUrl } : undefined} />
-        <span className="font-semibold text-white">{displayName}</span>
-        <StatusDot status={otherUser?.status} />
-      </div>
+    <MainPaneLayout
+      headerClassName="quarrel-panel gap-2.5 border-none"
+      header={
+        <>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setMobileSidebarOpen(true)}
+            className="mr-1 shrink-0 rounded-lg text-text-label hover:bg-bg-modifier-hover hover:text-white md:hidden"
+            aria-label="Open sidebar"
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z" />
+            </svg>
+          </Button>
+          <span className="text-text-muted text-xl">@</span>
+          <UserAvatar user={otherUser ? { displayName: otherUser.displayName, avatarUrl: otherUser.avatarUrl } : undefined} />
+          <span className="font-semibold text-white">{displayName}</span>
+          <StatusDot status={otherUser?.status} />
+        </>
+      }
+    >
 
       {/* Messages */}
       <div
@@ -278,6 +282,6 @@ export function DMChat({
           />
         </div>
       </div>
-    </div>
+    </MainPaneLayout>
   );
 }

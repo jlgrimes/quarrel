@@ -27,7 +27,6 @@ import DMSidebar from './components/navigation/DMSidebar';
 import MemberList from './components/navigation/MemberList';
 import MobileSidebar from './components/navigation/MobileSidebar';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 
 const CreateServerModal = lazy(
   () => import('./components/modals/CreateServerModal'),
@@ -71,14 +70,16 @@ function AppLayout() {
   useWebSocketEvents();
 
   return (
-    <div className='flex h-full overflow-hidden bg-transparent p-1'>
-      <ServerSidebar />
-      <div className='quarrel-shell flex min-w-0 flex-1 overflow-hidden'>
-        <Outlet />
+    <>
+      <div className='grid h-full grid-cols-[66px_minmax(0,1fr)] gap-1 overflow-hidden bg-transparent p-1'>
+        <ServerSidebar />
+        <div className='quarrel-shell flex min-w-0 overflow-hidden'>
+          <Outlet />
+        </div>
       </div>
       <ModalRenderer />
       <NotificationToast />
-    </div>
+    </>
   );
 }
 
@@ -86,28 +87,27 @@ function MobileAppLayout() {
   useWebSocketEvents();
 
   return (
-    <div className='flex h-full overflow-hidden bg-transparent p-1'>
-      <MobileSidebar />
-      <div className='quarrel-shell flex min-w-0 flex-1 flex-col pt-[env(safe-area-inset-top)]'>
-        <Outlet />
+    <>
+      <div className='flex h-full overflow-hidden bg-transparent p-1'>
+        <MobileSidebar />
+        <div className='quarrel-shell flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden pt-[env(safe-area-inset-top)]'>
+          <Outlet />
+        </div>
       </div>
       <ModalRenderer />
       <NotificationToast />
-    </div>
+    </>
   );
 }
 
 function DMAreaLayout() {
   return (
-    <SidebarProvider
-      className='min-h-0 h-full flex-1 min-w-0'
-      style={{ '--sidebar-width': '15rem' } as React.CSSProperties}
-    >
+    <div className='flex min-h-0 h-full flex-1 min-w-0'>
       <DMSidebar />
       <div className='flex min-w-0 flex-1 flex-col'>
         <Outlet />
       </div>
-    </SidebarProvider>
+    </div>
   );
 }
 
@@ -139,10 +139,7 @@ function ServerView() {
   }, [serverId, channelId, channels, navigate]);
 
   return (
-    <SidebarProvider
-      className='min-h-0 h-full flex-1 min-w-0'
-      style={{ '--sidebar-width': '15rem' } as React.CSSProperties}
-    >
+    <div className='flex min-h-0 h-full flex-1 min-w-0'>
       <ChannelSidebar />
       <div className='flex min-w-0 flex-1 flex-col'>
         {channelId ? (
@@ -153,7 +150,6 @@ function ServerView() {
           )
         ) : (
           <div className='flex flex-1 flex-col items-center justify-center text-text-muted'>
-            <SidebarTrigger className='mb-4 size-8 text-text-label hover:text-white md:hidden' />
             Select a channel
           </div>
         )}
@@ -161,7 +157,7 @@ function ServerView() {
       {showMemberList && serverId && (
         <MemberList serverId={serverId} className='max-md:hidden' />
       )}
-    </SidebarProvider>
+    </div>
   );
 }
 

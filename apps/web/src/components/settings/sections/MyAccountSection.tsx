@@ -108,12 +108,12 @@ export function MyAccountSection() {
         <CardContent className='pb-5'>
 
         {passwordError && (
-          <div className="mb-3 rounded-lg border border-red/30 bg-red/10 p-2 text-sm text-red">
+          <div className="mb-3 border border-red/30 bg-red/10 p-2 text-sm text-red">
             {passwordError}
           </div>
         )}
         {passwordSuccess && (
-          <div className="mb-3 rounded-lg border border-brand/30 bg-brand/10 p-2 text-sm text-brand-light">
+          <div className="mb-3 border border-brand/30 bg-brand/10 p-2 text-sm text-brand-light">
             {passwordSuccess}
           </div>
         )}
@@ -124,7 +124,7 @@ export function MyAccountSection() {
             type="password"
             value={currentPassword}
             onChange={(e) => setCurrentPassword(e.target.value)}
-            className="mt-2 h-auto rounded-xl border border-white/10 bg-bg-tertiary p-2 text-base font-normal text-text-normal shadow-none normal-case"
+            className="mt-2 h-auto border border-white/10 bg-bg-tertiary p-2 text-base font-normal text-text-normal shadow-none normal-case"
           />
         </label>
 
@@ -134,7 +134,7 @@ export function MyAccountSection() {
             type="password"
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
-            className="mt-2 h-auto rounded-xl border border-white/10 bg-bg-tertiary p-2 text-base font-normal text-text-normal shadow-none normal-case"
+            className="mt-2 h-auto border border-white/10 bg-bg-tertiary p-2 text-base font-normal text-text-normal shadow-none normal-case"
           />
         </label>
 
@@ -144,14 +144,14 @@ export function MyAccountSection() {
             type="password"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
-            className="mt-2 h-auto rounded-xl border border-white/10 bg-bg-tertiary p-2 text-base font-normal text-text-normal shadow-none normal-case"
+            className="mt-2 h-auto border border-white/10 bg-bg-tertiary p-2 text-base font-normal text-text-normal shadow-none normal-case"
           />
         </label>
 
         <Button
           onClick={handleChangePassword}
           disabled={changingPassword || !currentPassword || !newPassword || !confirmPassword}
-          className="rounded-xl bg-brand px-4 py-2 font-medium text-white hover:bg-brand-hover disabled:opacity-50"
+          className=" bg-brand px-4 py-2 font-medium text-white hover:bg-brand-hover disabled:opacity-50"
         >
           {changingPassword ? 'Changing...' : 'Change Password'}
         </Button>
@@ -166,7 +166,7 @@ export function MyAccountSection() {
             closeModal();
             await logout();
           }}
-          className="rounded-xl bg-bg-neutral px-4 py-2 font-medium text-white hover:bg-bg-neutral-hover"
+          className=" bg-bg-neutral px-4 py-2 font-medium text-white hover:bg-bg-neutral-hover"
         >
           Log Out
         </Button>
@@ -186,14 +186,14 @@ export function MyAccountSection() {
           <Button
             onClick={() => setShowDeleteConfirm(true)}
             variant="outline"
-            className="rounded-xl border-white/15 bg-bg-tertiary px-4 py-2 font-medium text-text-normal hover:bg-bg-modifier-hover hover:text-white"
+            className=" border-white/15 bg-bg-tertiary px-4 py-2 font-medium text-text-normal hover:bg-bg-modifier-hover hover:text-white"
           >
             Delete Account
           </Button>
         ) : (
           <div>
             {deleteError && (
-              <div className="mb-3 rounded bg-red/10 p-2 text-sm text-red">
+              <div className="mb-3 bg-red/10 p-2 text-sm text-red">
                 {deleteError}
               </div>
             )}
@@ -204,7 +204,7 @@ export function MyAccountSection() {
                 type="password"
                 value={deletePassword}
                 onChange={(e) => setDeletePassword(e.target.value)}
-                className="mt-2 h-auto rounded-xl border border-white/10 bg-bg-tertiary p-2 text-base font-normal text-text-normal shadow-none normal-case"
+                className="mt-2 h-auto border border-white/10 bg-bg-tertiary p-2 text-base font-normal text-text-normal shadow-none normal-case"
               />
             </label>
 
@@ -212,7 +212,7 @@ export function MyAccountSection() {
               <Button
                 onClick={handleDeleteAccount}
                 disabled={deleting || !deletePassword}
-                className="rounded-xl bg-red px-4 py-2 font-medium text-white hover:bg-red-hover disabled:opacity-50"
+                className=" bg-red px-4 py-2 font-medium text-white hover:bg-red-hover disabled:opacity-50"
               >
                 {deleting ? 'Deleting...' : 'Confirm Delete'}
               </Button>
@@ -222,7 +222,7 @@ export function MyAccountSection() {
                   setDeletePassword('');
                   setDeleteError('');
                 }}
-                className="rounded-xl bg-bg-neutral px-4 py-2 font-medium text-white hover:bg-bg-neutral-hover"
+                className=" bg-bg-neutral px-4 py-2 font-medium text-white hover:bg-bg-neutral-hover"
               >
                 Cancel
               </Button>

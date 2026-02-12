@@ -58,7 +58,7 @@ export function PrivacySection() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-8">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-text-muted border-t-white" />
+        <div className="h-6 w-6 animate-spin border-2 border-text-muted border-t-white" />
       </div>
     );
   }
@@ -68,7 +68,7 @@ export function PrivacySection() {
       <h1 className="mb-5 text-xl font-bold text-white">Privacy</h1>
 
       {success && (
-        <div className='mb-3 rounded-lg border border-brand/30 bg-brand/10 p-2 text-sm text-brand-light'>
+        <div className='mb-3 border border-brand/30 bg-brand/10 p-2 text-sm text-brand-light'>
           {success}
         </div>
       )}
@@ -85,7 +85,7 @@ export function PrivacySection() {
             value={allowDms}
             onValueChange={value => setAllowDms(value as typeof allowDms)}
           >
-            <SelectTrigger className='w-full rounded-xl border border-white/10 bg-bg-tertiary'>
+            <SelectTrigger className='w-full border border-white/10 bg-bg-tertiary'>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -100,7 +100,7 @@ export function PrivacySection() {
       <Button
         onClick={handleSave}
         disabled={saving}
-        className='mb-8 rounded-xl bg-brand px-4 py-2 font-medium text-white hover:bg-brand-hover disabled:opacity-50'
+        className='mb-8 bg-brand px-4 py-2 font-medium text-white hover:bg-brand-hover disabled:opacity-50'
       >
         {saving ? 'Saving...' : 'Save Changes'}
       </Button>
@@ -122,14 +122,14 @@ export function PrivacySection() {
               return (
                 <div
                   key={blocked.id}
-                  className="flex items-center justify-between rounded-lg bg-bg-tertiary p-3"
+                  className="flex items-center justify-between bg-bg-tertiary p-3"
                 >
                   <span className="text-sm text-white">
                     {u.username || 'Unknown'}
                   </span>
                   <Button
                     onClick={() => handleUnblock(blocked.id)}
-                    className="rounded-xl bg-bg-neutral px-3 py-1 text-xs font-medium text-white hover:bg-bg-neutral-hover"
+                    className=" bg-bg-neutral px-3 py-1 text-xs font-medium text-white hover:bg-bg-neutral-hover"
                   >
                     Unblock
                   </Button>
