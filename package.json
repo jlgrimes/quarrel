@@ -10,7 +10,13 @@
     "dev": "turbo dev",
     "build": "turbo build",
     "db:push": "turbo db:push --filter=@quarrel/db",
-    "db:generate": "turbo db:generate --filter=@quarrel/db"
+    "db:generate": "turbo db:generate --filter=@quarrel/db",
+    "ios:init": "cd apps/desktop && bun run ios:init",
+    "ios:dev": "cd apps/desktop && bun run ios:dev",
+    "ios:open": "cd apps/desktop && bun run ios:open",
+    "ios:build": "cd apps/desktop && bun run ios:build",
+    "ios:build:open": "cd apps/desktop && bun run ios:build:open",
+    "run:ios": "bun run ios:open"
   },
   "devDependencies": {
     "turbo": "^2.3.0",
