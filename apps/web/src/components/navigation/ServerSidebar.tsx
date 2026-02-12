@@ -97,17 +97,28 @@ export default function ServerSidebar() {
   const { data: servers = [] } = useServers();
   const openModal = useUIStore((s) => s.openModal);
   const mobileSidebarOpen = useUIStore((s) => s.mobileSidebarOpen);
+  const setMobileSidebarOpen = useUIStore((s) => s.setMobileSidebarOpen);
 
   const handleServerClick = useCallback((server: { id: string }) => {
     navigate(`/channels/${server.id}`);
-  }, [navigate]);
+    setMobileSidebarOpen(false);
+  }, [navigate, setMobileSidebarOpen]);
 
   return (
-    <div className={`w-[72px] bg-bg-tertiary flex flex-col items-center py-3 overflow-y-auto shrink-0 ${mobileSidebarOpen ? 'max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:z-50' : 'max-md:hidden'}`}>
+    <div
+      className={`w-[72px] bg-bg-tertiary flex flex-col items-center py-3 overflow-y-auto shrink-0 max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:z-50 max-md:transition-transform max-md:duration-200 ${
+        mobileSidebarOpen
+          ? 'max-md:translate-x-0'
+          : 'max-md:-translate-x-full max-md:pointer-events-none'
+      }`}
+    >
       <div className="relative flex items-center justify-center mb-2 group">
         <Button
           variant="ghost"
-          onClick={() => navigate('/channels/@me')}
+          onClick={() => {
+            navigate('/channels/@me');
+            setMobileSidebarOpen(false);
+          }}
           className={`w-12 h-12 p-0 transition-all duration-200 font-bold text-xl ${
             !serverId
               ? 'bg-brand rounded-[16px] text-white hover:bg-brand'

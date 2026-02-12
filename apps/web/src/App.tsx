@@ -18,7 +18,7 @@ import ChannelSidebar from './components/navigation/ChannelSidebar';
 import DMSidebar from './components/navigation/DMSidebar';
 import MemberList from './components/navigation/MemberList';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import { SidebarProvider, SidebarTrigger, useSidebar } from '@/components/ui/sidebar';
+import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 
 const CreateServerModal = lazy(() => import('./components/modals/CreateServerModal'));
 const JoinServerModal = lazy(() => import('./components/modals/JoinServerModal'));
@@ -48,28 +48,6 @@ function ModalRenderer() {
   );
 }
 
-function MobileSidebarSync() {
-  const { openMobile, setOpenMobile } = useSidebar();
-  const mobileSidebarOpen = useUIStore((s) => s.mobileSidebarOpen);
-  const setMobileSidebarOpen = useUIStore((s) => s.setMobileSidebarOpen);
-
-  // Sync shadcn openMobile → uiStore mobileSidebarOpen
-  useEffect(() => {
-    if (mobileSidebarOpen !== openMobile) {
-      setMobileSidebarOpen(openMobile);
-    }
-  }, [openMobile, mobileSidebarOpen, setMobileSidebarOpen]);
-
-  // Sync uiStore mobileSidebarOpen → shadcn openMobile
-  useEffect(() => {
-    if (openMobile !== mobileSidebarOpen) {
-      setOpenMobile(mobileSidebarOpen);
-    }
-  }, [mobileSidebarOpen, openMobile, setOpenMobile]);
-
-  return null;
-}
-
 function AppLayout() {
   useWebSocketEvents();
 
@@ -93,7 +71,6 @@ function DMAreaLayout() {
       <div className="flex flex-1 flex-col bg-bg-primary min-w-0">
         <Outlet />
       </div>
-      <MobileSidebarSync />
     </SidebarProvider>
   );
 }
@@ -145,7 +122,6 @@ function ServerView() {
         )}
       </div>
       {showMemberList && serverId && <MemberList serverId={serverId} className="max-md:hidden" />}
-      <MobileSidebarSync />
     </SidebarProvider>
   );
 }

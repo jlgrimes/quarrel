@@ -187,8 +187,7 @@ function Sidebar({
           data-slot="sidebar"
           data-mobile="true"
           className={cn(
-            "bg-sidebar text-sidebar-foreground fixed left-[72px] z-50 flex h-auto w-(--sidebar-width) flex-col",
-            "top-[env(safe-area-inset-top)] bottom-[env(safe-area-inset-bottom)]",
+            "bg-sidebar text-sidebar-foreground fixed inset-y-0 left-[72px] z-50 flex h-svh w-(--sidebar-width) flex-col pt-[env(safe-area-inset-top)]",
             className
           )}
           {...props}
@@ -223,8 +222,7 @@ function Sidebar({
       <div
         data-slot="sidebar-container"
         className={cn(
-          "fixed z-10 hidden h-auto w-(--sidebar-width) transition-[left,right,width] duration-200 ease-linear md:flex",
-          "top-[env(safe-area-inset-top)] bottom-[env(safe-area-inset-bottom)]",
+          "fixed inset-y-0 z-10 hidden h-svh w-(--sidebar-width) pt-[env(safe-area-inset-top)] transition-[left,right,width] duration-200 ease-linear md:flex",
           side === "left"
             ? "left-[72px] group-data-[collapsible=offcanvas]:left-[calc(var(--sidebar-width)*-1)]"
             : "right-0 group-data-[collapsible=offcanvas]:right-[calc(var(--sidebar-width)*-1)]",
