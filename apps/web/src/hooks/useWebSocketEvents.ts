@@ -11,6 +11,7 @@ import { useWebSocketNotifications } from './useNotifications';
 
 export function useWebSocketEvents() {
   const token = useAuthStore((s) => s.token);
+  const currentUserId = useAuthStore((s) => s.user?.id);
   const url = token ? getWsUrl(token) : null;
   const didAuth = useRef(false);
 
@@ -58,14 +59,24 @@ export function useWebSocketEvents() {
             ],
           };
         });
-        // Only bump unread counts here. Read state is updated when entering a chat.
+
+        const path = window.location.pathname;
+        const channelMatch = path.match(/\/channels\/[^/]+\/([^/]+)/);
+        const dmMatch = path.match(/\/channels\/@me\/([^/]+)/);
+        const activeChannelId = dmMatch?.[1] ?? channelMatch?.[1];
+        const isViewingChannel = activeChannelId === msg.channelId && !document.hidden;
+        const isOwnMessage = msg.authorId === currentUserId;
+
+        // Keep read state in sync with what the user can currently see.
         for (const query of queryClient.getQueryCache().findAll({ queryKey: ['channels'] })) {
           const channels = queryClient.getQueryData<any[]>(query.queryKey);
           if (channels?.some((ch: any) => ch.id === msg.channelId)) {
             queryClient.setQueryData<any[]>(query.queryKey, (old) =>
               old?.map((ch) =>
                 ch.id === msg.channelId
-                  ? { ...ch, unreadCount: (ch.unreadCount ?? 0) + 1 }
+                  ? isOwnMessage || isViewingChannel
+                    ? { ...ch, unreadCount: 0, lastReadMessageId: msg.id }
+                    : { ...ch, unreadCount: (ch.unreadCount ?? 0) + 1 }
                   : ch
               )
             );
@@ -260,7 +271,7 @@ export function useWebSocketEvents() {
         break;
       }
     }
-  }, [lastJsonMessage]);
+  }, [lastJsonMessage, currentUserId]);
 
   // Trigger notifications for incoming events
   useWebSocketNotifications(lastJsonMessage);

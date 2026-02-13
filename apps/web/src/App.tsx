@@ -26,7 +26,9 @@ import ChannelSidebar from './components/navigation/ChannelSidebar';
 import DMSidebar from './components/navigation/DMSidebar';
 import MemberList from './components/navigation/MemberList';
 import MobileSidebar from './components/navigation/MobileSidebar';
+import { VoiceConnectionBar } from './components/voice/VoiceConnectionBar';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { useVoiceStore } from './stores/voiceStore';
 
 const CreateServerModal = lazy(
   () => import('./components/modals/CreateServerModal'),
@@ -85,15 +87,27 @@ function AppLayout() {
 
 function MobileAppLayout() {
   useWebSocketEvents();
+  const currentChannelId = useVoiceStore(s => s.currentChannelId);
 
   return (
     <>
       <div className='flex h-full overflow-hidden bg-transparent p-1'>
         <MobileSidebar />
-        <div className='quarrel-shell flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden pt-[env(safe-area-inset-top)]'>
+        <div
+          className={`quarrel-shell flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden pt-[env(safe-area-inset-top)] ${
+            currentChannelId ? 'pb-[112px]' : ''
+          }`}
+        >
           <Outlet />
         </div>
       </div>
+      {currentChannelId && (
+        <div className='pointer-events-none fixed inset-x-1 bottom-1 z-30 md:hidden'>
+          <div className='pointer-events-auto overflow-hidden rounded-xl border border-bg-tertiary/70 bg-bg-tertiary/95 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-bg-tertiary/90'>
+            <VoiceConnectionBar />
+          </div>
+        </div>
+      )}
       <ModalRenderer />
       <NotificationToast />
     </>
@@ -165,7 +179,6 @@ function MobileServerView() {
   const { serverId, channelId } = useParams();
   const navigate = useNavigate();
   const setActiveChannel = useUIStore(s => s.setActiveChannel);
-  const setMobileSidebarOpen = useUIStore(s => s.setMobileSidebarOpen);
   const { data: channels = [] } = useChannels(serverId);
 
   const activeChannel = useMemo(
@@ -187,14 +200,16 @@ function MobileServerView() {
   }, [serverId, channelId, channels, navigate]);
 
   if (!channelId) {
+    if (channels.length > 0) {
+      return (
+        <div className='flex flex-1 items-center justify-center text-sm text-text-muted'>
+          Opening channel...
+        </div>
+      );
+    }
+
     return (
       <div className='flex flex-1 flex-col items-center justify-center text-text-muted'>
-        <button
-          className='mb-3 rounded-md bg-bg-modifier-hover px-3 py-2 text-sm text-white'
-          onClick={() => setMobileSidebarOpen(true)}
-        >
-          Open sidebar
-        </button>
         Select a channel
       </div>
     );

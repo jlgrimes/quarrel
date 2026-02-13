@@ -32,4 +32,13 @@ describe('normalizeChronological', () => {
 
     expect(result.map((m) => m.id)).toEqual(['user-msg', 'bot-msg']);
   });
+
+  it('puts user messages before agent messages when timestamps are identical', () => {
+    const result = normalizeChronological([
+      { id: 'agent-msg', createdAt: '2024-01-01T00:01:00.000Z', author: { isBot: true } },
+      { id: 'user-msg', createdAt: '2024-01-01T00:01:00.000Z', author: { isBot: false } },
+    ]);
+
+    expect(result.map((m) => m.id)).toEqual(['user-msg', 'agent-msg']);
+  });
 });

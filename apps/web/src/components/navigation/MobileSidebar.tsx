@@ -5,7 +5,6 @@ import { useServers } from '../../hooks/useServers';
 import { useChannels } from '../../hooks/useChannels';
 import { useConversations } from '../../hooks/useDMs';
 import { useUIStore } from '../../stores/uiStore';
-import { VoiceConnectionBar } from '../voice/VoiceConnectionBar';
 import UserBar from './UserBar';
 import { Button } from '@/components/ui/button';
 
@@ -236,7 +235,6 @@ export default function MobileSidebar() {
           </div>
 
           <div className='shrink-0 border-t border-bg-tertiary pb-[env(safe-area-inset-bottom)]'>
-            <VoiceConnectionBar />
             <UserBar />
           </div>
         </div>

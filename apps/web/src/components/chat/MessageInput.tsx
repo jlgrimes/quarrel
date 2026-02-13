@@ -17,6 +17,10 @@ type MessageInputProps =
   | { channelId: string; channelName: string; members?: Member[] }
   | { conversationId: string; dmDisplayName: string };
 
+function escapeRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 export function MessageInput(props: MessageInputProps) {
   const isDM = 'conversationId' in props;
   const channelId = !isDM ? props.channelId : undefined;
@@ -63,6 +67,32 @@ export function MessageInput(props: MessageInputProps) {
     return results.slice(0, 8);
   }, [mentionQuery, members]);
 
+  const mentionAliases = useMemo(() => {
+    if (!members) return [];
+    const aliases: Array<{ alias: string; userId: string }> = [{ alias: 'everyone', userId: 'everyone' }];
+    const seen = new Set<string>(['everyone']);
+    for (const m of members) {
+      const displayName = (m.user?.displayName ?? m.nickname ?? '').trim();
+      const username = (m.user?.username ?? '').trim();
+      if (displayName) {
+        const key = displayName.toLowerCase();
+        if (!seen.has(key)) {
+          aliases.push({ alias: displayName, userId: m.userId });
+          seen.add(key);
+        }
+      }
+      if (username) {
+        const key = username.toLowerCase();
+        if (!seen.has(key)) {
+          aliases.push({ alias: username, userId: m.userId });
+          seen.add(key);
+        }
+      }
+    }
+    aliases.sort((a, b) => b.alias.length - a.alias.length);
+    return aliases;
+  }, [members]);
+
   const handleSend = useCallback(async () => {
     const trimmed = content.trim();
     if (!trimmed) return;
@@ -71,8 +101,17 @@ export function MessageInput(props: MessageInputProps) {
       await sendDM.mutateAsync({ conversationId: conversationId!, content: trimmed });
       analytics.capture('dm:send', { conversationId });
     } else {
-      const hasMentions = /<@[a-zA-Z0-9-]+>/.test(trimmed);
-      await sendMessage.mutateAsync({ channelId: channelId!, content: trimmed, replyToId: replyingTo ?? undefined });
+      let encodedContent = trimmed;
+      for (const { alias, userId } of mentionAliases) {
+        const pattern = new RegExp(`(^|\\s)@${escapeRegex(alias)}(?=$|\\s|[.,!?])`, 'gi');
+        encodedContent = encodedContent.replace(pattern, (_match, prefix: string) => `${prefix}<@${userId}>`);
+      }
+      const hasMentions = /<@[a-zA-Z0-9-]+>/.test(encodedContent);
+      await sendMessage.mutateAsync({
+        channelId: channelId!,
+        content: encodedContent,
+        replyToId: replyingTo ?? undefined,
+      });
       analytics.capture('message:send', { channelId });
       if (hasMentions) {
         analytics.capture('message:mention', { channelId });
@@ -86,9 +125,19 @@ export function MessageInput(props: MessageInputProps) {
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
     }
-  }, [content, isDM, sendDM, conversationId, sendMessage, channelId, replyingTo, setReplyingTo]);
+  }, [
+    content,
+    isDM,
+    sendDM,
+    conversationId,
+    sendMessage,
+    channelId,
+    replyingTo,
+    setReplyingTo,
+    mentionAliases,
+  ]);
 
-  const insertMention = useCallback((userId: string, displayName: string) => {
+  const insertMention = useCallback((displayName: string) => {
     const textarea = textareaRef.current;
     if (!textarea) return;
     const text = textarea.value;
@@ -100,7 +149,7 @@ export function MessageInput(props: MessageInputProps) {
 
     const before = text.slice(0, atPos);
     const after = text.slice(cursorPos);
-    const mention = `<@${userId}> `;
+    const mention = `@${displayName} `;
     const newContent = before + mention + after;
     setContent(newContent);
     setMentionQuery(null);
@@ -129,7 +178,7 @@ export function MessageInput(props: MessageInputProps) {
         e.preventDefault();
         const selected = mentionSuggestions[mentionIndex];
         if (selected) {
-          insertMention(selected.userId, selected.displayName);
+          insertMention(selected.displayName);
         }
         return;
       }
@@ -223,18 +272,18 @@ export function MessageInput(props: MessageInputProps) {
       )}
       <div className={`relative quarrel-footer-card bg-bg-modifier-hover ${replyMessage ? 'rounded-b-xl' : 'rounded-xl'}`}>
         {mentionQuery !== null && mentionSuggestions.length > 0 && (
-          <div className="absolute bottom-full left-0 right-0 mb-1 bg-bg-secondary border border-bg-tertiary rounded-lg shadow-xl max-h-48 overflow-y-auto z-50">
+          <div className="absolute bottom-full left-0 mb-1 z-50 w-80 max-w-[min(32rem,calc(100vw-1.5rem))] overflow-y-auto rounded-lg border border-bg-tertiary bg-bg-secondary shadow-xl max-h-48">
             {mentionSuggestions.map((s, idx) => (
               <Button
                 key={s.userId}
                 variant="ghost"
                 size="sm"
-                className={`w-full text-left px-3 py-2 flex items-center gap-2 text-sm ${
+                className={`w-full justify-start px-3 py-2 text-left text-sm ${
                   idx === mentionIndex ? 'bg-brand text-white' : 'text-text-normal hover:bg-bg-modifier-hover'
                 }`}
                 onMouseDown={(e) => {
                   e.preventDefault();
-                  insertMention(s.userId, s.displayName);
+                  insertMention(s.displayName);
                 }}
                 onMouseEnter={() => setMentionIndex(idx)}
               >
