@@ -1,4 +1,4 @@
-import { memo, useEffect, useRef } from 'react';
+import { memo, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useConversations } from '../../hooks/useDMs';
 import { useAckDM } from '../../hooks/useReadState';
@@ -81,21 +81,11 @@ export default function DMSidebar() {
   const currentUser = useAuthStore(s => s.user);
   const { data: conversations = [], isLoading } = useConversations();
   const ackDM = useAckDM();
-  const prevConvIdRef = useRef<string | undefined>(conversationId);
 
   // Auto-ack when entering a DM conversation
   useEffect(() => {
     if (conversationId) {
       ackDM.mutate(conversationId);
-    }
-  }, [conversationId]);
-
-  // Ack previous conversation when switching
-  useEffect(() => {
-    const prev = prevConvIdRef.current;
-    prevConvIdRef.current = conversationId;
-    if (prev && prev !== conversationId) {
-      ackDM.mutate(prev);
     }
   }, [conversationId]);
 

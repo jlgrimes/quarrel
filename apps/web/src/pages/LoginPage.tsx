@@ -44,6 +44,8 @@ export default function LoginPage() {
           Email
           <Input
             type="email"
+            name="email"
+            autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="mt-2 h-auto rounded border-bg-modifier-hover bg-bg-tertiary p-2.5 text-base font-normal text-text-normal shadow-none normal-case focus-visible:border-brand focus-visible:ring-0"
@@ -55,6 +57,8 @@ export default function LoginPage() {
           Password
           <Input
             type="password"
+            name="password"
+            autoComplete="current-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className="mt-2 h-auto rounded border-bg-modifier-hover bg-bg-tertiary p-2.5 text-base font-normal text-text-normal shadow-none normal-case focus-visible:border-brand focus-visible:ring-0"

@@ -44,9 +44,10 @@ export default function FriendsList() {
   const filtered = useMemo(
     () =>
       friends.filter(f => {
+        const user = f.friend || f.user;
         if (tab === 'all') return f.status === 'accepted';
         if (tab === 'online')
-          return f.status === 'accepted' && f.friend?.status !== 'offline';
+          return f.status === 'accepted' && user?.status !== 'offline';
         if (tab === 'pending') return f.status === 'pending';
         if (tab === 'blocked') return f.status === 'blocked';
         return false;
@@ -134,26 +135,28 @@ export default function FriendsList() {
       }
     >
       {/* Add friend input */}
-      <div className='quarrel-panel mb-1.5 p-3'>
-        <h2 className='mb-2 text-sm font-bold uppercase text-white'>
+      <div className='quarrel-panel mb-1.5 px-4 py-3'>
+        <h2 className='mb-2 text-sm font-bold uppercase tracking-wide text-white'>
           Add Friend
         </h2>
-        <div className='quarrel-panel-soft flex items-center gap-2 p-1.5'>
+        <div className='flex items-center gap-2 rounded-xl border border-white/10 bg-bg-tertiary/60 px-3 py-2'>
           <Input
             type='text'
+            name='friendUsername'
+            autoComplete='off'
             value={addInput}
             onChange={e => {
               setAddInput(e.target.value);
               setAddStatus('');
             }}
             placeholder='Enter a username'
-            className='flex-1 border-none bg-transparent text-text-normal placeholder-text-muted shadow-none h-auto p-0'
+            className='h-9 flex-1 border-none bg-transparent p-0 text-base text-text-normal placeholder:text-text-muted shadow-none focus-visible:ring-0'
             onKeyDown={e => e.key === 'Enter' && handleAdd()}
           />
           <Button
             onClick={handleAdd}
             disabled={!addInput.trim()}
-            className='rounded bg-brand px-2 md:px-4 py-1.5 text-sm font-medium text-white hover:bg-brand-hover disabled:opacity-50 whitespace-nowrap'
+            className='h-9 rounded-lg bg-brand px-3 text-sm font-semibold text-white hover:bg-brand-hover disabled:opacity-50 whitespace-nowrap md:px-4'
           >
             <span className='hidden md:inline'>Send Friend Request</span>
             <span className='md:hidden'>Send</span>
@@ -165,11 +168,12 @@ export default function FriendsList() {
       </div>
 
       {/* Friends list */}
-      <ScrollArea className='quarrel-panel min-h-0 flex-1 p-2.5'>
-        <h3 className='mb-2 text-xs font-semibold uppercase text-text-muted'>
-          {tab} — {filtered.length}
-        </h3>
-        {filtered.map(friend => {
+      <ScrollArea className='quarrel-panel min-h-0 flex-1'>
+        <div className='p-2.5'>
+          <h3 className='mb-2 text-xs font-semibold uppercase text-text-muted'>
+            {tab} — {filtered.length}
+          </h3>
+          {filtered.map(friend => {
           const user = friend.friend || friend.user;
           return (
             <div
@@ -261,15 +265,16 @@ export default function FriendsList() {
               </Button>
             </div>
           );
-        })}
-        {filtered.length === 0 && (
-          <div className='mt-8 text-center text-text-muted'>
-            {tab === 'online' && 'No friends online right now.'}
-            {tab === 'all' && "You don't have any friends yet."}
-            {tab === 'pending' && 'No pending friend requests.'}
-            {tab === 'blocked' && 'No blocked users.'}
-          </div>
-        )}
+          })}
+          {filtered.length === 0 && (
+            <div className='mt-8 text-center text-text-muted'>
+              {tab === 'online' && 'No friends online right now.'}
+              {tab === 'all' && "You don't have any friends yet."}
+              {tab === 'pending' && 'No pending friend requests.'}
+              {tab === 'blocked' && 'No blocked users.'}
+            </div>
+          )}
+        </div>
       </ScrollArea>
     </MainPaneLayout>
   );

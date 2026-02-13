@@ -7,7 +7,6 @@ import { queryClient } from '../lib/queryClient';
 import { queryKeys } from './queryKeys';
 import { getWsUrl } from '../lib/getWsUrl';
 import { setWsSend } from '../lib/wsBridge';
-import { api } from '../lib/api';
 import { useWebSocketNotifications } from './useNotifications';
 
 export function useWebSocketEvents() {
@@ -59,41 +58,17 @@ export function useWebSocketEvents() {
             ],
           };
         });
-        // Auto-ack if the user is currently viewing this channel
-        const path = window.location.pathname;
-        const channelMatch = path.match(/\/channels\/[^/]+\/([^/]+)/);
-        const dmMatch = path.match(/\/channels\/@me\/([^/]+)/);
-        if (dmMatch && dmMatch[1] === msg.channelId) {
-          api.ackDM(msg.channelId).catch(() => {});
-        } else if (channelMatch && channelMatch[1] === msg.channelId) {
-          api.ackChannel(msg.channelId).then((data) => {
-            // Update lastReadMessageId in channel cache so "New Messages" divider clears
-            for (const query of queryClient.getQueryCache().findAll({ queryKey: ['channels'] })) {
-              const channels = queryClient.getQueryData<any[]>(query.queryKey);
-              if (channels?.some((ch: any) => ch.id === msg.channelId)) {
-                queryClient.setQueryData<any[]>(query.queryKey, (old) =>
-                  old?.map((ch) =>
-                    ch.id === msg.channelId
-                      ? { ...ch, unreadCount: 0, lastReadMessageId: data.lastReadMessageId }
-                      : ch
-                  )
-                );
-              }
-            }
-          }).catch(() => {});
-        } else {
-          // Increment unread count in sidebar for non-active channels
-          for (const query of queryClient.getQueryCache().findAll({ queryKey: ['channels'] })) {
-            const channels = queryClient.getQueryData<any[]>(query.queryKey);
-            if (channels?.some((ch: any) => ch.id === msg.channelId)) {
-              queryClient.setQueryData<any[]>(query.queryKey, (old) =>
-                old?.map((ch) =>
-                  ch.id === msg.channelId
-                    ? { ...ch, unreadCount: (ch.unreadCount ?? 0) + 1 }
-                    : ch
-                )
-              );
-            }
+        // Only bump unread counts here. Read state is updated when entering a chat.
+        for (const query of queryClient.getQueryCache().findAll({ queryKey: ['channels'] })) {
+          const channels = queryClient.getQueryData<any[]>(query.queryKey);
+          if (channels?.some((ch: any) => ch.id === msg.channelId)) {
+            queryClient.setQueryData<any[]>(query.queryKey, (old) =>
+              old?.map((ch) =>
+                ch.id === msg.channelId
+                  ? { ...ch, unreadCount: (ch.unreadCount ?? 0) + 1 }
+                  : ch
+              )
+            );
           }
         }
         break;

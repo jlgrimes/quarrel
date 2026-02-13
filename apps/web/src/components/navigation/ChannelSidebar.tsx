@@ -1,4 +1,4 @@
-import { memo, useCallback, useMemo, useEffect, useRef } from 'react';
+import { memo, useCallback, useMemo, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useServers } from '../../hooks/useServers';
 import { useChannels } from '../../hooks/useChannels';
@@ -169,7 +169,6 @@ export default function ChannelSidebar() {
   const { data: channels = [] } = useChannels(serverId);
   const openModal = useUIStore(s => s.openModal);
   const ackChannel = useAckChannel();
-  const prevChannelIdRef = useRef<string | undefined>(channelId);
 
   const server = servers.find(s => s.id === serverId);
 
@@ -177,15 +176,6 @@ export default function ChannelSidebar() {
   useEffect(() => {
     if (channelId) {
       ackChannel.mutate(channelId);
-    }
-  }, [channelId]);
-
-  // Ack previous channel when switching
-  useEffect(() => {
-    const prev = prevChannelIdRef.current;
-    prevChannelIdRef.current = channelId;
-    if (prev && prev !== channelId) {
-      ackChannel.mutate(prev);
     }
   }, [channelId]);
 

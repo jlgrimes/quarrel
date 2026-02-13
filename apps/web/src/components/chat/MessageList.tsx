@@ -262,10 +262,9 @@ function ReplyIndicator({ replyToId, messages }: { replyToId: string; messages: 
 export function MessageList({ channelId, lastReadMessageId, members: membersList }: { channelId: string; lastReadMessageId?: string | null; members?: Member[] }) {
   const { data, hasPreviousPage, fetchPreviousPage, isFetchingPreviousPage } = useMessages(channelId);
   const currentUser = useAuthStore((s) => s.user);
-  const bottomRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const pickerRef = useRef<HTMLDivElement>(null);
-  const shouldAutoScroll = useRef(true);
+  const forceStickToBottomUntilRef = useRef(0);
   const [reactionPickerState, setReactionPickerState] = useState<{
     messageId: string;
     top: number;
@@ -290,18 +289,47 @@ export function MessageList({ channelId, lastReadMessageId, members: membersList
 
   const lastMessageId = messages[messages.length - 1]?.id;
 
+  const scrollToBottom = useCallback(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    el.scrollTop = el.scrollHeight;
+  }, []);
+
   useEffect(() => {
-    if (shouldAutoScroll.current) {
-      bottomRef.current?.scrollIntoView();
-    }
-  }, [lastMessageId]);
+    forceStickToBottomUntilRef.current = Date.now() + 1200;
+  }, [channelId]);
+
+  useEffect(() => {
+    const run = () => scrollToBottom();
+    run();
+    const rafId = requestAnimationFrame(run);
+    const t1 = window.setTimeout(run, 60);
+    const t2 = window.setTimeout(run, 180);
+    return () => {
+      cancelAnimationFrame(rafId);
+      window.clearTimeout(t1);
+      window.clearTimeout(t2);
+    };
+  }, [channelId, lastMessageId, scrollToBottom]);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    const contentEl = el?.firstElementChild;
+    if (!contentEl || typeof ResizeObserver === 'undefined') return;
+
+    const observer = new ResizeObserver(() => {
+      if (Date.now() <= forceStickToBottomUntilRef.current) {
+        scrollToBottom();
+      }
+    });
+
+    observer.observe(contentEl);
+    return () => observer.disconnect();
+  }, [channelId, scrollToBottom]);
 
   const handleScroll = useCallback(() => {
     const el = containerRef.current;
     if (!el) return;
-
-    const isNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 100;
-    shouldAutoScroll.current = isNearBottom;
 
     if (el.scrollTop < 100 && hasPreviousPage && !isFetchingPreviousPage) {
       const prevHeight = el.scrollHeight;
@@ -444,7 +472,7 @@ export function MessageList({ channelId, lastReadMessageId, members: membersList
               )}
 
               {showNewMessagesDivider && (
-                <div className="flex items-center mx-4 my-2">
+                <div className="flex items-center mx-4 my-4">
                   <div className="flex-1 h-px bg-red" />
                   <span className="px-2 text-xs text-red font-semibold">
                     New Messages
@@ -529,7 +557,6 @@ export function MessageList({ channelId, lastReadMessageId, members: membersList
         })}
       </div>
 
-      <div ref={bottomRef} />
       </div>
     </div>
   );

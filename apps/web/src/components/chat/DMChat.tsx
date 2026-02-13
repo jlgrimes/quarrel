@@ -1,12 +1,12 @@
-import { useEffect, useRef, useCallback, useMemo, useState, memo } from 'react';
+import { useEffect, useRef, useCallback, useMemo, memo } from 'react';
 import type { DirectMessage, Conversation } from '@quarrel/shared';
-import { useDMs, useSendDM } from '../../hooks/useDMs';
+import { useDMs } from '../../hooks/useDMs';
 import { useAuthStore } from '../../stores/authStore';
 import { useUIStore } from '../../stores/uiStore';
 import { analytics } from '../../lib/analytics';
 import { normalizeChronological } from '../../lib/messageOrder';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
+import { MessageInput } from './MessageInput';
 import { MainPaneLayout } from '../layout/MainPaneLayout';
 
 function formatTimestamp(dateStr: string) {
@@ -80,12 +80,8 @@ export function DMChat({
   const currentUser = useAuthStore((s) => s.user);
   const setMobileSidebarOpen = useUIStore((s) => s.setMobileSidebarOpen);
   const { data: dmData, isLoading, hasPreviousPage, fetchPreviousPage, isFetchingPreviousPage } = useDMs(conversationId);
-  const sendDM = useSendDM();
-  const [content, setContent] = useState('');
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const bottomRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const shouldAutoScroll = useRef(true);
+  const forceStickToBottomUntilRef = useRef(0);
 
   const otherUser = conversation?.members?.find((m) => m.id !== currentUser?.id) ?? conversation?.members?.[0];
 
@@ -96,11 +92,43 @@ export function DMChat({
 
   const lastMessageId = messages[messages.length - 1]?.id;
 
+  const scrollToBottom = useCallback(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    el.scrollTop = el.scrollHeight;
+  }, []);
+
   useEffect(() => {
-    if (shouldAutoScroll.current) {
-      bottomRef.current?.scrollIntoView();
-    }
-  }, [lastMessageId]);
+    forceStickToBottomUntilRef.current = Date.now() + 1200;
+  }, [conversationId]);
+
+  useEffect(() => {
+    const run = () => scrollToBottom();
+    run();
+    const rafId = requestAnimationFrame(run);
+    const t1 = window.setTimeout(run, 60);
+    const t2 = window.setTimeout(run, 180);
+    return () => {
+      cancelAnimationFrame(rafId);
+      window.clearTimeout(t1);
+      window.clearTimeout(t2);
+    };
+  }, [conversationId, lastMessageId, scrollToBottom]);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    const contentEl = el?.firstElementChild;
+    if (!contentEl || typeof ResizeObserver === 'undefined') return;
+
+    const observer = new ResizeObserver(() => {
+      if (Date.now() <= forceStickToBottomUntilRef.current) {
+        scrollToBottom();
+      }
+    });
+
+    observer.observe(contentEl);
+    return () => observer.disconnect();
+  }, [conversationId, scrollToBottom]);
 
   useEffect(() => {
     analytics.capture('dm:open', { conversationId });
@@ -109,9 +137,6 @@ export function DMChat({
   const handleScroll = useCallback(() => {
     const el = containerRef.current;
     if (!el) return;
-
-    const isNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 100;
-    shouldAutoScroll.current = isNearBottom;
 
     if (el.scrollTop < 100 && hasPreviousPage && !isFetchingPreviousPage) {
       const prevHeight = el.scrollHeight;
@@ -125,36 +150,11 @@ export function DMChat({
     }
   }, [hasPreviousPage, isFetchingPreviousPage, fetchPreviousPage]);
 
-  const handleSend = useCallback(async () => {
-    const trimmed = content.trim();
-    if (!trimmed) return;
-    await sendDM.mutateAsync({ conversationId, content: trimmed });
-    analytics.capture('dm:send', { conversationId });
-    setContent('');
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-    }
-  }, [content, conversationId, sendDM]);
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setContent(e.target.value);
-    const el = e.target;
-    el.style.height = 'auto';
-    el.style.height = Math.min(el.scrollHeight, 300) + 'px';
-  };
-
   const displayName = otherUser?.displayName || otherUser?.username || 'Direct Message';
 
   return (
     <MainPaneLayout
-      headerClassName="quarrel-panel gap-2.5 border-none"
+      headerClassName="gap-2.5 border-none"
       header={
         <>
           <Button
@@ -180,7 +180,7 @@ export function DMChat({
       <div
         ref={containerRef}
         onScroll={handleScroll}
-        className="quarrel-panel flex-1 overflow-y-auto overflow-x-hidden"
+        className="quarrel-panel border-none flex-1 overflow-y-auto overflow-x-hidden"
       >
         <div className="flex flex-col justify-end min-h-full">
         {hasPreviousPage && (
@@ -264,23 +264,15 @@ export function DMChat({
           })}
         </div>
 
-        <div ref={bottomRef} />
         </div>
       </div>
 
       {/* Input */}
-      <div className="mt-1.5 px-0 pb-1 shrink-0">
-        <div className="quarrel-panel-soft">
-          <Textarea
-            ref={textareaRef}
-            value={content}
-            onChange={handleChange}
-            onKeyDown={handleKeyDown}
-            placeholder={`Message @${displayName}`}
-            rows={1}
-            className="min-h-0 max-h-[300px] w-full resize-none border-none bg-transparent p-2 text-text-normal placeholder-text-muted shadow-none outline-none focus-visible:ring-0"
-          />
-        </div>
+      <div className="mt-1.5">
+        <MessageInput
+          conversationId={conversationId}
+          dmDisplayName={displayName}
+        />
       </div>
     </MainPaneLayout>
   );

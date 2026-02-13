@@ -46,10 +46,29 @@ export function useSendDM() {
 export function useCreateConversation() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (userId: string) => api.createConversation(userId),
+    mutationFn: async (userId: string) => {
+      const existingConversations =
+        qc.getQueryData<Conversation[]>(queryKeys.conversations) ?? [];
+
+      const existingConversation = existingConversations.find(
+        conversation =>
+          !conversation.isGroup &&
+          conversation.members?.some(member => member.id === userId),
+      );
+
+      if (existingConversation) {
+        return existingConversation;
+      }
+
+      return api.createConversation(userId);
+    },
     onSuccess: (conv) => {
       qc.setQueryData<Conversation[]>(queryKeys.conversations, (old) =>
-        old ? [...old, conv] : [conv],
+        old
+          ? old.some(existing => existing.id === conv.id)
+            ? old.map(existing => (existing.id === conv.id ? conv : existing))
+            : [...old, conv]
+          : [conv],
       );
     },
   });

@@ -305,4 +305,24 @@ describe('FriendsList with friends data', () => {
       expect(mockNavigate).toHaveBeenCalledWith('/channels/@me/conv-2');
     });
   });
+
+  it('does not show offline accepted friend in Online tab when relation uses user field', async () => {
+    friendsData = [
+      {
+        id: 'f4',
+        userId: 'u5',
+        friendId: 'u1',
+        status: 'accepted',
+        user: { id: 'u5', username: 'dave', displayName: 'Dave', status: 'offline' },
+      },
+    ];
+    const user = userEvent.setup();
+
+    render(<FriendsList />, { wrapper: Wrapper });
+
+    expect(screen.getByText('No friends online right now.')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('tab', { name: 'All' }));
+    expect(screen.getByText('Dave')).toBeInTheDocument();
+  });
 });

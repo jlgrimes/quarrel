@@ -107,7 +107,7 @@ export function ChatArea({
       {showPins && <PinnedMessages channelId={channelId} />}
 
       {/* Messages */}
-      <div className='quarrel-panel flex min-h-0 flex-1 flex-col overflow-hidden'>
+      <div className='quarrel-panel border-none flex min-h-0 flex-1 flex-col overflow-hidden'>
         <MessageList
           channelId={channelId}
           lastReadMessageId={(channel as any)?.lastReadMessageId}

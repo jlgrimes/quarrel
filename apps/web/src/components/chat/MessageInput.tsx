@@ -1,7 +1,8 @@
-import { useRef, useState, useCallback, useMemo } from 'react';
+import { useRef, useState, useCallback, useMemo, useEffect } from 'react';
 import type { Message, Member } from '@quarrel/shared';
 import { useSendMessage } from '../../hooks/useMessages';
 import { useMessages } from '../../hooks/useMessages';
+import { useSendDM } from '../../hooks/useDMs';
 import { useUIStore } from '../../stores/uiStore';
 import useWebSocket from 'react-use-websocket';
 import { useAuthStore } from '../../stores/authStore';
@@ -12,13 +13,25 @@ import { normalizeChronological } from '../../lib/messageOrder';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 
-export function MessageInput({ channelId, channelName, members }: { channelId: string; channelName: string; members?: Member[] }) {
+type MessageInputProps =
+  | { channelId: string; channelName: string; members?: Member[] }
+  | { conversationId: string; dmDisplayName: string };
+
+export function MessageInput(props: MessageInputProps) {
+  const isDM = 'conversationId' in props;
+  const channelId = !isDM ? props.channelId : undefined;
+  const channelName = !isDM ? props.channelName : undefined;
+  const members = !isDM ? props.members : undefined;
+  const conversationId = isDM ? props.conversationId : undefined;
+  const dmDisplayName = isDM ? props.dmDisplayName : undefined;
+  const focusKey = isDM ? conversationId : channelId;
   const [content, setContent] = useState('');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [mentionQuery, setMentionQuery] = useState<string | null>(null);
   const [mentionIndex, setMentionIndex] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const sendMessage = useSendMessage();
+  const sendDM = useSendDM();
   const replyingTo = useUIStore((s) => s.replyingTo);
   const setReplyingTo = useUIStore((s) => s.setReplyingTo);
   const { data } = useMessages(channelId);
@@ -30,7 +43,7 @@ export function MessageInput({ channelId, channelName, members }: { channelId: s
   const token = useAuthStore((s) => s.token);
   const { sendJsonMessage } = useWebSocket(token ? getWsUrl(token) : null, { share: true });
 
-  const replyMessage = replyingTo ? messages.find((m: Message) => m.id === replyingTo) : null;
+  const replyMessage = !isDM && replyingTo ? messages.find((m: Message) => m.id === replyingTo) : null;
 
   const mentionSuggestions = useMemo(() => {
     if (mentionQuery === null || !members) return [];
@@ -54,19 +67,26 @@ export function MessageInput({ channelId, channelName, members }: { channelId: s
     const trimmed = content.trim();
     if (!trimmed) return;
 
-    const hasMentions = /<@[a-zA-Z0-9-]+>/.test(trimmed);
-    await sendMessage.mutateAsync({ channelId, content: trimmed, replyToId: replyingTo ?? undefined });
-    analytics.capture('message:send', { channelId });
-    if (hasMentions) {
-      analytics.capture('message:mention', { channelId });
+    if (isDM) {
+      await sendDM.mutateAsync({ conversationId: conversationId!, content: trimmed });
+      analytics.capture('dm:send', { conversationId });
+    } else {
+      const hasMentions = /<@[a-zA-Z0-9-]+>/.test(trimmed);
+      await sendMessage.mutateAsync({ channelId: channelId!, content: trimmed, replyToId: replyingTo ?? undefined });
+      analytics.capture('message:send', { channelId });
+      if (hasMentions) {
+        analytics.capture('message:mention', { channelId });
+      }
     }
     setContent('');
-    setReplyingTo(null);
+    if (!isDM) {
+      setReplyingTo(null);
+    }
 
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
     }
-  }, [content, channelId, replyingTo, sendMessage, setReplyingTo]);
+  }, [content, isDM, sendDM, conversationId, sendMessage, channelId, replyingTo, setReplyingTo]);
 
   const insertMention = useCallback((userId: string, displayName: string) => {
     const textarea = textareaRef.current;
@@ -94,7 +114,7 @@ export function MessageInput({ channelId, channelName, members }: { channelId: s
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     // Mention autocomplete navigation
-    if (mentionQuery !== null && mentionSuggestions.length > 0) {
+    if (!isDM && mentionQuery !== null && mentionSuggestions.length > 0) {
       if (e.key === 'ArrowDown') {
         e.preventDefault();
         setMentionIndex((prev) => (prev + 1) % mentionSuggestions.length);
@@ -164,13 +184,23 @@ export function MessageInput({ channelId, channelName, members }: { channelId: s
     }
 
     // Send typing indicator (throttled)
-    if (!typingTimerRef.current) {
+    if (!isDM && channelId && !typingTimerRef.current) {
       sendJsonMessage({ event: 'typing:start', data: { channelId } });
       typingTimerRef.current = setTimeout(() => {
         typingTimerRef.current = null;
       }, 3000);
     }
   };
+
+  useEffect(() => {
+    requestAnimationFrame(() => {
+      const textarea = textareaRef.current;
+      if (!textarea) return;
+      textarea.focus();
+      const length = textarea.value.length;
+      textarea.setSelectionRange(length, length);
+    });
+  }, [focusKey]);
 
   return (
     <div className="px-1 pb-0 flex-shrink-0">
@@ -226,7 +256,7 @@ export function MessageInput({ channelId, channelName, members }: { channelId: s
           value={content}
           onChange={handleChange}
           onKeyDown={handleKeyDown}
-          placeholder={`Message #${channelName}`}
+          placeholder={isDM ? `Message @${dmDisplayName}` : `Message #${channelName}`}
           rows={1}
           className="w-full border-none bg-transparent text-text-normal placeholder-text-muted p-3 pr-10 resize-none shadow-none outline-none focus-visible:ring-0 max-h-[300px] min-h-[44px]"
         />

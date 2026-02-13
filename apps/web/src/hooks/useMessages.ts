@@ -3,13 +3,14 @@ import { api } from '../lib/api';
 import { queryKeys } from './queryKeys';
 import { queryClient } from '../lib/queryClient';
 
-export function useMessages(channelId: string) {
+export function useMessages(channelId: string | undefined) {
   return useInfiniteQuery({
-    queryKey: queryKeys.messages(channelId),
-    queryFn: ({ pageParam }) => api.getMessages(channelId, pageParam),
+    queryKey: queryKeys.messages(channelId ?? ''),
+    queryFn: ({ pageParam }) => api.getMessages(channelId!, pageParam),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: () => undefined,
     getPreviousPageParam: (firstPage) => firstPage.nextCursor ?? undefined,
+    enabled: !!channelId,
   });
 }
 
